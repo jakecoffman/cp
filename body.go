@@ -57,9 +57,7 @@ type Body struct {
 }
 
 func NewBody(mass, moment float64) Body {
-	return Body {
-
-	}
+	return Body{}
 }
 
 // body types

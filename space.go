@@ -78,7 +78,7 @@ func NewSpace() *Space {
 		constraints:          []Constraint{},
 		collisionHandlers:    map[int]CollisionHandler{},
 		postStepCallbacks:    []PostStepCallback{},
-		_staticBody: _staticBody,
+		_staticBody:          _staticBody,
 	}
 }
 

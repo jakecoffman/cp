@@ -1,8 +1,8 @@
 package physics
 
 import (
-	"time"
 	"math"
+	"time"
 )
 
 const INFINITY = math.MaxFloat64
@@ -186,26 +186,26 @@ type ConstraintPostSolveFunc func(*Constraint, *Space)
 type Constraint struct {
 	space *Space
 
-	a, b *Body
+	a, b           *Body
 	next_a, next_b *Constraint
 
 	maxForce, errorBias, maxBias float64
 
 	collideBodies bool
-	preSolve ConstraintPreSolveFunc
-	postSolve ConstraintPostSolveFunc
+	preSolve      ConstraintPreSolveFunc
+	postSolve     ConstraintPostSolveFunc
 
 	userData interface{}
 }
 
 type PinJoint struct {
-	constraint Constraint
+	constraint       Constraint
 	anchorA, anchorB Vector
-	dist float64
+	dist             float64
 
 	r1, r2 Vector
-	n Vector
-	nMass float64
+	n      Vector
+	nMass  float64
 
 	jnAcc, bias float64
 }
