@@ -68,7 +68,7 @@ type Arbiter struct {
 
 type ShapeMassInfo struct {
 	m, i, area float64
-	cog        Vector
+	cog        *Vector
 }
 
 // Shape Class
@@ -102,49 +102,10 @@ type SegmentQueryInfo struct {
 	alpha float64
 }
 
-type Shaper interface {
-	CacheData(*Shape, Transform) BB
-	Destroy(*Shape)
-	PointQuery(*Shape, Vector, *PointQueryInfo)
-	SegmentQuery(*Shape, Vector, Vector, float64, *SegmentQueryInfo)
-}
-
-type Shape struct {
-	class int // Shape Class enum
-
-	space    *Space
-	body     *Body
-	massInfo ShapeMassInfo
-	bb       BB
-
-	sensor   bool
-	e, u     float64
-	surfaceV Vector
-
-	userData interface{}
-
-	collisionType uint
-	filter        ShapeFilter
-
-	next, prev *Shape
-
-	hashid int
-}
-
 type Circle struct {
 	shape Shape
 	c, tc Vector
 	r     float64
-}
-
-type Segment struct {
-	shape Shape
-
-	a, b, n    Vector
-	ta, tb, tn Vector
-	r          float64
-
-	a_tangent, b_tangent float64
 }
 
 type SplittingPlane struct {
@@ -208,10 +169,6 @@ type PinJoint struct {
 	nMass  float64
 
 	jnAcc, bias float64
-}
-
-type Transform struct {
-	a, b, c, d, tx, ty float64
 }
 
 type BB struct{}

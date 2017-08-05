@@ -6,8 +6,8 @@ type Vector struct {
 	X, Y float64
 }
 
-func VectorZero() Vector {
-	return Vector{0, 0}
+func VectorZero() *Vector {
+	return &Vector{0, 0}
 }
 
 func (v *Vector) Equal(other *Vector) bool {
@@ -107,4 +107,27 @@ func (v *Vector) SlerpConst(other *Vector, a float64) *Vector {
 	dot := v.Normalize().Dot(other.Normalize())
 	omega := math.Acos(Clamp(dot, -1, 1))
 	return v.SLerp(other, math.Min(a, omega)/omega)
+}
+
+func (v *Vector) Clamp(length float64) *Vector {
+	if v.Dot(v) > length*length {
+		return v.Normalize().Mult(length)
+	}
+	return &Vector{v.X, v.Y}
+}
+
+func (v *Vector) LerpConst(other *Vector, d float64) *Vector {
+	return v.Add(other.Sub(v).Clamp(d))
+}
+
+func (v *Vector) Distance(other *Vector) float64 {
+	return v.Sub(other).Length()
+}
+
+func (v *Vector) DistanceSq(other *Vector) float64 {
+	return v.Sub(other).LengthSq()
+}
+
+func (v *Vector) Near(other *Vector, d float64) bool {
+	return v.DistanceSq(other) < d*d
 }

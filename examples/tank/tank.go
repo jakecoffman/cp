@@ -1,9 +1,11 @@
-// +build example
-
 package main
 
 import "github.com/jakecoffman/physics"
 
 func main() {
-	_ := physics.NewSpace()
+	var space *physics.Space = physics.NewSpace()
+	space.Iterations = 10
+	space.SleepTimeThreshold = 0.5
+
+
 }
