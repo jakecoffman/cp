@@ -170,15 +170,32 @@ type PinJoint struct {
 
 	jnAcc, bias float64
 }
+//
+//const (
+//	NO_GROUP = 0
+//	GRABBABLE_MASK_BIT = 1<<31
+//
+//)
 
 type ShapeFilter struct {
 	/// Two objects with the same non-zero group value do not collide.
 	/// This is generally used to group objects in a composite object together to disable self collisions.
-	group uint
+	group uintptr
 	/// A bitmask of user definable categories that this object belongs to.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
 	categories uint
 	/// A bitmask of user definable category types that this object object collides with.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
-	mask uint
+	mask int64
+}
+
+//var GrabFilter *ShapeFilter = &ShapeFilter{NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT}
+//var NotGrabbableFilter *ShapeFilter = &ShapeFilter{NO_GROUP, ^GRABBABLE_MASK_BIT, ^GRABBABLE_MASK_BIT}
+
+func MomentForBox(m, width, height float64) float64 {
+	return m * (width*width + height*height) / 12
+}
+
+func AreaForSegment(a, b *Vector, r float64) float64 {
+	return r * (math.Pi*r + 2*a.Distance(b))
 }

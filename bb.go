@@ -50,7 +50,7 @@ func (bb *BB) Expand(v *Vector) *BB {
 }
 
 func (bb *BB) Center() *Vector {
-	return Vector{bb.l, bb.b}.Lerp(&Vector{bb.r, bb.t}, 0.5)
+	return (&Vector{bb.l, bb.b}).Lerp(&Vector{bb.r, bb.t}, 0.5)
 }
 
 func (bb *BB) Area() float64 {

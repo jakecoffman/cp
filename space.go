@@ -29,8 +29,8 @@ type Space struct {
 	sleepingComponents []interface{} // <- IDK what this is
 
 	shapeIDCounter int
-	staticShapes   map[int]*Shape
-	dynamicShapes  map[int]*Shape
+	staticShapes   map[int]Shaper
+	dynamicShapes  map[int]Shaper
 
 	constraints []*Constraint
 
@@ -65,8 +65,8 @@ func NewSpace() *Space {
 		locked:               0,
 		stamp:                0,
 		shapeIDCounter:       0,
-		staticShapes:         map[int]*Shape{},
-		dynamicShapes:        map[int]*Shape{},
+		staticShapes:         map[int]Shaper{},
+		dynamicShapes:        map[int]Shaper{},
 		allocatedBuffers:     []interface{}{},
 		dynamicBodies:        []*Body{},
 		staticBodies:         []*Body{},
@@ -105,8 +105,8 @@ func (space *Space) Activate(body *Body) {
 	space.dynamicBodies = append(space.dynamicBodies, body)
 
 	for _, shape := range body.shapeList {
-		delete(space.staticShapes, shape.hashid)
-		space.dynamicShapes[shape.hashid] = shape
+		delete(space.staticShapes, shape.HashId())
+		space.dynamicShapes[shape.HashId()] = shape
 	}
 
 	for _, arbiter := range body.arbiterList {
@@ -143,4 +143,29 @@ func Contains(bodies []*Body, body *Body) bool {
 		}
 	}
 	return false
+}
+
+func (space *Space) AddShape(shape Shaper) Shaper {
+	var body *Body = shape.Body()
+
+	// TODO assertions
+
+	isStatic := body.GetType() == BODY_STATIC
+	if !isStatic {
+		body.Activate()
+	}
+
+	body.AddShape(shape)
+
+	space.shapeIDCounter += 1
+	shape.SetHashId(space.shapeIDCounter)
+
+	if isStatic {
+		space.staticShapes[shape.HashId()] = shape
+	} else {
+		space.dynamicShapes[shape.HashId()] = shape
+	}
+
+	shape.SetSpace(space)
+	return shape
 }

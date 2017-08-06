@@ -48,7 +48,7 @@ type Body struct {
 
 	space *Space
 
-	shapeList      []*Shape
+	shapeList      []Shaper
 	arbiterList    []*Arbiter
 	constraintList []*Constraint
 
@@ -91,7 +91,7 @@ func (body *Body) SetType(typ int) {
 		body.m_inv = INFINITY
 		body.i_inv = INFINITY
 
-		body.BodyAccumulateMassFromShapes()
+		body.AccumulateMassFromShapes()
 	} else {
 		body.m = INFINITY
 		body.i = INFINITY
@@ -118,7 +118,7 @@ func (body *Body) GetType() int {
 }
 
 // Should *only* be called when shapes with mass info are modified, added or removed.
-func (body *Body) BodyAccumulateMassFromShapes() {
+func (body *Body) AccumulateMassFromShapes() {
 	if body == nil || body.GetType() != BODY_DYNAMIC {
 		return
 	}
@@ -131,10 +131,10 @@ func (body *Body) BodyAccumulateMassFromShapes() {
 	pos := body.Position()
 
 	for _, shape := range body.shapeList {
-		info := shape.massInfo
+		info := shape.MassInfo()
 		m := info.m
 
-		if shape.massInfo.m > 0 {
+		if info.m > 0 {
 			msum := body.m + m
 			body.i += m*info.i + body.cog.DistanceSq(info.cog)*(m*body.m)/msum
 			body.cog = body.cog.Lerp(info.cog, m/msum)
@@ -225,6 +225,13 @@ func (body *Body) IsSleeping() bool {
 	return body.sleeping.root != nil
 }
 
+func (body *Body) AddShape(shape Shaper) {
+	body.shapeList = append(body.shapeList, shape)
+	if shape.MassInfo().m > 0 {
+		body.AccumulateMassFromShapes()
+	}
+}
+
 func BodyUpdateVelocity(body *Body, gravity *Vector, damping, dt float64) {
 	if body.GetType() == BODY_KINEMATIC {
 		return
@@ -245,8 +252,4 @@ func BodyUpdatePosition(body *Body, dt float64) {
 
 	body.v_bias = VectorZero()
 	body.w_bias = 0
-}
-
-func (body *Body) NewSegment(a, b Vector, r float64) *Segment {
-	NewSegment()
 }
