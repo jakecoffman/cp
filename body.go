@@ -149,7 +149,7 @@ func (body *Body) BodyAccumulateMassFromShapes() {
 }
 
 func (body *Body) Position() *Vector {
-	return TransformPoint(body.transform, body.p)
+	return body.transform.Point(body.p)
 }
 
 func (body *Body) SetPosition(position *Vector) {
@@ -162,7 +162,7 @@ func (body *Body) SetTransform(p *Vector, a float64) {
 	rot := ForAngle(a)
 	c := body.cog
 
-	body.transform = TransformNewTranspose(
+	body.transform = NewTransformTranspose(
 		rot.X, -rot.Y, p.X-(c.X*rot.X-c.Y*rot.Y),
 		rot.Y, rot.X, p.Y-(c.X*rot.Y+c.Y*rot.X),
 	)

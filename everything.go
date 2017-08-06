@@ -171,8 +171,6 @@ type PinJoint struct {
 	jnAcc, bias float64
 }
 
-type BB struct{}
-
 type ShapeFilter struct {
 	/// Two objects with the same non-zero group value do not collide.
 	/// This is generally used to group objects in a composite object together to disable self collisions.
