@@ -160,6 +160,8 @@ func (space *Space) AddShape(shape Shaper) Shaper {
 	space.shapeIDCounter += 1
 	shape.SetHashId(space.shapeIDCounter)
 
+	// shape update?
+
 	if isStatic {
 		space.staticShapes[shape.HashId()] = shape
 	} else {
@@ -168,4 +170,14 @@ func (space *Space) AddShape(shape Shaper) Shaper {
 
 	shape.SetSpace(space)
 	return shape
+}
+
+func (space *Space) AddBody(body *Body) *Body {
+	if body.GetType() == BODY_STATIC {
+		space.staticBodies = append(space.staticBodies, body)
+	} else {
+		space.dynamicBodies = append(space.dynamicBodies, body)
+	}
+	body.space = space
+	return body
 }
