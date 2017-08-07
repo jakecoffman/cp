@@ -181,3 +181,28 @@ func (space *Space) AddBody(body *Body) *Body {
 	body.space = space
 	return body
 }
+
+func (space *Space) Step(dt float64) {
+	if dt == 0 {
+		return
+	}
+
+	space.stamp++
+
+	prev_dt := space.curr_dt
+	space.curr_dt = dt
+
+	bodies := space.dynamicBodies
+	constraints := space.constraints
+	arbiters := space.arbiters
+
+	for I, arb := range arbiters {
+		arb.state = CP_ARBITER_STATE_NORMAL
+	}
+
+	space.arbiters = space.arbiters[0:0]
+
+	for _, body := range bodies {
+		body.position_func(body, dt)
+	}
+}

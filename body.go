@@ -61,6 +61,11 @@ type Body struct {
 
 func NewBody(mass, moment float64) *Body {
 	return &Body{
+		cog:           VectorZero(),
+		p:             VectorZero(),
+		v:             VectorZero(),
+		f:             VectorZero(),
+		transform:     NewTransformIdentity(),
 		velocity_func: BodyUpdateVelocity,
 		position_func: BodyUpdatePosition,
 	}

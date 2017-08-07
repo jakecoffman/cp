@@ -43,8 +43,7 @@ func (p *PolyShape) SetVerts(verts []*Vector) {
 		b := verts[i]
 		n := b.Sub(a).Perp().Normalize()
 
-		p.planes[i + count].v0 = b
-		p.planes[i + count].n = n
+		p.planes[i + count] = &SplittingPlane{v0: b, n: n}
 	}
 }
 
