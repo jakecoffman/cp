@@ -55,7 +55,7 @@ type Arbiter struct {
 	body_a, body_b *Body
 
 	count    int
-	contacts []*Contact
+	contacts *Contact
 	n        Vector
 
 	// Regular, wildcard A and wildcard B collision handlers.

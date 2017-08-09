@@ -29,17 +29,17 @@ type Space struct {
 	sleepingComponents []interface{} // <- IDK what this is
 
 	shapeIDCounter int
-	staticShapes   map[int]Shaper
-	dynamicShapes  map[int]Shaper
+	staticShapes   *SpatialIndex
+	dynamicShapes  *SpatialIndex
 
 	constraints []*Constraint
 
 	arbiters []*Arbiter
-	//cpContactBufferHeader *contactBuffersHead;
+	contactBuffersHead *ContactBufferHeader
 	cachedArbiters map[int]*Arbiter
 	pooledArbiters []*Arbiter
 
-	allocatedBuffers []interface{}
+	allocatedBuffers []*ContactBuffer
 	locked           int
 
 	usesWildcards     bool
@@ -65,9 +65,9 @@ func NewSpace() *Space {
 		locked:               0,
 		stamp:                0,
 		shapeIDCounter:       0,
-		staticShapes:         map[int]Shaper{},
-		dynamicShapes:        map[int]Shaper{},
-		allocatedBuffers:     []interface{}{},
+		staticShapes:         &SpatialIndex{},
+		dynamicShapes:        &SpatialIndex{},
+		allocatedBuffers:     []*ContactBuffer{},
 		dynamicBodies:        []*Body{},
 		staticBodies:         []*Body{},
 		sleepingComponents:   []interface{}{},
@@ -94,6 +94,24 @@ func (space *Space) SetStaticBody(body *Body) {
 	body.space = space
 }
 
+func (space *Space) PushFreshContactBuffer() {
+	stamp := space.stamp
+	head := space.contactBuffersHead
+
+	if head == nil {
+		header := space.AllocContactBuffer()
+		header.Init(stamp, nil)
+		space.contactBuffersHead = header
+	} else if stamp - head.next.stamp > space.collisionPersistence {
+		tail := head.next
+		space.contactBuffersHead = tail.Init(stamp, tail)
+	} else {
+		buffer := space.AllocContactBuffer().Init(stamp, head)
+		space.contactBuffersHead = buffer
+		head.next = buffer
+	}
+}
+
 func (space *Space) Activate(body *Body) {
 	if space.locked > 0 {
 		if !Contains(space.rousedBodies, body) {
@@ -105,8 +123,8 @@ func (space *Space) Activate(body *Body) {
 	space.dynamicBodies = append(space.dynamicBodies, body)
 
 	for _, shape := range body.shapeList {
-		delete(space.staticShapes, shape.HashId())
-		space.dynamicShapes[shape.HashId()] = shape
+		space.staticShapes.klass.Remove(shape, shape.HashId())
+		space.dynamicShapes.klass.Insert(shape, shape.HashId())
 	}
 
 	for _, arbiter := range body.arbiterList {
@@ -117,6 +135,12 @@ func (space *Space) Activate(body *Body) {
 		// The edge case is when static bodies are involved as the static bodies never actually sleep.
 		// If the static body is bodyB then all is good. If the static body is bodyA, that can easily be checked.
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
+			numContacts := arbiter.count
+			contacts := arbiter.contacts
+
+			// Restore contact values back to the space's contact buffer memory
+			arbiter.contacts = space.ContactBufferGetArray()
+
 			panic("Not implemented") // TODO need to figure out what contact buffer array stuff is
 		}
 	}
@@ -182,6 +206,10 @@ func (space *Space) AddBody(body *Body) *Body {
 	return body
 }
 
+var ShapeUpdateFunc = func(shape *Shape, _ interface{}) {
+	shape.CacheBB()
+}
+
 func (space *Space) Step(dt float64) {
 	if dt == 0 {
 		return
@@ -196,13 +224,44 @@ func (space *Space) Step(dt float64) {
 	constraints := space.constraints
 	arbiters := space.arbiters
 
-	for I, arb := range arbiters {
+	for _, arb := range arbiters {
 		arb.state = CP_ARBITER_STATE_NORMAL
-	}
 
+		if !arb.body_a.IsSleeping() && !arb.body_b.IsSleeping() {
+			arb.Unthread()
+		}
+	}
 	space.arbiters = space.arbiters[0:0]
 
-	for _, body := range bodies {
-		body.position_func(body, dt)
+	space.Lock()
+	{
+		for _, body := range bodies {
+			body.position_func(body, dt)
+		}
+		space.PushFreshContactBuffer()
+		space.dynamicShapes.klass.Each(ShapeUpdateFunc, nil)
+		space.dynamicShapes.klass.ReindexQuery(SpaceCollideShapes, space)
 	}
+	space.Unlock()
+}
+
+func (space *Space) AllocContactBuffer() *ContactBufferHeader {
+	buffer := &ContactBuffer{
+		header: &ContactBufferHeader{},
+		contacts: [CONTACTS_BUFFER_SIZE]*Contact{},
+	}
+	space.allocatedBuffers = append(space.allocatedBuffers, buffer)
+	return buffer.header
+}
+
+const MAX_CONTACTS_PER_ARBITER = 2
+const CONTACTS_BUFFER_SIZE = 256
+
+func (space *Space) ContactBufferGetArray() *Contact {
+	if space.contactBuffersHead.numContacts + MAX_CONTACTS_PER_ARBITER > CONTACTS_BUFFER_SIZE {
+		space.PushFreshContactBuffer()
+	}
+
+	head := space.contactBuffersHead
+	return head.buffer.contacts[head.numContacts]
 }

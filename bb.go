@@ -133,3 +133,7 @@ func (bb *BB) Offset(v *Vector) *BB {
 		bb.t + v.Y,
 	}
 }
+
+func (a *BB) Proximity(b *BB) float64 {
+	return math.Abs(a.l+a.r-b.l-b.r) + math.Abs(a.b+a.t-b.b-b.t)
+}
