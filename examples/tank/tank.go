@@ -17,11 +17,11 @@ func main() {
 	space.Iterations = 10
 	space.SleepTimeThreshold = 0.5
 
-	seg1 := NewSegment(space.Body, &Vector{-320, 420}, &Vector{-320, 240}, 0)
+	var seg1 *Shape = NewSegment(space.Body, &Vector{-320, 420}, &Vector{-320, 240}, 0)
 	space.AddShape(seg1)
-	seg1.Shape.Body().Activate()
-	seg1.Shape.E = 1
-	seg1.Shape.U = 1
+	seg1.Body().Activate()
+	seg1.E = 1
+	seg1.U = 1
 
 	for i := 0; i < 50; i++ {
 		addBox(space, 20, 1)

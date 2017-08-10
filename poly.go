@@ -5,20 +5,35 @@ type PolyShape struct {
 
 	r float64
 
-	count int
+	count uint
 
 	// The untransformed planes are appended at the end of the transformed planes.
 	planes []*SplittingPlane
 }
 
-func NewPolyShape() *PolyShape {
-	return &PolyShape{
-	}
+func (poly *PolyShape) CacheData(transform *Transform) *BB {
+	panic("implement me")
 }
 
-func NewBox(body *Body, w, h, r float64) *PolyShape {
-	hw := w/2
-	hh := h/2
+func (poly *PolyShape) Destroy() {
+	panic("implement me")
+}
+
+func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
+	panic("implement me")
+}
+
+func (poly *PolyShape) SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo) {
+	panic("implement me")
+}
+
+func NewPolyShape() *PolyShape {
+	return &PolyShape{}
+}
+
+func NewBox(body *Body, w, h, r float64) *Shape {
+	hw := w / 2
+	hh := h / 2
 	bb := &BB{-hw, -hh, hw, hh}
 	verts := []*Vector{
 		{bb.r, bb.b},
@@ -26,12 +41,12 @@ func NewBox(body *Body, w, h, r float64) *PolyShape {
 		{bb.l, bb.t},
 		{bb.l, bb.b},
 	}
-	poly := &PolyShape {
-		Shape: NewShape(body, PolyShapeMassInfo(0, verts, r)),
+	poly := &PolyShape{
 		r: r,
 	}
+	poly.Shape = NewShape(poly, body, PolyShapeMassInfo(0, verts, r))
 	poly.SetVerts(verts)
-	return poly
+	return poly.Shape
 }
 
 func (p *PolyShape) SetVerts(verts []*Vector) {
@@ -39,20 +54,20 @@ func (p *PolyShape) SetVerts(verts []*Vector) {
 	p.planes = make([]*SplittingPlane, 2*count)
 
 	for i := range verts {
-		a := verts[(i - 1 + count)%count]
+		a := verts[(i-1+count)%count]
 		b := verts[i]
 		n := b.Sub(a).Perp().Normalize()
 
-		p.planes[i + count] = &SplittingPlane{v0: b, n: n}
+		p.planes[i+count] = &SplittingPlane{v0: b, n: n}
 	}
 }
 
 func PolyShapeMassInfo(mass float64, verts []*Vector, r float64) *ShapeMassInfo {
 	centroid := CentroidForPoly(verts)
 	return &ShapeMassInfo{
-		m: mass,
-		i: MomentForPoly(1, verts, centroid.Neg(), r),
-		cog: centroid,
+		m:    mass,
+		i:    MomentForPoly(1, verts, centroid.Neg(), r),
+		cog:  centroid,
 		area: AreaForPoly(verts, r),
 	}
 }

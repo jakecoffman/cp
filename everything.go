@@ -2,12 +2,37 @@ package physics
 
 import (
 	"math"
-	"time"
 )
 
 const INFINITY = math.MaxFloat64
 
-type CollisionHandler func()
+type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData interface{})
+
+/// Struct that holds function callback pointers to configure custom collision handling.
+/// Collision handlers have a pair of types; when a collision occurs between two shapes that have these types, the collision handler functions are triggered.
+type CollisionHandler struct {
+	/// Collision type identifier of the first shape that this handler recognizes.
+	/// In the collision handler callback, the shape with this type will be the first argument. Read only.
+	typeA uint
+	/// Collision type identifier of the second shape that this handler recognizes.
+	/// In the collision handler callback, the shape with this type will be the second argument. Read only.
+	typeB uint
+	/// This function is called when two shapes with types that match this collision handler begin colliding.
+	beginFunc CollisionBeginFunc
+	/// This function is called each step when two shapes with types that match this collision handler are colliding.
+	/// It's called before the collision solver runs so that you can affect a collision's outcome.
+	preSolveFunc CollisionPreSolveFunc
+	/// This function is called each step when two shapes with types that match this collision handler are colliding.
+	/// It's called after the collision solver runs so that you can read back information about the collision to trigger events in your game.
+	postSolveFunc CollisionPostSolveFunc
+	/// This function is called when two shapes with types that match this collision handler stop colliding.
+	separateFunc CollisionSeparateFunc
+	/// This is a user definable context pointer that is passed to all of the collision handler functions.
+	userData interface{}
+}
 
 // Arbiter states
 const (
@@ -25,7 +50,7 @@ const (
 )
 
 type Contact struct {
-	r1, r2 Vector
+	r1, r2 *Vector
 
 	nMass, tMass float64
 	bounce       float64 // TODO: look for an alternate bounce solution
@@ -40,30 +65,17 @@ type CollisionInfo struct {
 	a, b        *Shape
 	collisionId uint
 
-	n     Vector
-	count int
+	n     *Vector
+	count uint
 	arr   []*Contact
 }
 
-type Arbiter struct {
-	e, u       float64
-	surface_vr Vector
-
-	data interface{}
-
-	a, b           *Shape
-	body_a, body_b *Body
-
-	count    int
-	contacts *Contact
-	n        Vector
-
-	// Regular, wildcard A and wildcard B collision handlers.
-	handler, handlerA, handlerB CollisionHandler
-	swapped                     bool
-
-	stamp time.Time
-	state int // Arbiter state enum
+func (info *CollisionInfo) PushContact(p1, p2 *Vector, hash uint) {
+	con := info.arr[info.count]
+	con.r1 = p1
+	con.r2 = p2
+	con.hash = hash
+	info.count++
 }
 
 type ShapeMassInfo struct {
@@ -102,12 +114,6 @@ type SegmentQueryInfo struct {
 	alpha float64
 }
 
-type Circle struct {
-	shape Shape
-	c, tc Vector
-	r     float64
-}
-
 type SplittingPlane struct {
 	v0, n *Vector
 }
@@ -115,9 +121,9 @@ type SplittingPlane struct {
 const POLY_SHAPE_INLINE_ALLOC = 6
 
 type Constrainer interface {
-	PreStep()
-	ApplyCachedImpulse()
-	ApplyImpulse()
+	PreStep(constraint *Constraint, dt float64)
+	ApplyCachedImpulse(constraint *Constraint, dt_coef float64)
+	ApplyImpulse(constraint *Constraint, dt float64)
 	GetImpulse()
 }
 
@@ -125,6 +131,7 @@ type ConstraintPreSolveFunc func(*Constraint, *Space)
 type ConstraintPostSolveFunc func(*Constraint, *Space)
 
 type Constraint struct {
+	class Constrainer
 	space *Space
 
 	a, b           *Body
@@ -133,8 +140,8 @@ type Constraint struct {
 	maxForce, errorBias, maxBias float64
 
 	collideBodies bool
-	preSolve      ConstraintPreSolveFunc
-	postSolve     ConstraintPostSolveFunc
+	preSolve      *ConstraintPreSolveFunc
+	postSolve     *ConstraintPostSolveFunc
 
 	userData interface{}
 }
@@ -167,7 +174,15 @@ type ShapeFilter struct {
 	categories uint
 	/// A bitmask of user definable category types that this object object collides with.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
-	mask int64
+	mask uint
+}
+
+func (a *ShapeFilter) Reject(b *ShapeFilter) bool {
+	// Reject the collision if:
+	return (a.group != 0 && a.group == b.group) ||
+			// One of the category/mask combinations fails.
+				(a.categories & b.mask) == 0 ||
+				(b.categories & a.mask) == 0
 }
 
 //var GrabFilter *ShapeFilter = &ShapeFilter{NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT}

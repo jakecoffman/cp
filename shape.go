@@ -3,8 +3,8 @@ package physics
 type Shaper interface {
 	Body() *Body
 	MassInfo() *ShapeMassInfo
-	HashId() int
-	SetHashId(int)
+	HashId() uint
+	SetHashId(uint)
 	SetSpace(*Space)
 	SetBB(*BB)
 	//CacheData(*Shape, Transform) BB
@@ -20,12 +20,21 @@ type ShapeClass interface {
 	SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo)
 }
 
+// Shape type enum
+const (
+	SHAPE_TYPE_CIRCLE = iota
+	SHAPE_TYPE_SEGMENT
+	SHAPE_TYPE_POLY
+	SHAPE_TYPE_NUM // total number of shapes
+)
+
 type Shape struct {
-	class    ShapeClass
-	space    *Space
-	body     *Body
-	massInfo *ShapeMassInfo
-	bb       *BB
+	class     ShapeClass
+	shapeType int // SHAPE_TYPE used for sorting in Collision
+	space     *Space
+	body      *Body
+	massInfo  *ShapeMassInfo
+	bb        *BB
 
 	sensor   bool
 	E, U     float64
@@ -38,7 +47,7 @@ type Shape struct {
 
 	next, prev *Shape
 
-	hashid int
+	hashid uint
 }
 
 func (s *Shape) Body() *Body {
@@ -49,11 +58,11 @@ func (s *Shape) MassInfo() *ShapeMassInfo {
 	return s.massInfo
 }
 
-func (s *Shape) HashId() int {
+func (s *Shape) HashId() uint {
 	return s.hashid
 }
 
-func (s *Shape) SetHashId(hashid int) {
+func (s *Shape) SetHashId(hashid uint) {
 	s.hashid = hashid
 }
 
@@ -71,6 +80,32 @@ func (s *Shape) CacheBB() *BB {
 
 func (s *Shape) Update(transform *Transform) *BB {
 	s.bb = s.class.CacheData(transform)
+	return s.bb
+}
+
+func (s *Shape) Point(i uint) *SupportPoint {
+	switch s.shapeType {
+	case SHAPE_CLASS_CIRCLE:
+		return NewSupportPoint(s.class.(*Circle).tc, 0)
+	case SHAPE_CLASS_SEGMENT:
+		seg := s.class.(*Segment)
+		if i == 0 {
+			return NewSupportPoint(seg.ta, i)
+		}
+		return NewSupportPoint(seg.tb, i)
+	case SHAPE_CLASS_POLY:
+		poly := s.class.(*PolyShape)
+		// Poly shapes may change vertex count.
+		var index uint
+		if i < poly.count {
+			index = i
+		} else {
+			index = 0
+		}
+		return NewSupportPoint(poly.planes[index].v0, index)
+	default:
+		return NewSupportPoint(VectorZero(), 0)
+	}
 }
 
 func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {

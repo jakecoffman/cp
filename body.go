@@ -48,8 +48,8 @@ type Body struct {
 
 	space *Space
 
-	shapeList      []Shaper
-	arbiterList    []*Arbiter
+	shapeList      []*Shape
+	arbiterList    *Arbiter
 	constraintList []*Constraint
 
 	sleeping struct {
@@ -205,17 +205,17 @@ func (body *Body) Activate() {
 		}
 	}
 
-	for _, arbiter := range body.arbiterList {
-		var other *Body
-		if arbiter.body_a == body {
-			other = arbiter.body_b
-		} else {
-			other = arbiter.body_a
-		}
-		if other.GetType() == BODY_STATIC {
-			other.sleeping.idleTime = 0
-		}
-	}
+	//for _, arbiter := range body.arbiterList {
+	//	var other *Body
+	//	if arbiter.body_a == body {
+	//		other = arbiter.body_b
+	//	} else {
+	//		other = arbiter.body_a
+	//	}
+	//	if other.GetType() == BODY_STATIC {
+	//		other.sleeping.idleTime = 0
+	//	}
+	//}
 
 }
 
@@ -230,10 +230,42 @@ func (body *Body) IsSleeping() bool {
 	return body.sleeping.root != nil
 }
 
-func (body *Body) AddShape(shape Shaper) {
+func (body *Body) AddShape(shape *Shape) {
 	body.shapeList = append(body.shapeList, shape)
 	if shape.MassInfo().m > 0 {
 		body.AccumulateMassFromShapes()
+	}
+}
+
+func (body *Body) KineticEnergy() float64 {
+	// Need to do some fudging to avoid NaNs
+	vsq := body.v.Dot(body.v)
+	wsq := body.w*body.w
+	var a, b float64
+	if vsq != 0 {
+		a = vsq * body.m
+	}
+	if wsq != 0 {
+		b = wsq*body.i
+	}
+	return a + b
+}
+
+func (body *Body) PushArbiter(arb *Arbiter) {
+	next := body.arbiterList
+	arb.ThreadForBody(body).next = next
+	if next != nil {
+		next.ThreadForBody(body).prev = arb
+	}
+	body.arbiterList = arb
+}
+
+func (root *Body) ComponentAdd(body *Body) {
+	body.sleeping.root = root
+
+	if body != root {
+		body.sleeping.next = root.sleeping.next
+		root.sleeping.next = body
 	}
 }
 

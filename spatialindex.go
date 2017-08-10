@@ -2,37 +2,38 @@ package physics
 
 type SpatialIndexBB func(obj interface{}) *BB
 type SpatialIndexIterator func(obj interface{}, data interface{})
-type SpatialIndexQuery func(obj1, obj2 interface{}, collisionId int, data interface{})
-type SpatialIndexSegmentQuery func()
+type SpatialIndexQuery func(obj1, obj2 interface{}, collisionId uint, data interface{}) uint
+type SpatialIndexSegmentQuery func(obj1, obj2, data interface{}) float64
 
+// implemented by BBTree
 type SpatialIndexer interface {
 	Destroy()
 	Count() int
 	Each(f SpatialIndexIterator, data interface{})
-	Contains(obj interface{}, hashId int)
-	Insert(obj interface{}, hashId int)
-	Remove(obj interface{}, hashId int)
+	Contains(obj interface{}, hashId uint)
+	Insert(obj interface{}, hashId uint)
+	Remove(obj interface{}, hashId uint)
 	Reindex()
-	ReindexObject(obj interface{}, hashId int)
-	ReindexQuery(f SpatialIndexIterator, data interface{})
+	ReindexObject(obj interface{}, hashId uint)
+	ReindexQuery(f SpatialIndexQuery, data interface{})
 	Query(obj interface{}, bb *BB, f SpatialIndexQuery, data interface{})
 	SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{})
 }
 
 type SpatialIndex struct {
-	klass                     SpatialIndexer
+	class                     SpatialIndexer
 	bbfunc                    SpatialIndexBB
 	staticIndex, dynamicIndex *SpatialIndex
 }
 
 func NewSpatialIndex(klass SpatialIndexer, bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
 	index := &SpatialIndex{
-		klass:       klass,
+		class:       klass,
 		bbfunc:      bbfunc,
 		staticIndex: staticIndex,
 	}
 
-	if staticIndex {
+	if staticIndex != nil {
 		staticIndex.dynamicIndex = index
 	}
 
@@ -40,11 +41,11 @@ func NewSpatialIndex(klass SpatialIndexer, bbfunc SpatialIndexBB, staticIndex *S
 }
 
 func (index *SpatialIndex) GetTree() *BBTree {
-	return index.klass.(*BBTree)
+	return index.class.(*BBTree)
 }
 
 func (index *SpatialIndex) GetRootIfTree() *Node {
-	return index.klass.(*BBTree).root
+	return index.class.(*BBTree).root
 }
 
 type DynamicToStaticContext struct {
@@ -56,12 +57,12 @@ type DynamicToStaticContext struct {
 
 var DyanamicToStaticIter = func(obj interface{}, context interface{}) {
 	dtsc := context.(*DynamicToStaticContext)
-	dtsc.staticIndex.klass.Query(obj, dtsc.bbfunc(obj), dtsc.queryFunc, dtsc.data)
+	dtsc.staticIndex.class.Query(obj, dtsc.bbfunc(obj), dtsc.queryFunc, dtsc.data)
 }
 
 func CollideStatic(dynamicIndex, staticIndex *SpatialIndex, f SpatialIndexQuery, data interface{}) {
-	if staticIndex != nil && staticIndex.klass.Count() > 0 {
+	if staticIndex != nil && staticIndex.class.Count() > 0 {
 		context := &DynamicToStaticContext{dynamicIndex.bbfunc, staticIndex, f, data}
-		dynamicIndex.klass.Each(DyanamicToStaticIter, context)
+		dynamicIndex.class.Each(DyanamicToStaticIter, context)
 	}
 }

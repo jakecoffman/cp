@@ -103,6 +103,10 @@ func Clamp(f, min, max float64) float64 {
 	return math.Min(math.Max(f, min), max)
 }
 
+func Clamp01(f float64) float64 {
+	return Clamp(f, 0, 1)
+}
+
 func (v *Vector) SlerpConst(other *Vector, a float64) *Vector {
 	dot := v.Normalize().Dot(other.Normalize())
 	omega := math.Acos(Clamp(dot, -1, 1))
@@ -130,4 +134,28 @@ func (v *Vector) DistanceSq(other *Vector) float64 {
 
 func (v *Vector) Near(other *Vector, d float64) bool {
 	return v.DistanceSq(other) < d*d
+}
+
+// Collision related below
+
+func (a *Vector) PointGreater(b, c *Vector) bool {
+	return (b.Y-a.Y)*(a.X+b.X-2*c.X) > (b.X-a.X)*(a.Y+b.Y-2*c.Y)
+}
+
+func (v0 *Vector) CheckAxis(v1, p, n *Vector) bool {
+	return p.Dot(n) <= cpfmax(v0.Dot(n), v1.Dot(n))
+}
+
+func (a *Vector) ClosestT(b *Vector) float64 {
+	delta := b.Sub(a)
+	return -Clamp(delta.Dot(a.Add(b))/delta.LengthSq(), -1, 1)
+}
+
+func (a *Vector) LerpT(b *Vector, t float64) *Vector {
+	ht := 0.5*t
+	return a.Mult(0.5-ht).Add(b.Mult(0.5+ht))
+}
+
+func (v0 *Vector) ClosestDist(v1 *Vector) float64 {
+	return v1.LerpT(v1, v0.ClosestT(v1)).LengthSq()
 }

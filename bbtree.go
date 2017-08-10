@@ -24,7 +24,7 @@ type Leaf struct {
 
 type Pair struct {
 	a, b        *Thread
-	collisionId int
+	collisionId uint
 }
 
 type Thread struct {
@@ -34,7 +34,7 @@ type Thread struct {
 
 type BBTree struct {
 	spatialIndex *SpatialIndex
-	velocityFunc BBTreeVelocityFunc
+	velocityFunc *BBTreeVelocityFunc
 
 	leaves map[int]*Node
 	root   *Node
@@ -58,15 +58,15 @@ func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
 	panic("implement me")
 }
 
-func (tree *BBTree) Contains(obj interface{}, hashId int) {
+func (tree *BBTree) Contains(obj interface{}, hashId uint) {
 	panic("implement me")
 }
 
-func (tree *BBTree) Insert(obj interface{}, hashId int) {
+func (tree *BBTree) Insert(obj interface{}, hashId uint) {
 	panic("IMP")
 }
 
-func (tree *BBTree) Remove(obj interface{}, hashId int) {
+func (tree *BBTree) Remove(obj interface{}, hashId uint) {
 	panic("implement me")
 }
 
@@ -74,11 +74,11 @@ func (tree *BBTree) Reindex() {
 	panic("implement me")
 }
 
-func (tree *BBTree) ReindexObject(obj interface{}, hashId int) {
+func (tree *BBTree) ReindexObject(obj interface{}, hashId uint) {
 	panic("implement me")
 }
 
-func (tree *BBTree) ReindexQuery(f SpatialIndexIterator, data interface{}) {
+func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	panic("implement me")
 }
 
@@ -92,12 +92,12 @@ func (tree *BBTree) SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, 
 
 func (tree *BBTree) GetBB(obj interface{}) *BB {
 	bb := tree.spatialIndex.bbfunc(obj)
-	if tree.velocityFunc {
+	if tree.velocityFunc != nil {
 		coef := 0.1
 		x := (bb.r - bb.l) * coef
 		y := (bb.t - bb.b) * coef
 
-		v := tree.velocityFunc(obj).Mult(0.1)
+		v := (*tree.velocityFunc)(obj).Mult(0.1)
 		return &BB{
 			bb.l + math.Min(-x, v.X),
 			bb.b + math.Min(-y, v.Y),
@@ -119,7 +119,7 @@ func cpfmin(x, y float64) float64 {
 
 func (tree *BBTree) GetMasterTree() *BBTree {
 	dynamicTree := tree.spatialIndex.dynamicIndex.GetTree()
-	if dynamicTree {
+	if dynamicTree != nil {
 		return dynamicTree
 	}
 	return tree
