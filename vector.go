@@ -159,3 +159,9 @@ func (a *Vector) LerpT(b *Vector, t float64) *Vector {
 func (v0 *Vector) ClosestDist(v1 *Vector) float64 {
 	return v1.LerpT(v1, v0.ClosestT(v1)).LengthSq()
 }
+
+func (p *Vector) ClosestPointOnSegment(a, b *Vector) *Vector {
+	delta := a.Sub(b)
+	t := Clamp01(delta.Dot(p.Sub(b))/delta.LengthSq())
+	return b.Add(delta.Mult(t))
+}

@@ -34,12 +34,11 @@ type Space struct {
 
 	constraints []*Constraint
 
-	arbiters           []*Arbiter
-	contactBuffersHead *ContactBuffer
-	cachedArbiters     map[int]*Arbiter
-	pooledArbiters     []*Arbiter
+	arbiters       []*Arbiter
+	contactBuffersHead  *ContactBuffer
+	cachedArbiters map[uint]*Arbiter
+	pooledArbiters []*Arbiter
 
-	allocatedBuffers []*ContactBuffer
 	locked           int
 
 	usesWildcards     bool
@@ -65,9 +64,7 @@ func NewSpace() *Space {
 		locked:               0,
 		stamp:                0,
 		shapeIDCounter:       0,
-		staticShapes:         &SpatialIndex{},
-		dynamicShapes:        &SpatialIndex{},
-		allocatedBuffers:     []*ContactBuffer{},
+		staticShapes:         NewBBTree(ShapeGetBB, nil),
 		dynamicBodies:        []*Body{},
 		staticBodies:         []*Body{},
 		sleepingComponents:   []interface{}{},
@@ -76,11 +73,12 @@ func NewSpace() *Space {
 		idleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
 		pooledArbiters:       []*Arbiter{},
-		cachedArbiters:       map[int]*Arbiter{},
+		cachedArbiters:       map[uint]*Arbiter{},
 		constraints:          []*Constraint{},
 		collisionHandlers:    map[int]*CollisionHandler{},
 		postStepCallbacks:    []PostStepCallback{},
 	}
+	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
 	space.SetStaticBody(staticBody)
 	return space
 }
@@ -99,14 +97,16 @@ func (space *Space) PushFreshContactBuffer() {
 	head := space.contactBuffersHead
 
 	if head == nil {
-		buffer := space.AllocContactBuffer()
+		buffer := &ContactBuffer{}
 		buffer.InitHeader(stamp, nil)
 		space.contactBuffersHead = buffer
 	} else if stamp-head.next.stamp > space.collisionPersistence {
 		tail := head.next
 		space.contactBuffersHead = tail.InitHeader(stamp, tail)
 	} else {
-		buffer := space.AllocContactBuffer().InitHeader(stamp, head)
+		// Allocate a new buffer and push it into the ring
+		buffer := &ContactBuffer{}
+		buffer.InitHeader(stamp, head)
 		space.contactBuffersHead = buffer
 		head.next = buffer
 	}
@@ -170,8 +170,19 @@ func (space *Space) Deactivate(body *Body) {
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
 			space.UncacheArbiter(arb)
 
+			// TODO not sure what this does below, why making new memory prevents time out?!
 			// Save contact values to a new block of memory so they won't time out
+		}
+	}
 
+	for _, constraint := range body.constraintList {
+		bodyA := constraint.a
+		if body == bodyA || bodyA.GetType() == BODY_STATIC {
+			for i, c := range space.constraintList {
+				if c == constraint {
+					space.constraintList = append(space.constraintList[0:i], space.constraintList[i+1:]...)
+				}
+			}
 		}
 	}
 }
@@ -257,9 +268,19 @@ var SpaceCollideShapesFunc = func(va, vb interface{}, collisionId uint, vspace i
 	// Get an arbiter from space->arbiterSet for the two shapes.
 	// This is where the persistent contact magic comes from.
 	_ = []*Shape{info.a, info.b}
-	_ = HashPair(uint(info.a), uint(info.b))
+	panic("TODO")
+	//_ = HashPair(uint(unsafe.Pointer(info.a)), uint(unsafe.Pointer(info.b)))
 
 	return 0 // TODO IMPLEMENT
+}
+
+func (space *Space) ContactBufferGetArray() []*Contact {
+	if space.contactBuffersHead.numContacts + MAX_CONTACTS_PER_ARBITER > CONTACTS_BUFFER_SIZE {
+		space.PushFreshContactBuffer()
+	}
+
+	head := space.contactBuffersHead
+	return head.contacts[head.numContacts:]
 }
 
 func QueryReject(a, b *Shape) bool {
@@ -296,10 +317,10 @@ func (space *Space) ProcessComponents(dt float64) {
 	if sleep {
 		dv := space.idleSpeedThreshold
 		var dvsq float64
-		if dv {
-			dvsq = dv*dv
+		if dv != 0 {
+			dvsq = dv * dv
 		} else {
-			dvsq = space.gravity.LengthSq()*dt*dt
+			dvsq = space.gravity.LengthSq() * dt * dt
 		}
 
 		// update idling and reset component nodes
@@ -311,7 +332,7 @@ func (space *Space) ProcessComponents(dt float64) {
 			// Need to deal with infinite mass objects
 			var keThreshold float64
 			if dvsq != 0 {
-				keThreshold = body.m*dvsq
+				keThreshold = body.m * dvsq
 			}
 			if body.KineticEnergy() > keThreshold {
 				body.sleeping.idleTime = 0
@@ -353,7 +374,7 @@ func (space *Space) ProcessComponents(dt float64) {
 				}
 			}
 
-			for i := 0; i<len(bodies); {
+			for i := 0; i < len(bodies); {
 				body := bodies[i]
 
 				if body.ComponentRoot() == nil {
@@ -504,7 +525,7 @@ func (space *Space) Step(dt float64) {
 		if prev_dt == 0 {
 			dt_coef = 0
 		} else {
-			dt_coef = dt/prev_dt
+			dt_coef = dt / prev_dt
 		}
 		for _, arbiter := range arbiters {
 			arbiter.ApplyCachedImpulse(dt_coef)
@@ -516,8 +537,8 @@ func (space *Space) Step(dt float64) {
 
 		// Run the impulse solver.
 		var i uint
-		for i = 0; i<space.Iterations; i++ {
-			for j := 0; j<len(arbiters); j++ {
+		for i = 0; i < space.Iterations; i++ {
+			for j := 0; j < len(arbiters); j++ {
 				arbiters[j].ApplyImpulse()
 			}
 
@@ -596,22 +617,20 @@ func (space *Space) Unlock(runPostStep bool) {
 	waking = waking[0:0]
 }
 
-func (space *Space) AllocContactBuffer() *ContactBuffer {
-	buffer := &ContactBuffer{
-		contacts: [CONTACTS_BUFFER_SIZE]*Contact{},
+func (space *Space) UncacheArbiter(arb *Arbiter) {
+	panic("TODO")
+	//a := arb.a
+	//b := arb.b
+	//arbHashId := HashPair(uint(a), uint(b))
+	//delete(space.cachedArbiters, arbHashId)
+	for i, a := range space.arbiters {
+		if a == arb {
+			space.arbiters = append(space.arbiters[0:i], space.arbiters[i+1:]...)
+			break
+		}
 	}
-	space.allocatedBuffers = append(space.allocatedBuffers, buffer)
-	return buffer
 }
 
 const MAX_CONTACTS_PER_ARBITER = 2
 const CONTACTS_BUFFER_SIZE = 256
 
-func (space *Space) ContactBufferGetArray() []*Contact {
-	if space.contactBuffersHead.numContacts+MAX_CONTACTS_PER_ARBITER > CONTACTS_BUFFER_SIZE {
-		space.PushFreshContactBuffer()
-	}
-
-	head := space.contactBuffersHead
-	return head.contacts[head.numContacts]
-}

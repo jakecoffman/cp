@@ -5,6 +5,7 @@ import (
 )
 
 const INFINITY = math.MaxFloat64
+const MAGIC_EPSILON = 1e-5
 
 type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{})
 type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{})
@@ -95,12 +96,12 @@ type PointQueryInfo struct {
 	/// The nearest shape, NULL if no shape was within range.
 	shape *Shape
 	/// The closest point on the shape's surface. (in world space coordinates)
-	point Vector
+	point *Vector
 	/// The distance to the point. The distance is negative if the point is inside the shape.
 	distance float64
 	/// The gradient of the signed distance function.
 	/// The value should be similar to info.p/info.d, but accurate even for very small values of info.d.
-	gradient Vector
+	gradient *Vector
 }
 
 type SegmentQueryInfo struct {

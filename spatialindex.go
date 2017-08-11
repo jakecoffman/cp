@@ -20,6 +20,10 @@ type SpatialIndexer interface {
 	SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{})
 }
 
+func ShapeGetBB(obj interface{}) *BB {
+	return obj.(*Shape).bb
+}
+
 type SpatialIndex struct {
 	class                     SpatialIndexer
 	bbfunc                    SpatialIndexBB
@@ -41,10 +45,16 @@ func NewSpatialIndex(klass SpatialIndexer, bbfunc SpatialIndexBB, staticIndex *S
 }
 
 func (index *SpatialIndex) GetTree() *BBTree {
+	if index == nil {
+		return nil
+	}
 	return index.class.(*BBTree)
 }
 
 func (index *SpatialIndex) GetRootIfTree() *Node {
+	if index == nil {
+		return nil
+	}
 	return index.class.(*BBTree).root
 }
 

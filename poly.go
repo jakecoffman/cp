@@ -1,5 +1,7 @@
 package physics
 
+import "math"
+
 type PolyShape struct {
 	*Shape
 
@@ -12,7 +14,32 @@ type PolyShape struct {
 }
 
 func (poly *PolyShape) CacheData(transform *Transform) *BB {
-	panic("implement me")
+	count := poly.count
+	dst := poly.planes
+	src := dst[count:]
+
+	l := INFINITY
+	r := -INFINITY
+	b := INFINITY
+	t := -INFINITY
+
+	var i uint
+	for i=0; i<count; i++ {
+		v := transform.Point(src[i].v0)
+		n := transform.Vect(src[i].n)
+
+		dst[i].v0 = v
+		dst[i].n = n
+
+		l = math.Min(l, v.X)
+		r = math.Max(r, v.X)
+		b = math.Min(b, v.Y)
+		t = math.Max(t, v.Y)
+	}
+
+	radius := poly.r
+	poly.Shape.bb = &BB{l-radius, b-radius, r+radius, t+radius}
+	return poly.Shape.bb
 }
 
 func (poly *PolyShape) Destroy() {

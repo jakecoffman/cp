@@ -116,6 +116,10 @@ func (arbiter *Arbiter) IsFirstContact() bool {
 	return arbiter.state == CP_ARBITER_STATE_FIRST_COLLISION
 }
 
+func (arbiter *Arbiter) PreStep(i float64, i2 float64, i3 float64) {
+	panic("Arbiter PreStep")
+}
+
 func apply_impulses(a, b *Body, r1, r2, j *Vector) {
 	apply_impulse(a, j.Neg(), r1)
 	apply_impulse(b, j, r2)
