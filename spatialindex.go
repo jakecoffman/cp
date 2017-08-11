@@ -70,7 +70,7 @@ var DyanamicToStaticIter = func(obj interface{}, context interface{}) {
 	dtsc.staticIndex.class.Query(obj, dtsc.bbfunc(obj), dtsc.queryFunc, dtsc.data)
 }
 
-func CollideStatic(dynamicIndex, staticIndex *SpatialIndex, f SpatialIndexQuery, data interface{}) {
+func (dynamicIndex *SpatialIndex) CollideStatic(staticIndex *SpatialIndex, f SpatialIndexQuery, data interface{}) {
 	if staticIndex != nil && staticIndex.class.Count() > 0 {
 		context := &DynamicToStaticContext{dynamicIndex.bbfunc, staticIndex, f, data}
 		dynamicIndex.class.Each(DyanamicToStaticIter, context)

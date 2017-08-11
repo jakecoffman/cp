@@ -34,6 +34,29 @@ type Thread struct {
 	leaf       *Node
 }
 
+func (thread *Thread) Unlink() {
+	next := thread.next
+	prev := thread.prev
+
+	if next != nil {
+		if next.a.leaf == thread.leaf {
+			next.a.prev = prev
+		} else {
+			next.b.prev = prev
+		}
+	}
+
+	if prev != nil {
+		if prev.a.leaf == thread.leaf {
+			prev.a.next = next
+		} else {
+			prev.b.next = next
+		}
+	} else {
+		thread.leaf.pairs = next
+	}
+}
+
 type BBTree struct {
 	spatialIndex *SpatialIndex
 	velocityFunc *BBTreeVelocityFunc
@@ -64,7 +87,9 @@ func (tree *BBTree) Count() int {
 }
 
 func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
-	panic("implement me")
+	for _, v := range tree.leaves {
+		f(v.obj, data)
+	}
 }
 
 func (tree *BBTree) Contains(obj interface{}, hashId uint) {
@@ -208,12 +233,12 @@ func (subtree *BBTree) PairFromPool() *Pair {
 
 	// Pool is exhausted make more
 	for i := 0; i < 32; i++ {
-		tree.PairRecycle(&Pair{})
+		tree.RecyclePair(&Pair{})
 	}
 
 	return tree.pooledPairs
 }
-func (tree *BBTree) PairRecycle(pair *Pair) {
+func (tree *BBTree) RecyclePair(pair *Pair) {
 	master := tree.GetMasterTree()
 	pair.a.next = master.pooledPairs
 	master.pooledPairs = pair
@@ -245,6 +270,44 @@ func (tree *BBTree) SubtreeInsert(subtree *Node, leaf *Node) *Node {
 	return subtree
 }
 
+func (tree *BBTree) SubtreeRemove(subtree *Node, leaf *Node) *Node {
+	if leaf == subtree {
+		return nil
+	}
+
+	parent := leaf.parent
+	if parent == subtree {
+		other := subtree.Other(leaf)
+		other.parent = subtree.parent
+		tree.RecycleNode(subtree)
+		return other
+	}
+
+	tree.ReplaceChild(parent.parent, parent, parent.Other(leaf))
+	return subtree
+}
+
+func (tree *BBTree) ReplaceChild(parent, child, value *Node) {
+	if parent.a == child {
+		tree.RecycleNode(parent.a)
+		NodeSetA(parent, value)
+	} else {
+		tree.RecycleNode(parent.b)
+		NodeSetB(parent, value)
+	}
+
+	for node := parent; node != nil; node = node.parent {
+		node.bb = node.a.bb.Merge(node.b.bb)
+	}
+}
+
+func (node *Node) Other(child *Node) *Node {
+	if node.a == child {
+		return node.b
+	}
+	return node.a
+}
+
 func (node *Node) IsLeaf() bool {
 	return node.obj != nil
 }
@@ -262,7 +325,72 @@ func (tree *BBTree) ReindexObject(obj interface{}, hashId uint) {
 }
 
 func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
-	panic("implement me")
+	if tree.root == nil {
+		return
+	}
+
+	// LeafUpdate() may modify tree->root. Don't cache it.
+	for _, node := range tree.leaves {
+		tree.LeafUpdate(node)
+	}
+
+	staticIndex := tree.spatialIndex.staticIndex
+	var staticRoot *Node
+	if staticIndex != nil {
+		staticRoot = staticIndex.class.(*BBTree).root
+	}
+
+	context := &MarkContext{tree, staticRoot, f, data}
+	tree.root.MarkSubtree(context)
+
+	if staticIndex != nil && staticRoot == nil {
+		tree.spatialIndex.CollideStatic(staticIndex, f, data)
+	}
+}
+
+func (subtree *Node) MarkSubtree(context *MarkContext) {
+	if subtree.IsLeaf() {
+		subtree.MarkLeaf(context)
+	} else {
+		subtree.a.MarkSubtree(context)
+		subtree.b.MarkSubtree(context)
+	}
+}
+
+func (tree *BBTree) LeafUpdate(leaf *Node) bool {
+	root := tree.root
+	bb := tree.spatialIndex.bbfunc(leaf.obj)
+
+	if !leaf.bb.Contains(bb) {
+		leaf.bb = tree.GetBB(leaf.obj)
+
+		root := tree.SubtreeRemove(root, leaf)
+		tree.root = tree.SubtreeInsert(root, leaf)
+
+		tree.PairsClear(leaf)
+		leaf.stamp = tree.GetMasterTree().stamp
+		return true
+	}
+
+	return false
+}
+func (tree *BBTree) PairsClear(leaf *Node) {
+	pair := leaf.pairs
+	leaf.pairs = nil
+
+	for pair != nil {
+		if pair.a.leaf == leaf {
+			next := pair.a.next
+			pair.b.Unlink()
+			tree.RecyclePair(pair)
+			pair = next
+		} else {
+			next := pair.b.next
+			pair.a.Unlink()
+			tree.RecyclePair(pair)
+			pair = next
+		}
+	}
 }
 
 func (tree *BBTree) Query(obj interface{}, bb *BB, f SpatialIndexQuery, data interface{}) {
@@ -334,13 +462,13 @@ func (tree *BBTree) NodeFromPool() *Node {
 
 	// Pool is exhausted make more
 	for i := 0; i < 32; i++ {
-		tree.NodeRecycle(&Node{})
+		tree.RecycleNode(&Node{})
 	}
 
 	return tree.pooledNodes
 }
 
-func (tree *BBTree) NodeRecycle(node *Node) {
+func (tree *BBTree) RecycleNode(node *Node) {
 	node.parent = tree.pooledNodes
 	tree.pooledNodes = node
 }

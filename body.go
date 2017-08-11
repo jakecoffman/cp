@@ -1,7 +1,6 @@
 package physics
 
 import (
-	"log"
 	"math"
 )
 
@@ -60,15 +59,37 @@ type Body struct {
 }
 
 func NewBody(mass, moment float64) *Body {
-	return &Body{
+	body := &Body{
 		cog:           VectorZero(),
 		p:             VectorZero(),
 		v:             VectorZero(),
 		f:             VectorZero(),
+		v_bias:        VectorZero(),
 		transform:     NewTransformIdentity(),
 		velocity_func: BodyUpdateVelocity,
 		position_func: BodyUpdatePosition,
 	}
+
+	body.SetMass(mass)
+	body.SetMoment(moment)
+	body.SetAngle(0)
+
+	return body
+}
+func (body *Body) SetAngle(angle float64) {
+	body.Activate()
+	body.a = angle
+	body.SetTransform(body.p, angle)
+}
+func (body *Body) SetMoment(moment float64) {
+	body.Activate()
+	body.i = moment
+	body.i_inv = 1 / moment
+}
+func (body *Body) SetMass(mass float64) {
+	body.Activate()
+	body.m = mass
+	body.m_inv = 1 / mass
 }
 
 // body types
@@ -240,13 +261,13 @@ func (body *Body) AddShape(shape *Shape) {
 func (body *Body) KineticEnergy() float64 {
 	// Need to do some fudging to avoid NaNs
 	vsq := body.v.Dot(body.v)
-	wsq := body.w*body.w
+	wsq := body.w * body.w
 	var a, b float64
 	if vsq != 0 {
 		a = vsq * body.m
 	}
 	if wsq != 0 {
-		b = wsq*body.i
+		b = wsq * body.i
 	}
 	return a + b
 }
@@ -273,7 +294,6 @@ func BodyUpdateVelocity(body *Body, gravity *Vector, damping, dt float64) {
 	if body.GetType() == BODY_KINEMATIC {
 		return
 	}
-	log.Printf("Body's mass and moment must be positive to simulate. (Mass: %f Moment: %f)", body.m, body.i)
 
 	body.v = body.v.Mult(damping).Add(gravity.Add(body.f.Mult(body.m_inv)).Mult(dt))
 	body.w = body.w*damping + body.t*body.i_inv*dt

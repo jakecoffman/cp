@@ -8,6 +8,8 @@ import (
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	. "github.com/jakecoffman/physics"
+	"fmt"
+	"os"
 )
 
 var space *Space
@@ -37,6 +39,8 @@ func main() {
 	}
 	defer glfw.Terminate()
 
+	SetupGL()
+
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
@@ -50,7 +54,7 @@ func main() {
 		panic(err)
 	}
 
-	window.SetCharCallback(func(w *glfw.Window, char rune){
+	window.SetCharCallback(func(w *glfw.Window, char rune) {
 		if char == 'q' {
 			window.SetShouldClose(true)
 			return
@@ -59,7 +63,7 @@ func main() {
 
 	setupScene()
 	for !window.ShouldClose() {
-		drawScene()
+		Display()
 		window.SwapBuffers()
 		glfw.PollEvents()
 	}
@@ -109,7 +113,7 @@ var (
 var accumulator float64
 var lastTime float64
 
-func drawScene() {
+func Display() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	gl.MatrixMode(gl.MODELVIEW)
@@ -117,24 +121,34 @@ func drawScene() {
 	gl.Translatef(0, 0, 0.0)
 	gl.Scalef(1, 1, 1)
 
-	// Update
+	Update()
+
+	Draw()
+
+	gl.End()
+}
+
+func Update() {
 	time := glfw.GetTime()
 	dt := time - lastTime
 	if dt > 0.2 {
 		dt = 0.2
 	}
 
-	var fixed_dt float64 = 1/60
+	var fixed_dt float64 = 0.0625 // 1/60
 
 	for accumulator += dt; accumulator > fixed_dt; accumulator -= fixed_dt {
 		Tick(fixed_dt)
 	}
 
 	lastTime = time
-
-	gl.End()
 }
 
 func Tick(dt float64) {
+	fmt.Fprintln(os.Stderr, "Tick", dt)
 	space.Step(dt)
+}
+
+func Draw() {
+
 }

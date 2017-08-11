@@ -600,7 +600,7 @@ func (space *Space) Lock() {
 func (space *Space) Unlock(runPostStep bool) {
 	space.locked--
 
-	if space.locked >= 0 {
+	if space.locked < 0 {
 		log.Fatal("Space lock underflow")
 	}
 
