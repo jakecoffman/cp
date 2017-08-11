@@ -2,7 +2,6 @@ package physics
 
 import (
 	"math"
-	"log"
 )
 
 type BBTreeVelocityFunc func(obj interface{}) *Vector
@@ -96,10 +95,10 @@ func (tree *BBTree) IncrementStamp() {
 }
 
 type MarkContext struct {
-	tree *BBTree
+	tree       *BBTree
 	staticRoot *Node
-	f SpatialIndexQuery
-	data interface{}
+	f          SpatialIndexQuery
+	data       interface{}
 }
 
 func VoidQueryFunc(obj1, obj2 interface{}, collisionId uint, data interface{}) uint {
@@ -128,10 +127,6 @@ func (leaf *Node) MarkLeaf(context *MarkContext) {
 		staticRoot := context.staticRoot
 		if staticRoot != nil {
 			staticRoot.MarkLeafQuery(leaf, false, context)
-		}
-
-		if leaf.parent.a == nil {
-			panic("NIL NIL NIL")
 		}
 
 		for node := leaf; node.parent != nil; node = node.parent {
@@ -176,8 +171,8 @@ func (tree *BBTree) PairInsert(a *Node, b *Node) {
 	pair := tree.PairFromPool()
 	temp := &Pair{
 		&Thread{nil, nextA, a},
-		&Thread{nil,  nextB, b},
-		 0,
+		&Thread{nil, nextB, b},
+		0,
 	}
 
 	a.pairs = pair
@@ -309,19 +304,11 @@ func (tree *BBTree) NewNode(a, b *Node) *Node {
 }
 
 func NodeSetA(node, value *Node) {
-	log.Println("Setting A")
-	if value == nil {
-		panic("A")
-	}
 	node.a = value
 	value.parent = node
 }
 
 func NodeSetB(node, value *Node) {
-	log.Println("Setting b")
-	if value == nil {
-		panic("B")
-	}
 	node.b = value
 	value.parent = node
 }
@@ -330,6 +317,9 @@ func (tree *BBTree) NewLeaf(obj interface{}) *Node {
 	node := tree.NodeFromPool()
 	node.obj = obj
 	node.bb = tree.GetBB(obj)
+	node.parent = nil
+	node.stamp = 0
+	node.pairs = nil
 
 	return node
 }
