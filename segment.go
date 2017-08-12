@@ -79,7 +79,7 @@ func NewSegment(body *Body, a, b *Vector, r float64) *Shape {
 		a_tangent: VectorZero(),
 		b_tangent: VectorZero(),
 	}
-	segment.Shape = NewShape(segment, body, NewSegmentMassInfo(0, a, b, r))
+	segment.Shape = NewShape(segment, SHAPE_TYPE_SEGMENT, body, NewSegmentMassInfo(0, a, b, r))
 	return segment.Shape
 }
 

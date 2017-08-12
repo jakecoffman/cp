@@ -84,14 +84,6 @@ type ShapeMassInfo struct {
 	cog        *Vector
 }
 
-// Shape Class
-const (
-	SHAPE_CLASS_CIRCLE = iota
-	SHAPE_CLASS_SEGMENT
-	SHAPE_CLASS_POLY
-	SHAPE_CLASS_NUM
-)
-
 type PointQueryInfo struct {
 	/// The nearest shape, NULL if no shape was within range.
 	shape *Shape

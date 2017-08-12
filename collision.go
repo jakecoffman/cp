@@ -31,7 +31,7 @@ func PolySupportPoint(shape *Shape, n *Vector) *SupportPoint {
 	return NewSupportPoint(planes[i].v0, i)
 }
 
-func PolySupportPointIndex(count uint, planes []*SplittingPlane, n *Vector) uint {
+func PolySupportPointIndex(count uint, planes []SplittingPlane, n *Vector) uint {
 	max := -INFINITY
 	var index uint
 	var i uint

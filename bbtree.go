@@ -231,13 +231,18 @@ func (subtree *BBTree) PairFromPool() *Pair {
 		return pair
 	}
 
+	if tree == nil {
+		panic("NPE")
+	}
+
 	// Pool is exhausted make more
 	for i := 0; i < 32; i++ {
-		tree.RecyclePair(&Pair{})
+		tree.RecyclePair(&Pair{a: &Thread{}, b: &Thread{}})
 	}
 
 	return tree.pooledPairs
 }
+
 func (tree *BBTree) RecyclePair(pair *Pair) {
 	master := tree.GetMasterTree()
 	pair.a.next = master.pooledPairs

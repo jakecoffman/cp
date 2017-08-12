@@ -10,6 +10,8 @@ import (
 	. "github.com/jakecoffman/physics"
 	"fmt"
 	"os"
+	"image/color"
+	"github.com/jakecoffman/physics/examples"
 )
 
 var space *Space
@@ -38,8 +40,6 @@ func main() {
 		log.Fatal(err)
 	}
 	defer glfw.Terminate()
-
-	SetupGL()
 
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
@@ -123,7 +123,12 @@ func Display() {
 
 	Update()
 
-	Draw()
+	DrawSpace(space, &drawOptions{
+		flags: DRAW_SHAPES | DRAW_CONSTRAINTS | DRAW_COLLISION_POINTS,
+		outline: color.RGBA{R: 255, A: 255},
+		constraint: color.RGBA{G: 255, A: 255},
+		collisionPoint: color.RGBA{B: 255, A: 255},
+	})
 
 	gl.End()
 }
@@ -149,6 +154,52 @@ func Tick(dt float64) {
 	space.Step(dt)
 }
 
-func Draw() {
+type drawOptions struct {
+	flags int
+	outline, constraint, collisionPoint color.Color
+	data interface{}
+}
 
+func (*drawOptions) DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color, data interface{}) {
+	examples.DrawCircle(pos, angle, radius, outline, fill)
+}
+
+func (*drawOptions) DrawSegment(a, b *Vector, fill color.Color, data interface{}) {
+	examples.DrawSegment(a, b, fill)
+}
+
+func (*drawOptions) DrawFatSegment(a, b *Vector, radius float64, outline, fill color.Color, data interface{}) {
+	examples.DrawFatSegment(a, b, radius, outline, fill)
+}
+
+func (*drawOptions) DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill color.Color, data interface{}) {
+	examples.DrawPolygon(count, verts, radius, outline, fill)
+}
+
+func (*drawOptions) DrawDot(size float64, pos *Vector, fill color.Color, data interface{}) {
+	examples.DrawDot(size, pos, fill)
+}
+
+func (d *drawOptions) Flags() int {
+	return d.flags
+}
+
+func (d *drawOptions) OutlineColor() color.Color {
+	return d.outline
+}
+
+func (*drawOptions) ShapeColor(shape *Shape, data interface{}) color.Color {
+	return examples.ColorForShape(shape, data)
+}
+
+func (d *drawOptions) ConstraintColor() color.Color {
+	return d.constraint
+}
+
+func (d *drawOptions) CollisionPointColor() color.Color {
+	return d.collisionPoint
+}
+
+func (d *drawOptions) Data() interface{} {
+	return d.data
 }

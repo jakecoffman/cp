@@ -1,6 +1,8 @@
 package physics
 
-import "math"
+import (
+	"math"
+)
 
 type PolyShape struct {
 	*Shape
@@ -10,13 +12,13 @@ type PolyShape struct {
 	count uint
 
 	// The untransformed planes are appended at the end of the transformed planes.
-	planes []*SplittingPlane
+	planes []SplittingPlane
 }
 
 func (poly *PolyShape) CacheData(transform *Transform) *BB {
 	count := poly.count
 	dst := poly.planes
-	src := dst[count:]
+	src := poly.planes[count:]
 
 	l := INFINITY
 	r := -INFINITY
@@ -54,8 +56,15 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, radius float64, info *SegmentQu
 	panic("implement me")
 }
 
-func NewPolyShape() *PolyShape {
-	return &PolyShape{}
+func NewPolyShape(body *Body, count uint, verts []*Vector, radius float64) *PolyShape {
+	poly := &PolyShape{
+		r: radius,
+		count: count,
+		planes: []SplittingPlane{},
+	}
+	poly.Shape = NewShape(poly, SHAPE_TYPE_POLY, body, PolyShapeMassInfo(0, verts, radius))
+	poly.SetVerts(verts)
+	return poly
 }
 
 func NewBox(body *Body, w, h, r float64) *Shape {
@@ -68,24 +77,21 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 		{bb.L, bb.T},
 		{bb.L, bb.B},
 	}
-	poly := &PolyShape{
-		r: r,
-	}
-	poly.Shape = NewShape(poly, body, PolyShapeMassInfo(0, verts, r))
-	poly.SetVerts(verts)
+	poly := NewPolyShape(body, uint(len(verts)), verts, r)
 	return poly.Shape
 }
 
 func (p *PolyShape) SetVerts(verts []*Vector) {
 	count := len(verts)
-	p.planes = make([]*SplittingPlane, 2*count)
+	p.count = uint(count)
+	p.planes = make([]SplittingPlane, count*2)
 
 	for i := range verts {
 		a := verts[(i-1+count)%count]
 		b := verts[i]
 		n := b.Sub(a).Perp().Normalize()
 
-		p.planes[i+count] = &SplittingPlane{v0: b, n: n}
+		p.planes[i+count] = SplittingPlane{v0: b, n: n}
 	}
 }
 

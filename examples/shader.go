@@ -37,7 +37,9 @@ func CheckError(obj uint32, status uint32, getiv func(uint32, uint32, *int32), g
 func CompileShader(typ uint32, source string) uint32 {
 	shader := gl.CreateShader(typ)
 
-	gl.ShaderSource(shader, 1, &gl.Str(source), nil)
+	sources, free := gl.Strs(source)
+	defer free()
+	gl.ShaderSource(shader, 1, sources, nil)
 	gl.CompileShader(shader)
 
 	if CheckError(shader, gl.COMPILE_STATUS, gl.GetShaderiv, gl.GetShaderInfoLog) {

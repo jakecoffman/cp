@@ -136,7 +136,7 @@ func PushTriangles(count int) []*Triangle {
 	for i := 0; i < count; i++ {
 		triangleStack = append(triangleStack, &Triangle{})
 	}
-	return triangleStack[-count:]
+	return triangleStack[len(triangleStack)-count:]
 }
 
 func DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color) {
@@ -174,10 +174,14 @@ func DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color) {
 	triangles[0] = &t0
 	triangles[1] = &t1
 
-	DrawSegment(pos, pos.Add(ForAngle(angle).Mult(radius-DrawPointLineScale*0.5)), 0, outline, fill)
+	DrawFatSegment(pos, pos.Add(ForAngle(angle).Mult(radius-DrawPointLineScale*0.5)), 0, outline, fill)
 }
 
-func DrawSegment(a, b *Vector, radius float64, outline, fill color.Color) {
+func DrawSegment(a, b *Vector, fill color.Color) {
+	DrawFatSegment(a, b, 0, fill, fill)
+}
+
+func DrawFatSegment(a, b *Vector, radius float64, outline, fill color.Color) {
 	triangles := PushTriangles(6)
 
 	n := b.Sub(a).Perp().Normalize()
@@ -217,13 +221,14 @@ func DrawSegment(a, b *Vector, radius float64, outline, fill color.Color) {
 	triangles[5] = t5
 }
 
-func DrawPolygon(count int, verts []*Vector, radius float64, outline, fill color.Color) {
+func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill color.Color) {
 	type ExtrudeVerts struct {
 		offset, n Vector
 	}
-	extrude := [count]ExtrudeVerts{}
+	extrude := make([]ExtrudeVerts, count)
 
-	for i := 0; i < count; i++ {
+	var i uint
+	for i = 0; i < count; i++ {
 		v0 := verts[(i-1+count)%count]
 		v1 := verts[i]
 		v2 := verts[(i+1)%count]
@@ -236,14 +241,14 @@ func DrawPolygon(count int, verts []*Vector, radius float64, outline, fill color
 		extrude[i] = v
 	}
 
-	triangles := PushTriangles(5*count - 2)
+	triangles := PushTriangles(int(5*count - 2))
 	cursor := 0
 
 	inset := math.Max(0, 1/DrawPointLineScale-radius)
-	for i := 0; i < count-2; i++ {
-		v0 := v2f(verts[0].Add(extrude[0].offset.Mult(inset)))
-		v1 := v2f(verts[i+1].Add(extrude[i+1].offset.Mult(inset)))
-		v2 := v2f(verts[i+2].Add(extrude[i+2].offset.Mult(inset)))
+	for i = 0; i < count-2; i++ {
+		v0 := V2f(verts[0].Add(extrude[0].offset.Mult(inset)))
+		v1 := V2f(verts[i+1].Add(extrude[i+1].offset.Mult(inset)))
+		v2 := V2f(verts[i+2].Add(extrude[i+2].offset.Mult(inset)))
 
 		triangles[cursor] = &Triangle{
 			Vertex{v0, v2f0(), fill, fill},
@@ -255,7 +260,7 @@ func DrawPolygon(count int, verts []*Vector, radius float64, outline, fill color
 
 	outset := 1/DrawPointLineScale + radius - inset
 	j := count - 1
-	for i := 0; i < count; i++ {
+	for i = 0; i < count; i++ {
 		vA := verts[i]
 		vB := verts[j]
 
@@ -318,7 +323,7 @@ func DrawBB(bb *BB, outline color.Color) {
 func FlushRenderer() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	size := len(triangleStack) * int(unsafe.Sizeof(triangleStack[0]))
-	gl.BufferData(gl.ARRAY_BUFFER, size, unsafe.Pointer(triangleStack), gl.STREAM_DRAW_ARB)
+	gl.BufferData(gl.ARRAY_BUFFER, size, gl.Ptr(triangleStack), gl.STREAM_DRAW_ARB)
 
 	gl.UseProgram(program)
 	gl.Uniform1f(gl.GetUniformLocation(program, gl.Str("u_outline_coef")), DrawPointLineScale)

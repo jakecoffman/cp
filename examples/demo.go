@@ -9,17 +9,17 @@ import (
 
 func ColorForShape(shape *physics.Shape, data interface{}) color.Color {
 	if shape.GetSensor() {
-		return color.RGBA{255, 255, 255, 255 * 01}
+		return color.RGBA{R: 255, G: 255, B: 255, A: 255 * 01}
 	}
 
 	body := shape.Body()
 
 	if body.IsSleeping() {
-		return color.RGBA{51, 51, 51, 255}
+		return color.RGBA{R: 51, G: 51, B: 51, A: 255}
 	}
 
 	if body.IdleTime() > shape.Space().SleepTimeThreshold {
-		return color.RGBA{153, 153, 153, 255}
+		return color.RGBA{R: 153, G: 153, B: 153, A: 255}
 	}
 
 	val := shape.HashId()
@@ -46,14 +46,14 @@ func ColorForShape(shape *physics.Shape, data interface{}) color.Color {
 	}
 
 	if min == max {
-		return color.RGBA{uint8(intensity * 255), 0, 0, 1}
+		return color.RGBA{R: uint8(intensity * 255), A: 1}
 	}
 
 	coef := intensity / (max - min)
 	return color.RGBA{
-		uint8((r - min) * coef * 255),
-		uint8((g - min) * coef * 255),
-		uint8((b - min) * coef * 255),
-		1,
+		R: uint8((r - min) * coef * 255),
+		G: uint8((g - min) * coef * 255),
+		B: uint8((b - min) * coef * 255),
+		A: 1,
 	}
 }
