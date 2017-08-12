@@ -101,6 +101,8 @@ func DrawInit() {
 
 	program = LinkProgram(vshader, fshader)
 
+	CheckGLErrors()
+
 	// TODO implement OS specific stuff in demo_darwin, etc
 	gl.GenVertexArraysAPPLE(1, &vao)
 	gl.BindVertexArrayAPPLE(vao)
@@ -108,16 +110,22 @@ func DrawInit() {
 	gl.GenBuffers(1, &vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 
+	CheckGLErrors()
+
 	v := Vertex{}
 	size := int32(unsafe.Sizeof(v) / unsafe.Sizeof(gl.FLOAT))
 	stride := int32(unsafe.Sizeof(v))
 
-	SetAttribute(program, "vertex", size, gl.FLOAT, stride, unsafe.Pointer(unsafe.Offsetof(v.vertex)))
-	SetAttribute(program, "aa_coord", size, gl.FLOAT, stride, unsafe.Pointer(unsafe.Offsetof(v.aa_coord)))
-	SetAttribute(program, "fill_color", size, gl.FLOAT, stride, unsafe.Pointer(unsafe.Offsetof(v.fill)))
-	SetAttribute(program, "outline_color", size, gl.FLOAT, stride, unsafe.Pointer(unsafe.Offsetof(v.outline)))
+	CheckGLErrors()
+
+	SetAttribute(program, "vertex", size, gl.FLOAT, stride, unsafe.Offsetof(v.vertex))
+	SetAttribute(program, "aa_coord", size, gl.FLOAT, stride, unsafe.Offsetof(v.aa_coord))
+	SetAttribute(program, "fill_color", size, gl.FLOAT, stride, unsafe.Offsetof(v.fill))
+	SetAttribute(program, "outline_color", size, gl.FLOAT, stride, unsafe.Offsetof(v.outline))
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+
+	CheckGLErrors()
 
 	// TODO non-apple
 	gl.BindVertexArrayAPPLE(0)

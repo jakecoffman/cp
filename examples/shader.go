@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"os"
-	"unsafe"
 )
 
 func CheckGLErrors() {
@@ -27,7 +26,7 @@ func CheckError(obj uint32, status uint32, getiv func(uint32, uint32, *int32), g
 		log := strings.Repeat("\x00", int(length+1))
 		getInfoLog(obj, length, nil, gl.Str(log))
 
-		fmt.Fprintln(os.Stderr, "Error for", status, log)
+		fmt.Fprintln(os.Stderr, "GL Error:", log)
 		return true
 	}
 
@@ -37,7 +36,7 @@ func CheckError(obj uint32, status uint32, getiv func(uint32, uint32, *int32), g
 func CompileShader(typ uint32, source string) uint32 {
 	shader := gl.CreateShader(typ)
 
-	sources, free := gl.Strs(source)
+	sources, free := gl.Strs(source + "\x00")
 	defer free()
 	gl.ShaderSource(shader, 1, sources, nil)
 	gl.CompileShader(shader)
@@ -64,8 +63,11 @@ func LinkProgram(vshader, fshader uint32) uint32 {
 	return program
 }
 
-func SetAttribute(program uint32, name string, size int32, gltype uint32, stride int32, offset unsafe.Pointer) {
-	var index uint32 = uint32(gl.GetAttribLocation(program, gl.Str(name)))
+func SetAttribute(program uint32, name string, size int32, gltype uint32, stride int32, offset uintptr) {
+	var index uint32 = uint32(gl.GetAttribLocation(program, gl.Str(name + "\x00")))
+	CheckGLErrors()
 	gl.EnableVertexAttribArray(index)
-	gl.VertexAttribPointer(index, size, gltype, false, stride, offset)
+	CheckGLErrors()
+	gl.VertexAttribPointer(index, size, gltype, false, stride, gl.PtrOffset(int(offset)))
+	CheckGLErrors()
 }
