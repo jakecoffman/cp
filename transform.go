@@ -79,8 +79,8 @@ func (t *Transform) Vect(v *Vector) *Vector {
 }
 
 func (t *Transform) BB(bb *BB) *BB {
-	hw := (bb.r - bb.l) * 0.5
-	hh := (bb.t - bb.b) * 0.5
+	hw := (bb.R - bb.L) * 0.5
+	hh := (bb.T - bb.B) * 0.5
 
 	a := t.a * hw
 	b := t.c * hh
@@ -99,8 +99,8 @@ func (outer *Transform) Wrap(inner *Transform) *Transform {
 
 func (outer *Transform) Ortho(bb *BB) *Transform {
 	return NewTransformTranspose(
-		2.0/(bb.r-bb.l), 0.0, -(bb.r+bb.l)/(bb.r-bb.l),
-		0.0, 2.0/(bb.t-bb.b), -(bb.t+bb.b)/(bb.t-bb.b),
+		2.0/(bb.R-bb.L), 0.0, -(bb.R +bb.L)/(bb.R-bb.L),
+		0.0, 2.0/(bb.T-bb.B), -(bb.T +bb.B)/(bb.T-bb.B),
 	)
 }
 

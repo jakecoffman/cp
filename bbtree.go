@@ -405,15 +405,15 @@ func (tree *BBTree) GetBB(obj interface{}) *BB {
 	bb := tree.spatialIndex.bbfunc(obj)
 	if tree.velocityFunc != nil {
 		coef := 0.1
-		x := (bb.r - bb.l) * coef
-		y := (bb.t - bb.b) * coef
+		x := (bb.R - bb.L) * coef
+		y := (bb.T - bb.B) * coef
 
 		v := (*tree.velocityFunc)(obj).Mult(0.1)
 		return &BB{
-			bb.l + math.Min(-x, v.X),
-			bb.b + math.Min(-y, v.Y),
-			bb.r + math.Max(x, v.X),
-			bb.t + cpfmax(y, v.Y),
+			bb.L + math.Min(-x, v.X),
+			bb.B + math.Min(-y, v.Y),
+			bb.R + math.Max(x, v.X),
+			bb.T + cpfmax(y, v.Y),
 		}
 	}
 

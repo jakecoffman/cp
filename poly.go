@@ -63,10 +63,10 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 	hh := h / 2
 	bb := &BB{-hw, -hh, hw, hh}
 	verts := []*Vector{
-		{bb.r, bb.b},
-		{bb.r, bb.t},
-		{bb.l, bb.t},
-		{bb.l, bb.b},
+		{bb.R, bb.B},
+		{bb.R, bb.T},
+		{bb.L, bb.T},
+		{bb.L, bb.B},
 	}
 	poly := &PolyShape{
 		r: r,

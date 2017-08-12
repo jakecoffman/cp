@@ -620,8 +620,8 @@ func (space *Space) Unlock(runPostStep bool) {
 func (space *Space) UncacheArbiter(arb *Arbiter) {
 	panic("TODO")
 	//a := arb.a
-	//b := arb.b
-	//arbHashId := HashPair(uint(a), uint(b))
+	//B := arb.B
+	//arbHashId := HashPair(uint(a), uint(B))
 	//delete(space.cachedArbiters, arbHashId)
 	for i, a := range space.arbiters {
 		if a == arb {

@@ -3,15 +3,15 @@ package physics
 import "math"
 
 type BB struct {
-	l, b, r, t float64
+	L, B, R, T float64
 }
 
 func NewBBForExtents(c *Vector, hw, hh float64) *BB {
 	return &BB{
-		l: c.X - hw,
-		b: c.Y - hh,
-		r: c.X + hw,
-		t: c.Y + hh,
+		L: c.X - hw,
+		B: c.Y - hh,
+		R: c.X + hw,
+		T: c.Y + hh,
 	}
 }
 
@@ -20,45 +20,45 @@ func NewBBForCircle(p *Vector, r float64) *BB {
 }
 
 func (a *BB) Intersects(b *BB) bool {
-	return a.l <= b.r && b.l <= a.r && a.b <= b.t && b.b <= a.t
+	return a.L <= b.R && b.L <= a.R && a.B <= b.T && b.B <= a.T
 }
 
 func (bb *BB) Contains(other *BB) bool {
-	return bb.l <= other.l && bb.r >= other.r && bb.b <= other.b && bb.t >= other.t
+	return bb.L <= other.L && bb.R >= other.R && bb.B <= other.B && bb.T >= other.T
 }
 
 func (bb *BB) ContainsVect(v *Vector) bool {
-	return bb.l <= v.X && bb.r >= v.X && bb.b <= v.Y && bb.t >= v.Y
+	return bb.L <= v.X && bb.R >= v.X && bb.B <= v.Y && bb.T >= v.Y
 }
 
 func (a *BB) Merge(b *BB) *BB {
 	return &BB{
-		math.Min(a.l, b.l),
-		math.Min(a.b, b.b),
-		math.Max(a.r, b.r),
-		math.Max(a.t, b.t),
+		math.Min(a.L, b.L),
+		math.Min(a.B, b.B),
+		math.Max(a.R, b.R),
+		math.Max(a.T, b.T),
 	}
 }
 
 func (bb *BB) Expand(v *Vector) *BB {
 	return &BB{
-		math.Min(bb.l, v.X),
-		math.Min(bb.b, v.Y),
-		math.Max(bb.r, v.X),
-		math.Max(bb.t, v.Y),
+		math.Min(bb.L, v.X),
+		math.Min(bb.B, v.Y),
+		math.Max(bb.R, v.X),
+		math.Max(bb.T, v.Y),
 	}
 }
 
 func (bb *BB) Center() *Vector {
-	return (&Vector{bb.l, bb.b}).Lerp(&Vector{bb.r, bb.t}, 0.5)
+	return (&Vector{bb.L, bb.B}).Lerp(&Vector{bb.R, bb.T}, 0.5)
 }
 
 func (bb *BB) Area() float64 {
-	return (bb.r - bb.l) * (bb.t - bb.b)
+	return (bb.R - bb.L) * (bb.T - bb.B)
 }
 
 func (a *BB) MergedArea(b *BB) float64 {
-	return (math.Max(a.r, b.r) - math.Min(a.l, b.l)) * (math.Max(a.t, b.t) - math.Min(a.b, b.b))
+	return (math.Max(a.R, b.R) - math.Min(a.L, b.L)) * (math.Max(a.T, b.T) - math.Min(a.B, b.B))
 }
 
 func (bb *BB) SegmentQuery(a, b *Vector) float64 {
@@ -67,23 +67,23 @@ func (bb *BB) SegmentQuery(a, b *Vector) float64 {
 	tmax := INFINITY
 
 	if delta.X == 0 {
-		if a.X < bb.l || bb.r < a.X {
+		if a.X < bb.L || bb.R < a.X {
 			return INFINITY
 		}
 	} else {
-		t1 := (bb.l - a.X) / delta.X
-		t2 := (bb.r - a.X) / delta.X
+		t1 := (bb.L - a.X) / delta.X
+		t2 := (bb.R - a.X) / delta.X
 		tmin = math.Max(tmin, math.Min(t1, t2))
 		tmax = math.Min(tmax, math.Max(t1, t2))
 	}
 
 	if delta.Y == 0 {
-		if a.Y < bb.b || bb.t < a.Y {
+		if a.Y < bb.B || bb.T < a.Y {
 			return INFINITY
 		}
 	} else {
-		t1 := (bb.b - a.Y) / delta.Y
-		t2 := (bb.t - a.Y) / delta.Y
+		t1 := (bb.B - a.Y) / delta.Y
+		t2 := (bb.T - a.Y) / delta.Y
 		tmin = math.Max(tmin, math.Min(t1, t2))
 		tmax = math.Min(tmax, math.Max(t1, t2))
 	}
@@ -100,12 +100,12 @@ func (bb *BB) IntersectsSegment(a, b *Vector) bool {
 }
 
 func (bb *BB) ClampVect(v *Vector) *Vector {
-	return &Vector{Clamp(v.X, bb.l, bb.r), Clamp(v.Y, bb.b, bb.t)}
+	return &Vector{Clamp(v.X, bb.L, bb.R), Clamp(v.Y, bb.B, bb.T)}
 }
 
 func (bb *BB) WrapVect(v *Vector) *Vector {
-	dx := math.Abs(bb.r - bb.l)
-	modx := math.Mod(v.X-bb.l, dx)
+	dx := math.Abs(bb.R - bb.L)
+	modx := math.Mod(v.X-bb.L, dx)
 	var x float64
 	if modx > 0 {
 		x = modx
@@ -113,8 +113,8 @@ func (bb *BB) WrapVect(v *Vector) *Vector {
 		x = modx + dx
 	}
 
-	dy := math.Abs(bb.t - bb.b)
-	mody := math.Mod(v.Y-bb.b, dy)
+	dy := math.Abs(bb.T - bb.B)
+	mody := math.Mod(v.Y-bb.B, dy)
 	var y float64
 	if mody > 0 {
 		y = mody
@@ -122,18 +122,18 @@ func (bb *BB) WrapVect(v *Vector) *Vector {
 		y = mody + dy
 	}
 
-	return &Vector{x + bb.l, y + bb.b}
+	return &Vector{x + bb.L, y + bb.B}
 }
 
 func (bb *BB) Offset(v *Vector) *BB {
 	return &BB{
-		bb.l + v.X,
-		bb.b + v.Y,
-		bb.r + v.X,
-		bb.t + v.Y,
+		bb.L + v.X,
+		bb.B + v.Y,
+		bb.R + v.X,
+		bb.T + v.Y,
 	}
 }
 
 func (a *BB) Proximity(b *BB) float64 {
-	return math.Abs(a.l+a.r-b.l-b.r) + math.Abs(a.b+a.t-b.b-b.t)
+	return math.Abs(a.L+a.R-b.L-b.R) + math.Abs(a.B+a.T-b.B-b.T)
 }

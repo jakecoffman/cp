@@ -5,6 +5,8 @@ import (
 
 	"unsafe"
 
+	"math"
+
 	"github.com/go-gl/gl/v2.1/gl"
 	. "github.com/jakecoffman/physics"
 )
@@ -130,9 +132,8 @@ func max(a, b int32) int32 {
 	return b
 }
 
-func PushTriangles(count int32) []*Triangle {
-	var i int32
-	for i = 0; i < count; i++ {
+func PushTriangles(count int) []*Triangle {
+	for i := 0; i < count; i++ {
 		triangleStack = append(triangleStack, &Triangle{})
 	}
 	return triangleStack[-count:]
@@ -149,19 +150,19 @@ func DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color) {
 		outline,
 	}
 	b := Vertex{
-		v2f{float32(pos.X-r), float32(pos.Y+r)},
+		v2f{float32(pos.X - r), float32(pos.Y + r)},
 		v2f{-1, 1},
 		fill,
 		outline,
 	}
 	c := Vertex{
-		v2f{float32(pos.X+r), float32(pos.Y+r)},
+		v2f{float32(pos.X + r), float32(pos.Y + r)},
 		v2f{1, 1},
 		fill,
 		outline,
 	}
 	d := Vertex{
-		v2f{float32(pos.X+r), float32(pos.Y-r)},
+		v2f{float32(pos.X + r), float32(pos.Y - r)},
 		v2f{1, -1},
 		fill,
 		outline,
@@ -173,16 +174,17 @@ func DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color) {
 	triangles[0] = &t0
 	triangles[1] = &t1
 
-	DrawSegment(pos, pos.Add(ForAngle(angle).Mult(radius - DrawPointLineScale*0.5)), 0, outline, fill)
+	DrawSegment(pos, pos.Add(ForAngle(angle).Mult(radius-DrawPointLineScale*0.5)), 0, outline, fill)
 }
+
 func DrawSegment(a, b *Vector, radius float64, outline, fill color.Color) {
 	triangles := PushTriangles(6)
 
 	n := b.Sub(a).Perp().Normalize()
 	t := n.Perp()
 
-	var half float64 = 1/DrawPointLineScale
-	r := radius+half
+	var half float64 = 1 / DrawPointLineScale
+	r := radius + half
 
 	if r <= half {
 		r = half
@@ -213,4 +215,120 @@ func DrawSegment(a, b *Vector, radius float64, outline, fill color.Color) {
 	triangles[3] = t3
 	triangles[4] = t4
 	triangles[5] = t5
+}
+
+func DrawPolygon(count int, verts []*Vector, radius float64, outline, fill color.Color) {
+	type ExtrudeVerts struct {
+		offset, n Vector
+	}
+	extrude := [count]ExtrudeVerts{}
+
+	for i := 0; i < count; i++ {
+		v0 := verts[(i-1+count)%count]
+		v1 := verts[i]
+		v2 := verts[(i+1)%count]
+
+		n1 := v1.Sub(v0).Perp().Normalize()
+		n2 := v2.Sub(v1).Perp().Normalize()
+
+		offset := n1.Add(n2).Mult(1 / (n1.Dot(n2) + 1))
+		v := ExtrudeVerts{*offset, *n2}
+		extrude[i] = v
+	}
+
+	triangles := PushTriangles(5*count - 2)
+	cursor := 0
+
+	inset := math.Max(0, 1/DrawPointLineScale-radius)
+	for i := 0; i < count-2; i++ {
+		v0 := v2f(verts[0].Add(extrude[0].offset.Mult(inset)))
+		v1 := v2f(verts[i+1].Add(extrude[i+1].offset.Mult(inset)))
+		v2 := v2f(verts[i+2].Add(extrude[i+2].offset.Mult(inset)))
+
+		triangles[cursor] = &Triangle{
+			Vertex{v0, v2f0(), fill, fill},
+			Vertex{v1, v2f0(), fill, fill},
+			Vertex{v2, v2f0(), fill, fill},
+		}
+		cursor++
+	}
+
+	outset := 1/DrawPointLineScale + radius - inset
+	j := count - 1
+	for i := 0; i < count; i++ {
+		vA := verts[i]
+		vB := verts[j]
+
+		nA := extrude[i].n
+		nB := extrude[j].n
+
+		offsetA := extrude[i].offset
+		offsetB := extrude[j].offset
+
+		innerA := vA.Add(offsetA.Mult(inset))
+		innerB := vB.Add(offsetB.Mult(inset))
+
+		inner0 := V2f(innerA)
+		inner1 := V2f(innerB)
+		outer0 := V2f(innerA.Add(nB.Mult(outset)))
+		outer1 := V2f(innerB.Add(nB.Mult(outset)))
+		outer2 := V2f(innerA.Add(offsetA.Mult(outset)))
+		outer3 := V2f(innerA.Add(nA.Mult(outset)))
+
+		n0 := V2f(&nA)
+		n1 := V2f(&nB)
+		offset0 := V2f(&offsetA)
+
+		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{inner1, v2f0(), fill, outline}, Vertex{outer1, n1, fill, outline}}
+		cursor++
+		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer1, n1, fill, outline}}
+		cursor++
+		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer2, offset0, fill, outline}}
+		cursor++
+		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer2, offset0, fill, outline}, Vertex{outer3, n0, fill, outline}}
+		cursor++
+
+		j = i
+	}
+}
+
+func DrawDot(size float64, pos *Vector, fill color.Color) {
+	triangles := PushTriangles(2)
+
+	r := size * 0.5 / DrawPointLineScale
+	a := Vertex{v2f{float32(pos.X - r), float32(pos.Y - r)}, v2f{-1, -1}, fill, fill}
+	b := Vertex{v2f{float32(pos.X - r), float32(pos.Y + r)}, v2f{-1, 1}, fill, fill}
+	c := Vertex{v2f{float32(pos.X + r), float32(pos.Y + r)}, v2f{1, 1}, fill, fill}
+	d := Vertex{v2f{float32(pos.X + r), float32(pos.Y - r)}, v2f{1, -1}, fill, fill}
+
+	triangles[0] = &Triangle{a, b, c}
+	triangles[1] = &Triangle{a, c, d}
+}
+
+func DrawBB(bb *BB, outline color.Color) {
+	verts := []*Vector{
+		{bb.R, bb.B},
+		{bb.R, bb.T},
+		{bb.L, bb.T},
+		{bb.L, bb.B},
+	}
+	DrawPolygon(4, verts, 0, outline, color.White)
+}
+
+func FlushRenderer() {
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	size := len(triangleStack) * int(unsafe.Sizeof(triangleStack[0]))
+	gl.BufferData(gl.ARRAY_BUFFER, size, unsafe.Pointer(triangleStack), gl.STREAM_DRAW_ARB)
+
+	gl.UseProgram(program)
+	gl.Uniform1f(gl.GetUniformLocation(program, gl.Str("u_outline_coef")), DrawPointLineScale)
+
+	// TODO
+	gl.BindVertexArrayAPPLE(vao)
+
+	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangleStack)*3))
+}
+
+func ClearRenderer() {
+	triangleStack = triangleStack[0:0]
 }

@@ -263,9 +263,9 @@ func MomentForBox(m, width, height float64) float64 {
 }
 
 func MomentForBox2(m float64, box *BB) float64 {
-	width := box.r - box.l
-	height := box.t - box.b
-	offset := (&Vector{box.l + box.r, box.b + box.t}).Mult(0.5)
+	width := box.R - box.L
+	height := box.T - box.B
+	offset := (&Vector{box.L + box.R, box.B + box.T}).Mult(0.5)
 
 	// TODO: NaN when offset is 0 and m is INFINITY
 	return MomentForBox(m, width, height) + m*offset.LengthSq()
