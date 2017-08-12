@@ -25,11 +25,11 @@ const (
 )
 
 type Shape struct {
-	class     ShapeClass
-	space     *Space
-	body      *Body
-	massInfo  *ShapeMassInfo
-	bb        *BB
+	Class    ShapeClass
+	space    *Space
+	body     *Body
+	massInfo *ShapeMassInfo
+	bb       *BB
 
 	sensor   bool
 	E, U     float64
@@ -46,7 +46,7 @@ type Shape struct {
 }
 
 func (s *Shape) Order() int {
-	switch s.class.(type) {
+	switch s.Class.(type) {
 	case *Circle:
 		return 0
 	case *Segment:
@@ -100,22 +100,22 @@ func (s *Shape) CacheBB() *BB {
 }
 
 func (s *Shape) Update(transform *Transform) *BB {
-	s.bb = s.class.CacheData(transform)
+	s.bb = s.Class.CacheData(transform)
 	return s.bb
 }
 
 func (s *Shape) Point(i uint) *SupportPoint {
-	switch s.class.(type) {
+	switch s.Class.(type) {
 	case *Circle:
-		return NewSupportPoint(s.class.(*Circle).tc, 0)
+		return NewSupportPoint(s.Class.(*Circle).tc, 0)
 	case *Segment:
-		seg := s.class.(*Segment)
+		seg := s.Class.(*Segment)
 		if i == 0 {
 			return NewSupportPoint(seg.ta, i)
 		}
 		return NewSupportPoint(seg.tb, i)
 	case *PolyShape:
-		poly := s.class.(*PolyShape)
+		poly := s.Class.(*PolyShape)
 		// Poly shapes may change vertex count.
 		var index uint
 		if i < poly.count {
@@ -131,7 +131,7 @@ func (s *Shape) Point(i uint) *SupportPoint {
 
 func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 	return &Shape{
-		class:    class,
+		Class:    class,
 		body:     body,
 		massInfo: massInfo,
 

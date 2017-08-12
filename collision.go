@@ -25,7 +25,7 @@ func NewSupportPoint(p *Vector, index uint) *SupportPoint {
 type SupportPointFunc func(shape *Shape, n *Vector) *SupportPoint
 
 func PolySupportPoint(shape *Shape, n *Vector) *SupportPoint {
-	poly := shape.class.(*PolyShape)
+	poly := shape.Class.(*PolyShape)
 	planes := poly.planes
 	i := PolySupportPointIndex(poly.count, planes, n)
 	return NewSupportPoint(planes[i].v0, i)
@@ -89,8 +89,8 @@ func PolyToPoly(a, b *Shape, info *CollisionInfo) {
 
 	// TODO: add debug drawing logic like chipmunk does
 
-	poly1 := a.class.(*PolyShape)
-	poly2 := b.class.(*PolyShape)
+	poly1 := a.Class.(*PolyShape)
+	poly2 := b.Class.(*PolyShape)
 	if points.d - poly1.r - poly2.r <= 0 {
 		ContactPoints(SupportEdgeForPoly(poly1, points.n), SupportEdgeForPoly(poly2, points.n.Neg()), points, info)
 	}

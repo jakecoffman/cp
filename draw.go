@@ -33,15 +33,15 @@ func DrawShape(shape *Shape, options Drawer) {
 	outline := options.OutlineColor()
 	fill := options.ShapeColor(shape, data)
 
-	switch shape.class.(type) {
+	switch shape.Class.(type) {
 	case *Circle:
-		circle := shape.class.(*Circle)
+		circle := shape.Class.(*Circle)
 		options.DrawCircle(circle.tc, body.a, circle.r, outline, fill, data)
 	case *Segment:
-		seg := shape.class.(*Segment)
+		seg := shape.Class.(*Segment)
 		options.DrawFatSegment(seg.ta, seg.tb, seg.r, outline, fill, data)
 	case *PolyShape:
-		poly := shape.class.(*PolyShape)
+		poly := shape.Class.(*PolyShape)
 
 		count := poly.count
 		planes := poly.planes

@@ -126,6 +126,7 @@ func Display() {
 
 	examples.CheckGLErrors()
 
+	// builds triangles buffer
 	DrawSpace(space, &drawOptions{
 		flags: DRAW_SHAPES | DRAW_CONSTRAINTS | DRAW_COLLISION_POINTS,
 		outline: FColor{R: 1, A: 1},
@@ -133,10 +134,8 @@ func Display() {
 		collisionPoint: FColor{B: 1, A: 1},
 	})
 
-	examples.CheckGLErrors()
-
+	// gives buffer to opengl to draw
 	examples.FlushRenderer()
-	examples.CheckGLErrors()
 }
 
 func Update() {
@@ -157,6 +156,7 @@ func Update() {
 
 func Tick(dt float64) {
 	fmt.Fprintln(os.Stderr, "Tick", dt)
+	examples.ClearRenderer()
 	space.Step(dt)
 }
 

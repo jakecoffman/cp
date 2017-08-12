@@ -76,6 +76,19 @@ func NewBody(mass, moment float64) *Body {
 
 	return body
 }
+
+func NewStaticBody() *Body {
+	body := NewBody(0, 0)
+	body.SetType(BODY_STATIC)
+	return body
+}
+
+func NewKinematicBody() *Body {
+	body := NewBody(0, 0)
+	body.SetType(BODY_KINEMATIC)
+	return body
+}
+
 func (body *Body) SetAngle(angle float64) {
 	body.Activate()
 	body.a = angle
@@ -180,6 +193,10 @@ func (body *Body) AccumulateMassFromShapes() {
 	body.SetPosition(pos)
 }
 
+func (body *Body) Angle() float64 {
+	return body.a
+}
+
 func (body *Body) Position() *Vector {
 	return body.transform.Point(body.p)
 }
@@ -188,6 +205,24 @@ func (body *Body) SetPosition(position *Vector) {
 	body.Activate()
 	body.p = body.transform.Vect(body.cog).Add(position)
 	body.SetTransform(body.p, body.a)
+}
+
+func (body *Body) Velocity() *Vector {
+	return body.v
+}
+
+func (body *Body) SetVelocity(x, y float64) {
+	body.Activate()
+	body.v = &Vector{x, y}
+}
+
+func (body *Body) AngularVelocity() float64 {
+	return body.w
+}
+
+func (body *Body) SetAngularVelocity(angularVelocity float64) {
+	body.Activate()
+	body.w = angularVelocity
 }
 
 func (body *Body) SetTransform(p *Vector, a float64) {

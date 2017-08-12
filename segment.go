@@ -3,7 +3,7 @@ package physics
 type Segment struct {
 	*Shape
 
-	a, b, n    *Vector
+	A, b, n    *Vector
 	ta, tb, tn *Vector
 	r          float64
 
@@ -11,7 +11,7 @@ type Segment struct {
 }
 
 func (seg *Segment) CacheData(transform *Transform) *BB {
-	seg.ta = transform.Point(seg.a)
+	seg.ta = transform.Point(seg.A)
 	seg.tb = transform.Point(seg.b)
 	seg.tn = transform.Vect(seg.n)
 
@@ -71,9 +71,9 @@ func (seg *Segment) SegmentQuery(a, b Vector, radius float64, info *SegmentQuery
 
 func NewSegment(body *Body, a, b *Vector, r float64) *Shape {
 	segment := &Segment{
-		a:     a,
-		b:     b,
-		n:     b.Sub(a).Normalize().Perp(),
+		A: a,
+		b: b,
+		n: b.Sub(a).Normalize().Perp(),
 
 		r:         r,
 		a_tangent: VectorZero(),

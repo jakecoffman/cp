@@ -10,7 +10,7 @@ type SpatialIndexer interface {
 	Destroy()
 	Count() int
 	Each(f SpatialIndexIterator, data interface{})
-	Contains(obj interface{}, hashId uint)
+	Contains(obj interface{}, hashId uint) bool
 	Insert(obj interface{}, hashId uint)
 	Remove(obj interface{}, hashId uint)
 	Reindex()

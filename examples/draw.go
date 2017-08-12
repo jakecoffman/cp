@@ -328,7 +328,6 @@ func DrawBB(bb *BB, outline FColor) {
 }
 
 func FlushRenderer() {
-	CheckGLErrors()
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	size := len(triangleStack) * (48 * 3) // size of Vertex
 	gl.BufferData(gl.ARRAY_BUFFER, size, gl.Ptr(triangleStack), gl.STREAM_DRAW_ARB)

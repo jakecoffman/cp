@@ -83,7 +83,7 @@ func (tree *BBTree) Destroy() {
 }
 
 func (tree *BBTree) Count() int {
-	panic("implement me")
+	return len(tree.leaves)
 }
 
 func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
@@ -92,8 +92,9 @@ func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
 	}
 }
 
-func (tree *BBTree) Contains(obj interface{}, hashId uint) {
-	panic("implement me")
+func (tree *BBTree) Contains(obj interface{}, hashId uint) bool {
+	_, ok := tree.leaves[hashId]
+	return ok
 }
 
 func (tree *BBTree) Insert(obj interface{}, hashId uint) {
