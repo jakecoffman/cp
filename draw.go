@@ -1,7 +1,5 @@
 package physics
 
-import "image/color"
-
 //Draw flags
 const (
 	DRAW_SHAPES           = 1 << 0
@@ -9,18 +7,22 @@ const (
 	DRAW_COLLISION_POINTS = 1 << 2
 )
 
+type FColor struct {
+	R, G, B, A float32
+}
+
 type Drawer interface {
-	DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color, data interface{})
-	DrawSegment(a, b *Vector, fill color.Color, data interface{})
-	DrawFatSegment(a, b *Vector, radius float64, outline, fill color.Color, data interface{})
-	DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill color.Color, data interface{})
-	DrawDot(size float64, pos *Vector, fill color.Color, data interface{})
+	DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor, data interface{})
+	DrawSegment(a, b *Vector, fill FColor, data interface{})
+	DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor, data interface{})
+	DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FColor, data interface{})
+	DrawDot(size float64, pos *Vector, fill FColor, data interface{})
 
 	Flags() int
-	OutlineColor() color.Color
-	ShapeColor(shape *Shape, data interface{}) color.Color
-	ConstraintColor() color.Color
-	CollisionPointColor() color.Color
+	OutlineColor() FColor
+	ShapeColor(shape *Shape, data interface{}) FColor
+	ConstraintColor() FColor
+	CollisionPointColor() FColor
 	Data() interface{}
 }
 

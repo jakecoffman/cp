@@ -1,11 +1,8 @@
 package examples
 
 import (
-	"image/color"
-
-	"unsafe"
-
 	"math"
+	"unsafe"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	. "github.com/jakecoffman/physics"
@@ -30,8 +27,8 @@ func v2f0() v2f {
 }
 
 type Vertex struct {
-	vertex, aa_coord v2f
-	fill, outline    color.Color
+	vertex, aa_coord          v2f
+	fill_color, outline_color FColor
 }
 
 type Triangle struct {
@@ -113,15 +110,18 @@ func DrawInit() {
 	CheckGLErrors()
 
 	v := Vertex{}
-	size := int32(unsafe.Sizeof(v) / unsafe.Sizeof(gl.FLOAT))
 	stride := int32(unsafe.Sizeof(v))
 
 	CheckGLErrors()
 
-	SetAttribute(program, "vertex", size, gl.FLOAT, stride, unsafe.Offsetof(v.vertex))
-	SetAttribute(program, "aa_coord", size, gl.FLOAT, stride, unsafe.Offsetof(v.aa_coord))
-	SetAttribute(program, "fill_color", size, gl.FLOAT, stride, unsafe.Offsetof(v.fill))
-	SetAttribute(program, "outline_color", size, gl.FLOAT, stride, unsafe.Offsetof(v.outline))
+	size := int32(unsafe.Sizeof(v.vertex) / 4)
+	SetAttribute(program, "vertex", size, gl.FLOAT, stride, 0)
+	size = int32(unsafe.Sizeof(v.aa_coord) / 4)
+	SetAttribute(program, "aa_coord", size, gl.FLOAT, stride, 8)
+	size = int32(unsafe.Sizeof(v.fill_color) / 4)
+	SetAttribute(program, "fill_color", size, gl.FLOAT, stride, 16)
+	size = int32(unsafe.Sizeof(v.outline_color) / 4)
+	SetAttribute(program, "outline_color", size, gl.FLOAT, stride, 32)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 
@@ -149,7 +149,7 @@ func PushTriangles(count int) []*Triangle {
 	return triangleStack[len(triangleStack)-count:]
 }
 
-func DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color) {
+func DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor) {
 	triangles := PushTriangles(2)
 
 	r := radius + 1/DrawPointLineScale
@@ -187,11 +187,11 @@ func DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color) {
 	DrawFatSegment(pos, pos.Add(ForAngle(angle).Mult(radius-DrawPointLineScale*0.5)), 0, outline, fill)
 }
 
-func DrawSegment(a, b *Vector, fill color.Color) {
+func DrawSegment(a, b *Vector, fill FColor) {
 	DrawFatSegment(a, b, 0, fill, fill)
 }
 
-func DrawFatSegment(a, b *Vector, radius float64, outline, fill color.Color) {
+func DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor) {
 	triangles := PushTriangles(6)
 
 	n := b.Sub(a).Perp().Normalize()
@@ -231,7 +231,7 @@ func DrawFatSegment(a, b *Vector, radius float64, outline, fill color.Color) {
 	triangles[5] = t5
 }
 
-func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill color.Color) {
+func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FColor) {
 	type ExtrudeVerts struct {
 		offset, n Vector
 	}
@@ -307,7 +307,7 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill colo
 	}
 }
 
-func DrawDot(size float64, pos *Vector, fill color.Color) {
+func DrawDot(size float64, pos *Vector, fill FColor) {
 	triangles := PushTriangles(2)
 
 	r := size * 0.5 / DrawPointLineScale
@@ -320,14 +320,14 @@ func DrawDot(size float64, pos *Vector, fill color.Color) {
 	triangles[1] = &Triangle{a, c, d}
 }
 
-func DrawBB(bb *BB, outline color.Color) {
+func DrawBB(bb *BB, outline FColor) {
 	verts := []*Vector{
 		{bb.R, bb.B},
 		{bb.R, bb.T},
 		{bb.L, bb.T},
 		{bb.L, bb.B},
 	}
-	DrawPolygon(4, verts, 0, outline, color.White)
+	DrawPolygon(4, verts, 0, outline, FColor{A: 1})
 }
 
 func FlushRenderer() {

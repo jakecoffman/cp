@@ -1,11 +1,10 @@
 package examples
 
 import (
-	"image/color"
 	"math"
 
-	"github.com/jakecoffman/physics"
 	"github.com/go-gl/gl/v2.1/gl"
+	"github.com/jakecoffman/physics"
 )
 
 func SetupGL() {
@@ -25,19 +24,19 @@ func SetupGL() {
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
 
-func ColorForShape(shape *physics.Shape, data interface{}) color.Color {
+func ColorForShape(shape *physics.Shape, data interface{}) physics.FColor {
 	if shape.GetSensor() {
-		return color.RGBA{R: 255, G: 255, B: 255, A: 255 * 01}
+		return physics.FColor{R: 1, G: 1, B: 1, A: .1}
 	}
 
 	body := shape.Body()
 
 	if body.IsSleeping() {
-		return color.RGBA{R: 51, G: 51, B: 51, A: 255}
+		return physics.FColor{R: .2, G: .2, B: .2, A: 1}
 	}
 
 	if body.IdleTime() > shape.Space().SleepTimeThreshold {
-		return color.RGBA{R: 153, G: 153, B: 153, A: 255}
+		return physics.FColor{R: .66, G: .66, B: .66, A: 1}
 	}
 
 	val := shape.HashId()
@@ -50,13 +49,13 @@ func ColorForShape(shape *physics.Shape, data interface{}) color.Color {
 	val = (val + 0xfd7046c5) + (val << 3)
 	val = (val ^ 0xb55a4f09) ^ (val >> 16)
 
-	r := float64((val >> 0) & 0xFF)
-	g := float64((val >> 8) & 0xFF)
-	b := float64((val >> 16) & 0xFF)
+	r := float32((val >> 0) & 0xFF)
+	g := float32((val >> 8) & 0xFF)
+	b := float32((val >> 16) & 0xFF)
 
-	max := math.Max(math.Max(r, g), b)
-	min := math.Min(math.Min(r, g), b)
-	var intensity float64
+	max := float32(math.Max(math.Max(float64(r), float64(g)), float64(b)))
+	min := float32(math.Min(math.Min(float64(r), float64(g)), float64(b)))
+	var intensity float32
 	if body.GetType() == physics.BODY_STATIC {
 		intensity = 0.15
 	} else {
@@ -64,14 +63,14 @@ func ColorForShape(shape *physics.Shape, data interface{}) color.Color {
 	}
 
 	if min == max {
-		return color.RGBA{R: uint8(intensity * 255), A: 1}
+		return physics.FColor{R: intensity, A: 1}
 	}
 
-	coef := intensity / (max - min)
-	return color.RGBA{
-		R: uint8((r - min) * coef * 255),
-		G: uint8((g - min) * coef * 255),
-		B: uint8((b - min) * coef * 255),
+	var coef float32 = intensity / (max - min)
+	return physics.FColor{
+		R: (r - min) * coef,
+		G: (g - min) * coef,
+		B: (b - min) * coef,
 		A: 1,
 	}
 }

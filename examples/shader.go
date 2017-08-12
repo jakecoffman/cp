@@ -63,11 +63,9 @@ func LinkProgram(vshader, fshader uint32) uint32 {
 	return program
 }
 
-func SetAttribute(program uint32, name string, size int32, gltype uint32, stride int32, offset uintptr) {
+func SetAttribute(program uint32, name string, size int32, gltype uint32, stride int32, offset int) {
 	var index uint32 = uint32(gl.GetAttribLocation(program, gl.Str(name + "\x00")))
-	CheckGLErrors()
 	gl.EnableVertexAttribArray(index)
-	CheckGLErrors()
-	gl.VertexAttribPointer(index, size, gltype, false, stride, gl.PtrOffset(int(offset)))
+	gl.VertexAttribPointer(index, size, gltype, false, stride, gl.PtrOffset(offset))
 	CheckGLErrors()
 }

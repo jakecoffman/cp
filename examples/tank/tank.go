@@ -10,7 +10,6 @@ import (
 	. "github.com/jakecoffman/physics"
 	"fmt"
 	"os"
-	"image/color"
 	"github.com/jakecoffman/physics/examples"
 )
 
@@ -64,6 +63,7 @@ func main() {
 	})
 
 	setupScene()
+	examples.CheckGLErrors()
 
 	for !window.ShouldClose() {
 		Display()
@@ -117,8 +117,6 @@ var accumulator float64
 var lastTime float64
 
 func Display() {
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.LoadIdentity()
 	gl.Translatef(0, 0, 0.0)
@@ -128,14 +126,13 @@ func Display() {
 
 	DrawSpace(space, &drawOptions{
 		flags: DRAW_SHAPES | DRAW_CONSTRAINTS | DRAW_COLLISION_POINTS,
-		outline: color.RGBA{R: 255, A: 255},
-		constraint: color.RGBA{G: 255, A: 255},
-		collisionPoint: color.RGBA{B: 255, A: 255},
+		outline: FColor{R: 1, A: 1},
+		constraint: FColor{G: 1, A: 1},
+		collisionPoint: FColor{B: 1, A: 1},
 	})
 
+	examples.FlushRenderer()
 	examples.CheckGLErrors()
-
-	gl.End()
 }
 
 func Update() {
@@ -161,27 +158,27 @@ func Tick(dt float64) {
 
 type drawOptions struct {
 	flags int
-	outline, constraint, collisionPoint color.Color
+	outline, constraint, collisionPoint FColor
 	data interface{}
 }
 
-func (*drawOptions) DrawCircle(pos *Vector, angle, radius float64, outline, fill color.Color, data interface{}) {
+func (*drawOptions) DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor, data interface{}) {
 	examples.DrawCircle(pos, angle, radius, outline, fill)
 }
 
-func (*drawOptions) DrawSegment(a, b *Vector, fill color.Color, data interface{}) {
+func (*drawOptions) DrawSegment(a, b *Vector, fill FColor, data interface{}) {
 	examples.DrawSegment(a, b, fill)
 }
 
-func (*drawOptions) DrawFatSegment(a, b *Vector, radius float64, outline, fill color.Color, data interface{}) {
+func (*drawOptions) DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor, data interface{}) {
 	examples.DrawFatSegment(a, b, radius, outline, fill)
 }
 
-func (*drawOptions) DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill color.Color, data interface{}) {
+func (*drawOptions) DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FColor, data interface{}) {
 	examples.DrawPolygon(count, verts, radius, outline, fill)
 }
 
-func (*drawOptions) DrawDot(size float64, pos *Vector, fill color.Color, data interface{}) {
+func (*drawOptions) DrawDot(size float64, pos *Vector, fill FColor, data interface{}) {
 	examples.DrawDot(size, pos, fill)
 }
 
@@ -189,19 +186,19 @@ func (d *drawOptions) Flags() int {
 	return d.flags
 }
 
-func (d *drawOptions) OutlineColor() color.Color {
+func (d *drawOptions) OutlineColor() FColor {
 	return d.outline
 }
 
-func (*drawOptions) ShapeColor(shape *Shape, data interface{}) color.Color {
+func (*drawOptions) ShapeColor(shape *Shape, data interface{}) FColor {
 	return examples.ColorForShape(shape, data)
 }
 
-func (d *drawOptions) ConstraintColor() color.Color {
+func (d *drawOptions) ConstraintColor() FColor {
 	return d.constraint
 }
 
-func (d *drawOptions) CollisionPointColor() color.Color {
+func (d *drawOptions) CollisionPointColor() FColor {
 	return d.collisionPoint
 }
 
