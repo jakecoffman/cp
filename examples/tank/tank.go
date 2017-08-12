@@ -124,12 +124,16 @@ func Display() {
 
 	Update()
 
+	examples.CheckGLErrors()
+
 	DrawSpace(space, &drawOptions{
 		flags: DRAW_SHAPES | DRAW_CONSTRAINTS | DRAW_COLLISION_POINTS,
 		outline: FColor{R: 1, A: 1},
 		constraint: FColor{G: 1, A: 1},
 		collisionPoint: FColor{B: 1, A: 1},
 	})
+
+	examples.CheckGLErrors()
 
 	examples.FlushRenderer()
 	examples.CheckGLErrors()

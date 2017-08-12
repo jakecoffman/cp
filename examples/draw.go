@@ -133,7 +133,7 @@ func DrawInit() {
 	CheckGLErrors()
 }
 
-var triangleStack []*Triangle = []*Triangle{}
+var triangleStack []Triangle = []Triangle{}
 
 func max(a, b int32) int32 {
 	if a > b {
@@ -142,9 +142,9 @@ func max(a, b int32) int32 {
 	return b
 }
 
-func PushTriangles(count int) []*Triangle {
+func PushTriangles(count int) []Triangle {
 	for i := 0; i < count; i++ {
-		triangleStack = append(triangleStack, &Triangle{})
+		triangleStack = append(triangleStack, Triangle{})
 	}
 	return triangleStack[len(triangleStack)-count:]
 }
@@ -181,8 +181,8 @@ func DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor) {
 	t0 := Triangle{a, b, c}
 	t1 := Triangle{a, c, d}
 
-	triangles[0] = &t0
-	triangles[1] = &t1
+	triangles[0] = t0
+	triangles[1] = t1
 
 	DrawFatSegment(pos, pos.Add(ForAngle(angle).Mult(radius-DrawPointLineScale*0.5)), 0, outline, fill)
 }
@@ -216,12 +216,12 @@ func DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor) {
 	v6 := V2f(a.Sub(nw.Add(tw)))
 	v7 := V2f(a.Add(nw.Add(tw)))
 
-	t0 := &Triangle{Vertex{v0, v2f{1, -1}, fill, outline}, Vertex{v1, v2f{1, 1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
-	t1 := &Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v1, v2f{1, 1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
-	t2 := &Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
-	t3 := &Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
-	t4 := &Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
-	t5 := &Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v7, v2f{-1, 1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
+	t0 := Triangle{Vertex{v0, v2f{1, -1}, fill, outline}, Vertex{v1, v2f{1, 1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
+	t1 := Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v1, v2f{1, 1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
+	t2 := Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
+	t3 := Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
+	t4 := Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
+	t5 := Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v7, v2f{-1, 1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
 
 	triangles[0] = t0
 	triangles[1] = t1
@@ -260,7 +260,7 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FCol
 		v1 := V2f(verts[i+1].Add(extrude[i+1].offset.Mult(inset)))
 		v2 := V2f(verts[i+2].Add(extrude[i+2].offset.Mult(inset)))
 
-		triangles[cursor] = &Triangle{
+		triangles[cursor] = Triangle{
 			Vertex{v0, v2f0(), fill, fill},
 			Vertex{v1, v2f0(), fill, fill},
 			Vertex{v2, v2f0(), fill, fill},
@@ -294,14 +294,11 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FCol
 		n1 := V2f(&nB)
 		offset0 := V2f(&offsetA)
 
-		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{inner1, v2f0(), fill, outline}, Vertex{outer1, n1, fill, outline}}
-		cursor++
-		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer1, n1, fill, outline}}
-		cursor++
-		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer2, offset0, fill, outline}}
-		cursor++
-		triangles[cursor] = &Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer2, offset0, fill, outline}, Vertex{outer3, n0, fill, outline}}
-		cursor++
+		triangles[cursor] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{inner1, v2f0(), fill, outline}, Vertex{outer1, n1, fill, outline}}
+		triangles[cursor+1] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer1, n1, fill, outline}}
+		triangles[cursor+2] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer2, offset0, fill, outline}}
+		triangles[cursor+3] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer2, offset0, fill, outline}, Vertex{outer3, n0, fill, outline}}
+		cursor+=4
 
 		j = i
 	}
@@ -316,8 +313,8 @@ func DrawDot(size float64, pos *Vector, fill FColor) {
 	c := Vertex{v2f{float32(pos.X + r), float32(pos.Y + r)}, v2f{1, 1}, fill, fill}
 	d := Vertex{v2f{float32(pos.X + r), float32(pos.Y - r)}, v2f{1, -1}, fill, fill}
 
-	triangles[0] = &Triangle{a, b, c}
-	triangles[1] = &Triangle{a, c, d}
+	triangles[0] = Triangle{a, b, c}
+	triangles[1] = Triangle{a, c, d}
 }
 
 func DrawBB(bb *BB, outline FColor) {
@@ -331,12 +328,13 @@ func DrawBB(bb *BB, outline FColor) {
 }
 
 func FlushRenderer() {
+	CheckGLErrors()
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	size := len(triangleStack) * int(unsafe.Sizeof(triangleStack[0]))
+	size := len(triangleStack) * (48 * 3) // size of Vertex
 	gl.BufferData(gl.ARRAY_BUFFER, size, gl.Ptr(triangleStack), gl.STREAM_DRAW_ARB)
 
 	gl.UseProgram(program)
-	gl.Uniform1f(gl.GetUniformLocation(program, gl.Str("u_outline_coef")), DrawPointLineScale)
+	gl.Uniform1f(gl.GetUniformLocation(program, gl.Str("u_outline_coef\x00")), DrawPointLineScale)
 
 	// TODO
 	gl.BindVertexArrayAPPLE(vao)
