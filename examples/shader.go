@@ -20,18 +20,18 @@ func CheckError(obj uint32, status uint32, getiv func(uint32, uint32, *int32), g
 	var success int32
 	getiv(obj, status, &success)
 
-	if success != 0 {
+	if success == gl.FALSE {
 		var length int32
 		getiv(obj, gl.INFO_LOG_LENGTH, &length)
 
 		log := strings.Repeat("\x00", int(length+1))
 		getInfoLog(obj, length, nil, gl.Str(log))
 
-		fmt.Fprintln(os.Stderr, "Shader compile error for ", status, log)
-		return false
+		fmt.Fprintln(os.Stderr, "Error for", status, log)
+		return true
 	}
 
-	return true
+	return false
 }
 
 func CompileShader(typ uint32, source string) uint32 {
@@ -54,6 +54,8 @@ func LinkProgram(vshader, fshader uint32) uint32 {
 
 	gl.AttachShader(program, vshader)
 	gl.AttachShader(program, fshader)
+
+	gl.LinkProgram(program)
 
 	if CheckError(program, gl.LINK_STATUS, gl.GetProgramiv, gl.GetProgramInfoLog) {
 		panic("Error linking shader program")

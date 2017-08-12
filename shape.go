@@ -20,17 +20,12 @@ type ShapeClass interface {
 	SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo)
 }
 
-// Shape type enum
 const (
-	SHAPE_TYPE_CIRCLE = iota
-	SHAPE_TYPE_SEGMENT
-	SHAPE_TYPE_POLY
-	SHAPE_TYPE_NUM // total number of shapes
+	SHAPE_TYPE_NUM = 3
 )
 
 type Shape struct {
 	class     ShapeClass
-	shapeType int // SHAPE_TYPE used for sorting in Collision
 	space     *Space
 	body      *Body
 	massInfo  *ShapeMassInfo
@@ -48,6 +43,19 @@ type Shape struct {
 	next, prev *Shape
 
 	hashid uint
+}
+
+func (s *Shape) Order() int {
+	switch s.class.(type) {
+	case *Circle:
+		return 0
+	case *Segment:
+		return 1
+	case *PolyShape:
+		return 2
+	default:
+		return 3
+	}
 }
 
 func (s *Shape) GetSensor() bool {
@@ -97,16 +105,16 @@ func (s *Shape) Update(transform *Transform) *BB {
 }
 
 func (s *Shape) Point(i uint) *SupportPoint {
-	switch s.shapeType {
-	case SHAPE_TYPE_CIRCLE:
+	switch s.class.(type) {
+	case *Circle:
 		return NewSupportPoint(s.class.(*Circle).tc, 0)
-	case SHAPE_TYPE_SEGMENT:
+	case *Segment:
 		seg := s.class.(*Segment)
 		if i == 0 {
 			return NewSupportPoint(seg.ta, i)
 		}
 		return NewSupportPoint(seg.tb, i)
-	case SHAPE_TYPE_POLY:
+	case *PolyShape:
 		poly := s.class.(*PolyShape)
 		// Poly shapes may change vertex count.
 		var index uint
@@ -121,7 +129,7 @@ func (s *Shape) Point(i uint) *SupportPoint {
 	}
 }
 
-func NewShape(class ShapeClass, shapeType int, body *Body, massInfo *ShapeMassInfo) *Shape {
+func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 	return &Shape{
 		class:    class,
 		body:     body,

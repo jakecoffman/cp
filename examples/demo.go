@@ -5,7 +5,25 @@ import (
 	"math"
 
 	"github.com/jakecoffman/physics"
+	"github.com/go-gl/gl/v2.1/gl"
 )
+
+func SetupGL() {
+	DrawInit()
+	//TextInit()
+
+	gl.ClearColor(52/255, 62/255, 72/255, 1)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+
+	gl.Enable(gl.LINE_SMOOTH)
+	gl.Enable(gl.POINT_SMOOTH)
+
+	gl.Hint(gl.LINE_SMOOTH_HINT, gl.DONT_CARE)
+	gl.Hint(gl.POINT_SMOOTH_HINT, gl.DONT_CARE)
+
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+}
 
 func ColorForShape(shape *physics.Shape, data interface{}) color.Color {
 	if shape.GetSensor() {

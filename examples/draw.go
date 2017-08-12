@@ -59,10 +59,11 @@ func DrawInit() {
 			v_fill_color = fill_color;
 			v_outline_color = outline_color;
 			v_aa_coord = aa_coord;
-		}`)
+		}
+	`)
 
 	fshader := CompileShader(gl.FRAGMENT_SHADER, `
-	uniform float u_outline_coef;
+		uniform float u_outline_coef;
 
 		varying vec2 v_aa_coord;
 		varying vec4 v_fill_color;
@@ -95,7 +96,8 @@ func DrawInit() {
 			float alpha = 1.0 - aa_step(1.0 - fw, 1.0, l);
 			gl_FragColor = fo_color*(fo_color.a*alpha);
 			//gl_FragColor = vec4(vec3(l), 1);
-		}`)
+		}
+	`)
 
 	program = LinkProgram(vshader, fshader)
 

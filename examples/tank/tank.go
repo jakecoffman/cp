@@ -54,6 +54,8 @@ func main() {
 		panic(err)
 	}
 
+	examples.SetupGL()
+
 	window.SetCharCallback(func(w *glfw.Window, char rune) {
 		if char == 'q' {
 			window.SetShouldClose(true)
@@ -62,6 +64,7 @@ func main() {
 	})
 
 	setupScene()
+
 	for !window.ShouldClose() {
 		Display()
 		window.SwapBuffers()
@@ -129,6 +132,8 @@ func Display() {
 		constraint: color.RGBA{G: 255, A: 255},
 		collisionPoint: color.RGBA{B: 255, A: 255},
 	})
+
+	examples.CheckGLErrors()
 
 	gl.End()
 }

@@ -62,7 +62,7 @@ func NewPolyShape(body *Body, count uint, verts []*Vector, radius float64) *Poly
 		count: count,
 		planes: []SplittingPlane{},
 	}
-	poly.Shape = NewShape(poly, SHAPE_TYPE_POLY, body, PolyShapeMassInfo(0, verts, radius))
+	poly.Shape = NewShape(poly, body, PolyShapeMassInfo(0, verts, radius))
 	poly.SetVerts(verts)
 	return poly
 }
