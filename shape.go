@@ -50,6 +50,19 @@ type Shape struct {
 	hashid uint
 }
 
+func (s *Shape) GetSensor() bool {
+	return s.sensor
+}
+
+func (s *Shape) SetSensor(sensor bool) {
+	s.body.Activate()
+	s.sensor = sensor
+}
+
+func (s *Shape) Space() *Space {
+	return s.space
+}
+
 func (s *Shape) Body() *Body {
 	return s.body
 }

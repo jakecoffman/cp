@@ -99,6 +99,12 @@ const (
 	BODY_STATIC
 )
 
+func (body *Body) IdleTime() float64 {
+	return body.sleeping.idleTime
+}
+
+
+
 func (body *Body) SetType(typ int) {
 	oldType := body.GetType()
 	if oldType == typ {
