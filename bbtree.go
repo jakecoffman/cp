@@ -2,6 +2,7 @@ package physics
 
 import (
 	"math"
+	"log"
 )
 
 type BBTreeVelocityFunc func(obj interface{}) *Vector
@@ -25,7 +26,7 @@ type Leaf struct {
 }
 
 type Pair struct {
-	a, b        *Thread
+	a, b        Thread
 	collisionId uint
 }
 
@@ -98,8 +99,9 @@ func (tree *BBTree) Contains(obj interface{}, hashId uint) bool {
 }
 
 func (tree *BBTree) Insert(obj interface{}, hashId uint) {
-	leaf := tree.NewLeaf(obj)
+	log.Println("Inserting new leaf")
 
+	leaf := tree.NewLeaf(obj)
 	tree.leaves[hashId] = leaf
 
 	root := tree.root
@@ -195,15 +197,15 @@ func (tree *BBTree) PairInsert(a *Node, b *Node) {
 	nextA := a.pairs
 	nextB := b.pairs
 	pair := tree.PairFromPool()
-	temp := &Pair{
-		&Thread{nil, nextA, a},
-		&Thread{nil, nextB, b},
+	temp := Pair{
+		Thread{next: nextA, leaf: a},
+		Thread{next: nextB, leaf: b},
 		0,
 	}
 
 	a.pairs = pair
 	b.pairs = pair
-	pair = temp
+	*pair = temp
 
 	if nextA != nil {
 		if nextA.a.leaf == a {
@@ -238,7 +240,7 @@ func (subtree *BBTree) PairFromPool() *Pair {
 
 	// Pool is exhausted make more
 	for i := 0; i < 32; i++ {
-		tree.RecyclePair(&Pair{a: &Thread{}, b: &Thread{}})
+		tree.RecyclePair(&Pair{})
 	}
 
 	return tree.pooledPairs
@@ -352,6 +354,8 @@ func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	if staticIndex != nil && staticRoot == nil {
 		tree.spatialIndex.CollideStatic(staticIndex, f, data)
 	}
+
+	tree.IncrementStamp()
 }
 
 func (subtree *Node) MarkSubtree(context *MarkContext) {
@@ -481,10 +485,6 @@ func (tree *BBTree) RecycleNode(node *Node) {
 
 func cpfmax(x, y float64) float64 {
 	return math.Max(x, y)
-}
-
-func cpfmin(x, y float64) float64 {
-	return math.Min(x, y)
 }
 
 func (tree *BBTree) GetMasterTree() *BBTree {

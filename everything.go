@@ -6,6 +6,11 @@ import (
 
 const INFINITY = math.MaxFloat64
 const MAGIC_EPSILON = 1e-5
+const (
+	RadianConst = math.Pi / 180
+	DegreeConst = 180 / math.Pi
+)
+
 
 type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{})
 type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{})

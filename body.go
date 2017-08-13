@@ -292,11 +292,12 @@ func (body *Body) IsSleeping() bool {
 	return body.sleeping.root != nil
 }
 
-func (body *Body) AddShape(shape *Shape) {
+func (body *Body) AddShape(shape *Shape) *Shape {
 	body.shapeList = append(body.shapeList, shape)
 	if shape.MassInfo().m > 0 {
 		body.AccumulateMassFromShapes()
 	}
+	return shape
 }
 
 func (body *Body) KineticEnergy() float64 {

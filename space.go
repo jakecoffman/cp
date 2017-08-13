@@ -52,8 +52,6 @@ type Space struct {
 }
 
 func NewSpace() *Space {
-	staticBody := NewBody(0, 0)
-	staticBody.SetType(BODY_STATIC)
 	space := &Space{
 		Iterations:           10,
 		gravity:              VectorZero(),
@@ -79,13 +77,19 @@ func NewSpace() *Space {
 		postStepCallbacks:    []PostStepCallback{},
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
+	staticBody := NewBody(0, 0)
+	staticBody.SetType(BODY_STATIC)
 	space.SetStaticBody(staticBody)
 	return space
 }
 
+func (space *Space) StaticBody() *Body {
+	return space.Body
+}
+
 func (space *Space) SetStaticBody(body *Body) {
 	if space.Body != nil {
-		log.Println("Internal Error: Changing the designated static body while the old one still had shapes attached.")
+		panic("Internal Error: Changing the designated static body while the old one still had shapes attached.")
 		space.Body.space = nil
 	}
 	space.Body = body
