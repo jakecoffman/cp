@@ -1,8 +1,11 @@
 package physics
 
 import (
-	"math"
 	"log"
+	"math"
+
+	"fmt"
+	"os"
 )
 
 type BBTreeVelocityFunc func(obj interface{}) *Vector
@@ -28,6 +31,21 @@ type Leaf struct {
 type Pair struct {
 	a, b        Thread
 	collisionId uint
+}
+
+func PrintTree(node *Node, depth int) {
+	if depth > 10 {
+		log.Fatal("too deep!")
+	}
+	if node != nil {
+		depth++
+		fmt.Fprintln(os.Stderr, depth, "Parent:")
+		fmt.Fprintln(os.Stderr, node.bb)
+		fmt.Fprintln(os.Stderr, "A:")
+		PrintTree(node.a, depth)
+		fmt.Fprintln(os.Stderr, "B:")
+		PrintTree(node.b, depth)
+	}
 }
 
 type Thread struct {
@@ -62,7 +80,7 @@ type BBTree struct {
 	spatialIndex *SpatialIndex
 	velocityFunc *BBTreeVelocityFunc
 
-	leaves map[uint]*Node
+	leaves *HashSet
 	root   *Node
 
 	pooledNodes *Node
@@ -71,9 +89,18 @@ type BBTree struct {
 	stamp uint
 }
 
+func leafSetEql(obj, node interface{}) bool {
+	return obj == node.(*Node).obj
+}
+
+func leafSetTrans(obj, tre interface{}) interface{} {
+	tree := tre.(*BBTree)
+	return tree.NewLeaf(obj)
+}
+
 func NewBBTree(bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
 	bbtree := &BBTree{
-		leaves: map[uint]*Node{},
+		leaves: NewHashSet(leafSetEql),
 	}
 	bbtree.spatialIndex = NewSpatialIndex(bbtree, bbfunc, staticIndex)
 	return bbtree.spatialIndex
@@ -84,31 +111,35 @@ func (tree *BBTree) Destroy() {
 }
 
 func (tree *BBTree) Count() int {
-	return len(tree.leaves)
+	return int(tree.leaves.Count())
+}
+
+type EachContext struct {
+	f    SpatialIndexIterator
+	data interface{}
 }
 
 func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
-	for _, v := range tree.leaves {
-		f(v.obj, data)
-	}
+	context := &EachContext{f, data}
+	tree.leaves.Each(func(elt, data interface{}) {
+		node := elt.(*Node)
+		c := data.(*EachContext)
+		c.f(node.obj, c.data)
+	}, context)
 }
 
-func (tree *BBTree) Contains(obj interface{}, hashId uint) bool {
-	_, ok := tree.leaves[hashId]
-	return ok
+func (tree *BBTree) Contains(obj interface{}, hashId HashValue) bool {
+	return tree.leaves.Find(hashId, obj) != nil
 }
 
-func (tree *BBTree) Insert(obj interface{}, hashId uint) {
-	log.Println("Inserting new leaf")
-
-	leaf := tree.NewLeaf(obj)
-	tree.leaves[hashId] = leaf
+func (tree *BBTree) Insert(obj interface{}, hashId HashValue) {
+	elt := tree.leaves.Insert(hashId, obj, leafSetTrans, tree)
+	leaf := elt.(*Node)
 
 	root := tree.root
 	tree.root = tree.SubtreeInsert(root, leaf)
 
 	leaf.stamp = tree.GetMasterTree().stamp
-
 	tree.LeafAddPairs(leaf)
 	tree.IncrementStamp()
 }
@@ -166,7 +197,14 @@ func (leaf *Node) MarkLeaf(context *MarkContext) {
 		}
 	} else {
 		pair := leaf.pairs
+		history := []*Pair{}
 		for pair != nil {
+			for _, p := range history {
+				if p == pair {
+					log.Fatal("infinite loop detected:", p, *p)
+				}
+			}
+			history = append(history, pair)
 			if leaf == pair.b.leaf {
 				pair.collisionId = context.f(pair.a.leaf.obj, leaf.obj, pair.collisionId, context.data)
 				pair = pair.b.next
@@ -198,8 +236,8 @@ func (tree *BBTree) PairInsert(a *Node, b *Node) {
 	nextB := b.pairs
 	pair := tree.PairFromPool()
 	temp := Pair{
-		Thread{next: nextA, leaf: a},
-		Thread{next: nextB, leaf: b},
+		Thread{prev: nil, next: nextA, leaf: a},
+		Thread{prev: nil, next: nextB, leaf: b},
 		0,
 	}
 
@@ -234,16 +272,12 @@ func (subtree *BBTree) PairFromPool() *Pair {
 		return pair
 	}
 
-	if tree == nil {
-		panic("NPE")
-	}
-
 	// Pool is exhausted make more
 	for i := 0; i < 32; i++ {
 		tree.RecyclePair(&Pair{})
 	}
 
-	return tree.pooledPairs
+	return &Pair{}
 }
 
 func (tree *BBTree) RecyclePair(pair *Pair) {
@@ -320,7 +354,7 @@ func (node *Node) IsLeaf() bool {
 	return node.obj != nil
 }
 
-func (tree *BBTree) Remove(obj interface{}, hashId uint) {
+func (tree *BBTree) Remove(obj interface{}, hashId HashValue) {
 	panic("implement me")
 }
 
@@ -328,8 +362,12 @@ func (tree *BBTree) Reindex() {
 	panic("implement me")
 }
 
-func (tree *BBTree) ReindexObject(obj interface{}, hashId uint) {
+func (tree *BBTree) ReindexObject(obj interface{}, hashId HashValue) {
 	panic("implement me")
+}
+
+func leafUpdateWrap(leaf, tree interface{}) {
+	tree.(*BBTree).LeafUpdate(leaf.(*Node))
 }
 
 func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
@@ -338,9 +376,7 @@ func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	}
 
 	// LeafUpdate() may modify tree->root. Don't cache it.
-	for _, node := range tree.leaves {
-		tree.LeafUpdate(node)
-	}
+	tree.leaves.Each(leafUpdateWrap, tree)
 
 	staticIndex := tree.spatialIndex.staticIndex
 	var staticRoot *Node
@@ -475,7 +511,7 @@ func (tree *BBTree) NodeFromPool() *Node {
 		tree.RecycleNode(&Node{})
 	}
 
-	return tree.pooledNodes
+	return &Node{}
 }
 
 func (tree *BBTree) RecycleNode(node *Node) {

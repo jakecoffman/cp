@@ -10,11 +10,11 @@ type SpatialIndexer interface {
 	Destroy()
 	Count() int
 	Each(f SpatialIndexIterator, data interface{})
-	Contains(obj interface{}, hashId uint) bool
-	Insert(obj interface{}, hashId uint)
-	Remove(obj interface{}, hashId uint)
+	Contains(obj interface{}, hashId HashValue) bool
+	Insert(obj interface{}, hashId HashValue)
+	Remove(obj interface{}, hashId HashValue)
 	Reindex()
-	ReindexObject(obj interface{}, hashId uint)
+	ReindexObject(obj interface{}, hashId HashValue)
 	ReindexQuery(f SpatialIndexQuery, data interface{})
 	Query(obj interface{}, bb *BB, f SpatialIndexQuery, data interface{})
 	SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{})

@@ -1,9 +1,15 @@
 package physics
 
 import (
+	"fmt"
 	"log"
 	"math"
+	"os"
+	"unsafe"
 )
+
+const MAX_CONTACTS_PER_ARBITER = 2
+const CONTACTS_BUFFER_SIZE = 256
 
 type Space struct {
 	Iterations uint // must be non-zero
@@ -34,21 +40,43 @@ type Space struct {
 
 	constraints []*Constraint
 
-	arbiters       []*Arbiter
-	contactBuffersHead  *ContactBuffer
-	cachedArbiters map[uint]*Arbiter
-	pooledArbiters []*Arbiter
+	arbiters           []*Arbiter
+	contactBuffersHead *ContactBuffer
+	cachedArbiters     *HashSet
+	pooledArbiters     []*Arbiter
 
-	locked           int
+	locked int
 
 	usesWildcards     bool
-	collisionHandlers map[int]*CollisionHandler
-	defaultHandler    CollisionHandler
+	collisionHandlers *HashSet
+	defaultHandler    *CollisionHandler
 
 	skipPostStep      bool
 	postStepCallbacks []PostStepCallback
 
 	*Body // staticBody
+}
+
+func arbiterSetEql(ptr, elt interface{}) bool {
+	shapes := ptr.([]*Shape)
+	arb := elt.(*Arbiter)
+
+	a := shapes[0]
+	b := shapes[1]
+
+	return (a == arb.a && b == arb.b) || (b == arb.a && a == arb.b)
+}
+
+func handlerSetEql(ptr, elt interface{}) bool {
+	check := ptr.(*CollisionHandler)
+	pair := elt.(*CollisionHandler)
+	if check.typeA == pair.typeA && check.typeB == pair.typeB {
+		return true
+	}
+	if check.typeB == pair.typeA && check.typeA == pair.typeB {
+		return true
+	}
+	return false
 }
 
 func NewSpace() *Space {
@@ -71,9 +99,9 @@ func NewSpace() *Space {
 		idleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
 		pooledArbiters:       []*Arbiter{},
-		cachedArbiters:       map[uint]*Arbiter{},
+		cachedArbiters:       NewHashSet(arbiterSetEql),
 		constraints:          []*Constraint{},
-		collisionHandlers:    map[int]*CollisionHandler{},
+		collisionHandlers:    NewHashSet(handlerSetEql),
 		postStepCallbacks:    []PostStepCallback{},
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
@@ -117,6 +145,8 @@ func (space *Space) PushFreshContactBuffer() {
 }
 
 func (space *Space) Activate(body *Body) {
+	assert(body.GetType() == BODY_DYNAMIC, "Attempting to activate a non-dynamic body")
+
 	if space.locked > 0 {
 		if !Contains(space.rousedBodies, body) {
 			space.rousedBodies = append(space.rousedBodies, body)
@@ -131,23 +161,37 @@ func (space *Space) Activate(body *Body) {
 		space.dynamicShapes.class.Insert(shape, shape.HashId())
 	}
 
-	//for _, arbiter := range body.arbiterList {
-	//	bodyA := arbiter.body_a
-	//
-	//	// Arbiters are shared between two bodies that are always woken up together.
-	//	// You only want to restore the arbiter once, so bodyA is arbitrarily chosen to own the arbiter.
-	//	// The edge case is when static bodies are involved as the static bodies never actually sleep.
-	//	// If the static body is bodyB then all is good. If the static body is bodyA, that can easily be checked.
-	//	if body == bodyA || bodyA.GetType() == BODY_STATIC {
-	//		numContacts := arbiter.count
-	//		contacts := arbiter.contacts
-	//
-	//		// Restore contact values back to the space's contact buffer memory
-	//		arbiter.contacts = space.ContactBufferGetArray()
-	//
-	//		panic("Not implemented") // TODO need to figure out what contact buffer array stuff is
-	//	}
-	//}
+	for arbiter := body.arbiterList; arbiter != nil; arbiter = arbiter.Next(body) {
+		bodyA := arbiter.body_a
+
+		// Arbiters are shared between two bodies that are always woken up together.
+		// You only want to restore the arbiter once, so bodyA is arbitrarily chosen to own the arbiter.
+		// The edge case is when static bodies are involved as the static bodies never actually sleep.
+		// If the static body is bodyB then all is good. If the static body is bodyA, that can easily be checked.
+		if body == bodyA || bodyA.GetType() == BODY_STATIC {
+			numContacts := arbiter.count
+			contacts := arbiter.contacts
+
+			// TODO (JAKE): I don't know why they are doing this, not sure if I did it right either
+			// Restore contact values back to the space's contact buffer memory
+			arbiter.contacts = space.ContactBufferGetArray()
+			for i, contact := range contacts {
+				*arbiter.contacts[i] = *contact
+			}
+			space.PushContacts(numContacts)
+
+			// reinsert the arbiter into the arbiter cache
+			a := arbiter.a
+			b := arbiter.b
+			shapePair := []*Shape{a, b}
+			arbHashId := HashPair(HashValue(unsafe.Pointer(a)), HashValue(unsafe.Pointer(b)))
+			space.cachedArbiters.Insert(arbHashId, shapePair, nil, arbiter)
+
+			// update arbiters state
+			arbiter.stamp = space.stamp
+			space.arbiters = append(space.arbiters, arbiter)
+		}
+	}
 
 	for _, constraint := range body.constraintList {
 		if body == constraint.a || constraint.a.GetType() == BODY_STATIC {
@@ -221,7 +265,7 @@ func (space *Space) AddShape(shape *Shape) *Shape {
 	body.AddShape(shape)
 
 	space.shapeIDCounter += 1
-	shape.SetHashId(space.shapeIDCounter)
+	shape.SetHashId(HashValue(space.shapeIDCounter))
 
 	shape.Update(body.transform)
 
@@ -249,7 +293,23 @@ var ShapeUpdateFunc = func(shape interface{}, _ interface{}) {
 	(shape.(*Shape)).CacheBB()
 }
 
-var SpaceCollideShapesFunc = func(va, vb interface{}, collisionId uint, vspace interface{}) uint {
+func SpaceArbiterSetTrans(ptr, data interface{}) interface{} {
+	shapes := ptr.([]*Shape)
+	space := data.(*Space)
+
+	if len(space.pooledArbiters) == 0 {
+		for i := 0; i < 256; i++ {
+			space.pooledArbiters = append(space.pooledArbiters, &Arbiter{})
+		}
+	}
+
+	popped := space.pooledArbiters[len(space.pooledArbiters)-1]
+	space.pooledArbiters = space.pooledArbiters[:len(space.pooledArbiters)-1]
+	popped.Init(shapes[0], shapes[1])
+	return popped
+}
+
+func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interface{}) uint {
 	a := va.(*Shape)
 	b := vb.(*Shape)
 	space := vspace.(*Space)
@@ -267,19 +327,55 @@ var SpaceCollideShapesFunc = func(va, vb interface{}, collisionId uint, vspace i
 		return info.collisionId
 	}
 
+	//  Push contacts
+	space.PushContacts(info.count)
 	space.contactBuffersHead.numContacts += info.count
 
 	// Get an arbiter from space->arbiterSet for the two shapes.
 	// This is where the persistent contact magic comes from.
-	_ = []*Shape{info.a, info.b}
-	panic("TODO")
-	//_ = HashPair(uint(unsafe.Pointer(info.a)), uint(unsafe.Pointer(info.b)))
+	shapePair := []*Shape{info.a, info.b}
+	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
+	value := space.cachedArbiters.Insert(arbHashId, shapePair, SpaceArbiterSetTrans, space)
+	arb := value.(*Arbiter)
+	arb.Update(info, space)
 
-	return 0 // TODO IMPLEMENT
+	handler := arb.handler
+
+	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !handler.beginFunc(arb, space, handler.userData) {
+		arb.Ignore()
+	}
+
+	// Ignore the arbiter if it has been flagged
+	if arb.state != CP_ARBITER_STATE_IGNORE &&
+		// Call preSolve
+		handler.preSolveFunc(arb, space, handler.userData) &&
+		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
+		arb.state != CP_ARBITER_STATE_IGNORE &&
+		// Process, but don't add collisions for sensors.
+		!(a.sensor || b.sensor) &&
+		// Don't process collisions between two infinite mass bodies.
+		// This includes collisions between two kinematic bodies, or a kinematic body and a static body.
+		!(a.body.m == INFINITY && b.body.m == INFINITY) {
+		space.arbiters = append(space.arbiters, arb)
+	} else {
+		space.PopContacts(info.count)
+		arb.contacts = nil
+		arb.count = 0
+
+		// Normally arbiters are set as used after calling the post-solve callback.
+		// However, post-solve() callbacks are not called for sensors or arbiters rejected from pre-solve.
+		if arb.state != CP_ARBITER_STATE_IGNORE {
+			arb.state = CP_ARBITER_STATE_NORMAL
+		}
+	}
+
+	// Time stamp the arbiter so we know it was used recently.
+	arb.stamp = space.stamp
+	return info.collisionId
 }
 
 func (space *Space) ContactBufferGetArray() []*Contact {
-	if space.contactBuffersHead.numContacts + MAX_CONTACTS_PER_ARBITER > CONTACTS_BUFFER_SIZE {
+	if space.contactBuffersHead.numContacts+MAX_CONTACTS_PER_ARBITER > CONTACTS_BUFFER_SIZE {
 		space.PushFreshContactBuffer()
 	}
 
@@ -309,10 +405,10 @@ func (space *Space) ProcessComponents(dt float64) {
 	/* TODO: Debug? */
 	for _, body := range bodies {
 		if body.sleeping.next != nil {
-			log.Println("Dangling pointer in contact graph (next)")
+			fmt.Fprintln(os.Stderr, "Dangling pointer in contact graph (next)")
 		}
 		if body.sleeping.root != nil {
-			log.Println("Dangling pointer in contact graph (root)")
+			fmt.Fprintln(os.Stderr, "Dangling pointer in contact graph (root)")
 		}
 	}
 	/* end TODO */
@@ -410,7 +506,7 @@ func (space *Space) ProcessComponents(dt float64) {
 }
 
 func ComponentActive(root *Body, threshold float64) bool {
-	for item := root; item != nil; item = root.sleeping.next {
+	for item := root; item != nil; item = item.sleeping.next {
 		if item.sleeping.idleTime < threshold {
 			return true
 		}
@@ -495,11 +591,7 @@ func (space *Space) Step(dt float64) {
 	space.Lock()
 	{
 		// Clear out old cached arbiters and call separate callbacks
-		for k, v := range space.cachedArbiters {
-			if SpaceArbiterSetFilter(v, space) == false {
-				delete(space.cachedArbiters, k)
-			}
-		}
+		space.cachedArbiters.Filter(SpaceArbiterSetFilter, space)
 
 		// Prestep the arbiters and constraints.
 		slop := space.collisionSlop
@@ -567,7 +659,9 @@ func (space *Space) Step(dt float64) {
 }
 
 // Hashset filter func to throw away old arbiters.
-func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
+func SpaceArbiterSetFilter(elt, data interface{}) bool {
+	arb := elt.(*Arbiter)
+	space := data.(*Space)
 	ticks := space.stamp - arb.stamp
 	a := arb.body_a
 	b := arb.body_b
@@ -622,11 +716,11 @@ func (space *Space) Unlock(runPostStep bool) {
 }
 
 func (space *Space) UncacheArbiter(arb *Arbiter) {
-	panic("TODO")
-	//a := arb.a
-	//B := arb.B
-	//arbHashId := HashPair(uint(a), uint(B))
-	//delete(space.cachedArbiters, arbHashId)
+	a := arb.a
+	b := arb.b
+	shapePair := []*Shape{a, b}
+	arbHashId := HashPair(HashValue(unsafe.Pointer(a)), HashValue(unsafe.Pointer(b)))
+	space.cachedArbiters.Remove(arbHashId, shapePair)
 	for i, a := range space.arbiters {
 		if a == arb {
 			space.arbiters = append(space.arbiters[0:i], space.arbiters[i+1:]...)
@@ -635,6 +729,20 @@ func (space *Space) UncacheArbiter(arb *Arbiter) {
 	}
 }
 
-const MAX_CONTACTS_PER_ARBITER = 2
-const CONTACTS_BUFFER_SIZE = 256
+func (space *Space) PushContacts(count uint) {
+	assert(count <= MAX_CONTACTS_PER_ARBITER, "Contact buffer overflow")
+	space.contactBuffersHead.numContacts += count
+}
 
+func (space *Space) PopContacts(count uint) {
+	space.contactBuffersHead.numContacts -= count
+}
+
+func (space *Space) LookupHandler(a, b uint, defaultHandler *CollisionHandler) *CollisionHandler {
+	types := []uint{a, b}
+	handler := space.collisionHandlers.Find(HashPair(HashValue(a), HashValue(b)), types)
+	if handler != nil {
+		return handler.(*CollisionHandler)
+	}
+	return defaultHandler
+}

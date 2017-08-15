@@ -12,8 +12,8 @@ const (
 )
 
 
-type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{})
-type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{}) bool
+type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{}) bool
 type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData interface{})
 type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData interface{})
 
@@ -64,7 +64,7 @@ type Contact struct {
 	jnAcc, jtAcc, jBias float64
 	bias                float64
 
-	hash uint
+	hash HashValue
 }
 
 type CollisionInfo struct {
@@ -76,7 +76,7 @@ type CollisionInfo struct {
 	arr   []*Contact
 }
 
-func (info *CollisionInfo) PushContact(p1, p2 *Vector, hash uint) {
+func (info *CollisionInfo) PushContact(p1, p2 *Vector, hash HashValue) {
 	con := info.arr[info.count]
 	con.r1 = p1
 	con.r2 = p2

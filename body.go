@@ -246,10 +246,7 @@ func (body *Body) Activate() {
 	if root != nil && root.IsSleeping() {
 		space := root.space
 		body := root
-		for {
-			if body == nil {
-				break
-			}
+		for body != nil {
 			next := body.sleeping.next
 			body.sleeping.idleTime = 0
 			body.sleeping.root = nil

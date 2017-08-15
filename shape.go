@@ -3,14 +3,10 @@ package physics
 type Shaper interface {
 	Body() *Body
 	MassInfo() *ShapeMassInfo
-	HashId() uint
-	SetHashId(uint)
+	HashId() HashValue
+	SetHashId(HashValue)
 	SetSpace(*Space)
 	SetBB(*BB)
-	//CacheData(*Shape, Transform) BB
-	//Destroy(*Shape)
-	//PointQuery(*Shape, Vector, *PointQueryInfo)
-	//SegmentQuery(*Shape, Vector, Vector, float64, *SegmentQueryInfo)
 }
 
 type ShapeClass interface {
@@ -42,7 +38,7 @@ type Shape struct {
 
 	next, prev *Shape
 
-	hashid uint
+	hashid HashValue
 }
 
 func (s *Shape) Order() int {
@@ -79,11 +75,11 @@ func (s *Shape) MassInfo() *ShapeMassInfo {
 	return s.massInfo
 }
 
-func (s *Shape) HashId() uint {
+func (s *Shape) HashId() HashValue {
 	return s.hashid
 }
 
-func (s *Shape) SetHashId(hashid uint) {
+func (s *Shape) SetHashId(hashid HashValue) {
 	s.hashid = hashid
 }
 

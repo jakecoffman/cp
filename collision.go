@@ -1,8 +1,10 @@
 package physics
 
 import (
+	"fmt"
 	"log"
 	"math"
+	"os"
 )
 
 const (
@@ -91,7 +93,7 @@ func PolyToPoly(a, b *Shape, info *CollisionInfo) {
 
 	poly1 := a.Class.(*PolyShape)
 	poly2 := b.Class.(*PolyShape)
-	if points.d - poly1.r - poly2.r <= 0 {
+	if points.d-poly1.r-poly2.r <= 0 {
 		ContactPoints(SupportEdgeForPoly(poly1, points.n), SupportEdgeForPoly(poly2, points.n.Neg()), points, info)
 	}
 }
@@ -114,24 +116,23 @@ func (v0 *MinkowskiPoint) ClosestPoints(v1 *MinkowskiPoint) *ClosestPoints {
 	return nil
 }
 
-
 type EdgePoint struct {
 	p *Vector
 	// Keep a hash value for Chipmunk's collision hashing mechanism.
-	hash uint
+	hash HashValue
 }
 
 type Edge struct {
 	a, b *EdgePoint
-	r float64
-	n *Vector
+	r    float64
+	n    *Vector
 }
 
 func SupportEdgeForPoly(poly *PolyShape, n *Vector) *Edge {
 	count := poly.count
 	i1 := PolySupportPointIndex(poly.count, poly.planes, n)
 
-	i0 := (i1 - 1 + count)%count
+	i0 := (i1 - 1 + count) % count
 	i2 := (i1 + 1) % count
 
 	planes := poly.planes
@@ -139,16 +140,16 @@ func SupportEdgeForPoly(poly *PolyShape, n *Vector) *Edge {
 
 	if n.Dot(planes[i1].n) > n.Dot(planes[i2].n) {
 		return &Edge{
-			&EdgePoint{planes[i0].v0, HashPair(hashId, i0)},
-			&EdgePoint{planes[i1].v0, HashPair(hashId, i1)},
+			&EdgePoint{planes[i0].v0, HashPair(hashId, HashValue(i0))},
+			&EdgePoint{planes[i1].v0, HashPair(hashId, HashValue(i1))},
 			poly.r,
 			planes[i1].n,
 		}
 	}
 
 	return &Edge{
-		&EdgePoint{planes[i1].v0, HashPair(hashId, i1)},
-		&EdgePoint{planes[i2].v0, HashPair(hashId, i2)},
+		&EdgePoint{planes[i1].v0, HashPair(hashId, HashValue(i1))},
+		&EdgePoint{planes[i2].v0, HashPair(hashId, HashValue(i2))},
 		poly.r,
 		planes[i2].n,
 	}
@@ -171,14 +172,14 @@ func ContactPoints(e1, e2 *Edge, points *ClosestPoints, info *CollisionInfo) {
 	d_e2_b := e2.b.p.Cross(n)
 
 	// TODO + min isn't a complete fix
-	e1_denom := 1/(d_e1_b - d_e1_a + math.SmallestNonzeroFloat64)
-	e2_denom := 1/(d_e2_b - d_e2_a + math.SmallestNonzeroFloat64)
+	e1_denom := 1 / (d_e1_b - d_e1_a + math.SmallestNonzeroFloat64)
+	e2_denom := 1 / (d_e2_b - d_e2_a + math.SmallestNonzeroFloat64)
 
 	// Project the endpoints of the two edges onto the opposing edge, clamping them as necessary.
 	// Compare the projected points to the collision normal to see if the shapes overlap there.
 	{
-		p1 := n.Mult(e1.r).Add(e1.a.p.Lerp(e1.b.p, Clamp01((d_e2_b - d_e1_a)*e1_denom)))
-		p2 := n.Mult(-e2.r).Add(e2.a.p.Lerp(e2.b.p, Clamp01((d_e1_a - d_e2_a)*e2_denom)))
+		p1 := n.Mult(e1.r).Add(e1.a.p.Lerp(e1.b.p, Clamp01((d_e2_b-d_e1_a)*e1_denom)))
+		p2 := n.Mult(-e2.r).Add(e2.a.p.Lerp(e2.b.p, Clamp01((d_e1_a-d_e2_a)*e2_denom)))
 		dist := p2.Sub(p1).Dot(n)
 		if dist <= 0 {
 			hash_1a2b := HashPair(e1.a.hash, e2.b.hash)
@@ -186,8 +187,8 @@ func ContactPoints(e1, e2 *Edge, points *ClosestPoints, info *CollisionInfo) {
 		}
 	}
 	{
-		p1 := n.Mult(e1.r).Add(e1.a.p.Lerp(e1.b.p, Clamp01((d_e2_a - d_e1_a)*e1_denom)))
-		p2 := n.Mult(-e2.r).Add(e2.a.p.Lerp(e2.b.p, Clamp01((d_e1_b - d_e2_a)*e2_denom)))
+		p1 := n.Mult(e1.r).Add(e1.a.p.Lerp(e1.b.p, Clamp01((d_e2_a-d_e1_a)*e1_denom)))
+		p2 := n.Mult(-e2.r).Add(e2.a.p.Lerp(e2.b.p, Clamp01((d_e1_b-d_e2_a)*e2_denom)))
 		dist := p2.Sub(p1).Dot(n)
 		if dist <= 0 {
 			hash_1a2b := HashPair(e1.a.hash, e2.b.hash)
@@ -198,8 +199,8 @@ func ContactPoints(e1, e2 *Edge, points *ClosestPoints, info *CollisionInfo) {
 
 const HASH_COEF = 3344921057
 
-func HashPair(a, b uint) uint {
-	return a*HASH_COEF & b*HASH_COEF
+func HashPair(a, b HashValue) HashValue {
+	return a * HASH_COEF & b * HASH_COEF
 }
 
 // Find the closest points between two shapes using the GJK algorithm.
@@ -320,7 +321,7 @@ func EPARecurse(ctx *SupportContext, count int, hull []*MinkowskiPoint, iteratio
 	}
 
 	if iteration > WARN_EPA_ITERATIONS {
-		log.Println("Warning: High EPA iterations:", iteration)
+		fmt.Fprintln(os.Stderr, "Warning: High EPA iterations:", iteration)
 	}
 
 	// Could not find a new point to insert, so we have found the closest edge of the minkowski difference.
@@ -348,7 +349,7 @@ func Collide(a, b *Shape, collisionId uint, contacts []*Contact) *CollisionInfo 
 		info.b = a
 	}
 
-	BuiltinCollisionFuncs[info.a.Order() + info.b.Order()*SHAPE_TYPE_NUM](info.a, info.b, info)
+	BuiltinCollisionFuncs[info.a.Order()+info.b.Order()*SHAPE_TYPE_NUM](info.a, info.b, info)
 
 	return info
 }
