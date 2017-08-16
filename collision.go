@@ -91,7 +91,35 @@ func CollisionError(a, b *Shape, info *CollisionInfo) {
 }
 
 func CircleToSegment(a, b *Shape, info *CollisionInfo) {
+	circle := a.Class.(*Circle)
+	segment := b.Class.(*Segment)
 
+	seg_a := segment.ta
+	seg_b := segment.tb
+	center := circle.tc
+
+	seg_delta := seg_b.Sub(seg_a)
+	closest_t := Clamp01(seg_delta.Dot(center.Sub(seg_a))/seg_delta.LengthSq())
+	closest := seg_a.Add(seg_delta.Mult(closest_t))
+
+	mindist := circle.r + segment.r
+	delta := closest.Sub(center)
+	distsq := delta.LengthSq()
+	if distsq < mindist*mindist {
+		dist := math.Sqrt(distsq)
+		if dist != 0 {
+			info.n = delta.Mult(1/dist)
+		} else {
+			info.n = segment.tn
+		}
+		n := info.n
+
+		rot := segment.Shape.body.Rotation()
+		if (closest_t != 0.0 || n.Dot(segment.a_tangent.Rotate(rot)) >= 0.0) &&
+			(closest_t != 1.0 || n.Dot(segment.b_tangent.Rotate(rot)) >= 0.0) {
+			info.PushContact(center.Add(n.Mult(circle.r)), closest.Add(n.Mult(-segment.r)), 0)
+		}
+	}
 }
 
 func SegmentToSegment(a, b *Shape, info *CollisionInfo) {
