@@ -2,7 +2,6 @@ package physics
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"os"
 )
@@ -31,6 +30,15 @@ func PolySupportPoint(shape *Shape, n *Vector) *SupportPoint {
 	planes := poly.planes
 	i := PolySupportPointIndex(poly.count, planes, n)
 	return NewSupportPoint(planes[i].v0, i)
+}
+
+func SegmentSupportPoint(shape *Shape, n *Vector) *SupportPoint {
+	seg := shape.Class.(*Segment)
+	if seg.ta.Dot(n) > seg.tb.Dot(n) {
+		return NewSupportPoint(seg.ta, 0)
+	} else {
+		return NewSupportPoint(seg.tb, 1)
+	}
 }
 
 func PolySupportPointIndex(count uint, planes []SplittingPlane, n *Vector) uint {
@@ -74,20 +82,48 @@ type ClosestPoints struct {
 
 type CollisionFunc func(a, b *Shape, info *CollisionInfo)
 
-func CircleToCircle(a, b *Shape, info *CollisionInfo) {}
+func CircleToCircle(a, b *Shape, info *CollisionInfo) {
 
-func CollisionError(a, b *Shape, info *CollisionInfo) {
-	log.Fatal("Shape types are not sorted")
 }
 
-func CircleToSegment(a, b *Shape, info *CollisionInfo)  {}
-func SegmentToSegment(a, b *Shape, info *CollisionInfo) {}
-func CircleToPoly(a, b *Shape, info *CollisionInfo)     {}
-func SegmentToPoly(a, b *Shape, info *CollisionInfo)    {}
+func CollisionError(a, b *Shape, info *CollisionInfo) {
+	panic("Shape types are not sorted")
+}
+
+func CircleToSegment(a, b *Shape, info *CollisionInfo) {
+
+}
+
+func SegmentToSegment(a, b *Shape, info *CollisionInfo) {
+
+}
+
+func CircleToPoly(a, b *Shape, info *CollisionInfo) {
+
+}
+
+func SegmentToPoly(seg, poly *Shape, info *CollisionInfo) {
+	context := &SupportContext{seg, poly, SegmentSupportPoint, PolySupportPoint}
+	points := GJK(context, &info.collisionId)
+
+	n := points.n
+	rot := seg.body.Rotation()
+
+	segment := seg.Class.(*Segment)
+	polyshape := poly.Class.(*PolyShape)
+
+	// If the closest points are nearer than the sum of the radii...
+	if points.d-segment.r-polyshape.r <= 0 &&
+		// Reject endcap collisions if tangents are provided.
+		(!points.a.Equal(segment.ta) || n.Dot(segment.a_tangent.Rotate(rot)) <= 0) &&
+		(!points.a.Equal(segment.tb) || n.Dot(segment.b_tangent.Rotate(rot)) <= 0) {
+		ContactPoints(SupportEdgeForSegment(segment, n), SupportEdgeForPoly(polyshape, n.Neg()), points, info)
+	}
+}
 
 func PolyToPoly(a, b *Shape, info *CollisionInfo) {
 	context := &SupportContext{a, b, PolySupportPoint, PolySupportPoint}
-	var points *ClosestPoints = GJK(context, &info.collisionId)
+	points := GJK(context, &info.collisionId)
 
 	// TODO: add debug drawing logic like chipmunk does
 
@@ -112,8 +148,34 @@ func NewMinkowskiPoint(a, b *SupportPoint) *MinkowskiPoint {
 	return &MinkowskiPoint{a.p, b.p, b.p.Sub(a.p), (a.index&0xFF)<<8 | (b.index & 0xFF)}
 }
 
+// Calculate the closest points on two shapes given the closest edge on their minkowski difference to (0, 0)
 func (v0 *MinkowskiPoint) ClosestPoints(v1 *MinkowskiPoint) *ClosestPoints {
-	return nil
+	// Find the closest p(t) on the minkowski difference to (0, 0)
+	t := v0.ab.ClosestT(v1.ab)
+	p := v0.ab.LerpT(v1.ab, t)
+
+	// Interpolate the original support points using the same 't' value as above.
+	// This gives you the closest surface points in absolute coordinates. NEAT!
+	pa := v0.a.LerpT(v1.a, t)
+	pb := v0.b.LerpT(v1.b, t)
+	id := (v0.collisionId&0xFFFF)<<16 | (v1.collisionId & 0xFFFF)
+
+	// First try calculating the MSA from the minkowski difference edge.
+	// This gives us a nice, accurate MSA when the surfaces are close together.
+	delta := v1.ab.Sub(v0.ab)
+	n := delta.Perp().Normalize()
+	d := n.Dot(p)
+
+	if d <= 0 || (-1 < t && t < 1) {
+		// If the shapes are overlapping, or we have a regular vertex/edge collision, we are done.
+		return &ClosestPoints{pa, pb, n, d, id}
+	}
+
+	// Vertex/vertex collisions need special treatment since the MSA won't be shared with an axis of the minkowski difference.
+	d2 := p.Length()
+	n2 := p.Mult(1 / (d2 + math.SmallestNonzeroFloat64))
+
+	return &ClosestPoints{pa, pb, n2, d2, id}
 }
 
 type EdgePoint struct {
@@ -126,6 +188,25 @@ type Edge struct {
 	a, b *EdgePoint
 	r    float64
 	n    *Vector
+}
+
+func SupportEdgeForSegment(seg *Segment, n *Vector) *Edge {
+	hashid := seg.Shape.hashid
+	if seg.tn.Dot(n) > 0 {
+		return &Edge{
+			a: &EdgePoint{seg.ta, HashPair(hashid, 0)},
+			b: &EdgePoint{seg.tb, HashPair(hashid, 1)},
+			r: seg.r,
+			n: seg.tn,
+		}
+	}
+
+	return &Edge{
+		a: &EdgePoint{seg.tb, HashPair(hashid, 1)},
+		b: &EdgePoint{seg.ta, HashPair(hashid, 0)},
+		r: seg.r,
+		n: seg.tn.Neg(),
+	}
 }
 
 func SupportEdgeForPoly(poly *PolyShape, n *Vector) *Edge {
@@ -207,7 +288,7 @@ func HashPair(a, b HashValue) HashValue {
 func GJK(ctx *SupportContext, collisionId *uint) *ClosestPoints {
 	var v0, v1 *MinkowskiPoint
 
-	if collisionId != nil {
+	if *collisionId != 0 {
 		// Use the minkowski points from the last frame as a starting point using the cached indexes.
 		v0 = NewMinkowskiPoint(ctx.shape1.Point((*collisionId>>24)&0xFF), ctx.shape2.Point((*collisionId>>16)&0xFF))
 		v1 = NewMinkowskiPoint(ctx.shape1.Point((*collisionId>>8)&0xFF), ctx.shape2.Point((*collisionId)&0xFF))

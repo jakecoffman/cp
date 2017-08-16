@@ -9,7 +9,7 @@ import (
 )
 
 const MAX_CONTACTS_PER_ARBITER = 2
-const CONTACTS_BUFFER_SIZE = 256
+const CONTACTS_BUFFER_SIZE = 1024
 
 type Space struct {
 	Iterations uint // must be non-zero
@@ -79,6 +79,11 @@ func handlerSetEql(ptr, elt interface{}) bool {
 	return false
 }
 
+func handlerSetTrans(handler, _ interface{}) interface{} {
+	// Chipmunk makes a copy, not sure that is possible in Go
+	return handler
+}
+
 func NewSpace() *Space {
 	space := &Space{
 		Iterations:           10,
@@ -103,6 +108,7 @@ func NewSpace() *Space {
 		constraints:          []*Constraint{},
 		collisionHandlers:    NewHashSet(handlerSetEql),
 		postStepCallbacks:    []PostStepCallback{},
+		defaultHandler:       &CollisionHandlerDoNothing,
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
 	staticBody := NewBody(0, 0)
@@ -122,26 +128,6 @@ func (space *Space) SetStaticBody(body *Body) {
 	}
 	space.Body = body
 	body.space = space
-}
-
-func (space *Space) PushFreshContactBuffer() {
-	stamp := space.stamp
-	head := space.contactBuffersHead
-
-	if head == nil {
-		buffer := &ContactBuffer{}
-		buffer.InitHeader(stamp, nil)
-		space.contactBuffersHead = buffer
-	} else if stamp-head.next.stamp > space.collisionPersistence {
-		tail := head.next
-		space.contactBuffersHead = tail.InitHeader(stamp, tail)
-	} else {
-		// Allocate a new buffer and push it into the ring
-		buffer := &ContactBuffer{}
-		buffer.InitHeader(stamp, head)
-		space.contactBuffersHead = buffer
-		head.next = buffer
-	}
 }
 
 func (space *Space) Activate(body *Body) {
@@ -176,7 +162,7 @@ func (space *Space) Activate(body *Body) {
 			// Restore contact values back to the space's contact buffer memory
 			arbiter.contacts = space.ContactBufferGetArray()
 			for i, contact := range contacts {
-				*arbiter.contacts[i] = *contact
+				arbiter.contacts[i] = contact
 			}
 			space.PushContacts(numContacts)
 
@@ -255,18 +241,18 @@ func Contains(bodies []*Body, body *Body) bool {
 func (space *Space) AddShape(shape *Shape) *Shape {
 	var body *Body = shape.Body()
 
-	// TODO assertions
+	assert(shape.space != space, "You have already added this shape to this space. You must not add it a second time.")
+	assert(shape.space == nil, "You have already added this shape to another space. You cannot add it to a second.")
+	assert(space.locked == 0, "This operation cannot be done safely during a call to cpSpaceStep() or during a query. Put these calls into a post-step callback.")
 
 	isStatic := body.GetType() == BODY_STATIC
 	if !isStatic {
 		body.Activate()
 	}
-
 	body.AddShape(shape)
 
-	space.shapeIDCounter += 1
 	shape.SetHashId(HashValue(space.shapeIDCounter))
-
+	space.shapeIDCounter += 1
 	shape.Update(body.transform)
 
 	if isStatic {
@@ -274,8 +260,8 @@ func (space *Space) AddShape(shape *Shape) *Shape {
 	} else {
 		space.dynamicShapes.class.Insert(shape, shape.HashId())
 	}
-
 	shape.SetSpace(space)
+
 	return shape
 }
 
@@ -329,7 +315,6 @@ func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interfa
 
 	//  Push contacts
 	space.PushContacts(info.count)
-	space.contactBuffersHead.numContacts += info.count
 
 	// Get an arbiter from space->arbiterSet for the two shapes.
 	// This is where the persistent contact magic comes from.
@@ -372,6 +357,26 @@ func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interfa
 	// Time stamp the arbiter so we know it was used recently.
 	arb.stamp = space.stamp
 	return info.collisionId
+}
+
+func (space *Space) PushFreshContactBuffer() {
+	stamp := space.stamp
+	head := space.contactBuffersHead
+
+	if head == nil {
+		buffer := &ContactBuffer{}
+		buffer.InitHeader(stamp, nil)
+		space.contactBuffersHead = buffer
+	} else if stamp-head.next.stamp > space.collisionPersistence {
+		tail := head.next
+		space.contactBuffersHead = tail.InitHeader(stamp, tail)
+	} else {
+		// Allocate a new buffer and push it into the ring
+		buffer := &ContactBuffer{}
+		buffer.InitHeader(stamp, head)
+		space.contactBuffersHead = buffer
+		head.next = buffer
+	}
 }
 
 func (space *Space) ContactBufferGetArray() []*Contact {
@@ -536,7 +541,7 @@ func FloodFillComponent(root *Body, body *Body) {
 			}
 		} else {
 			if other_root == root {
-				log.Println("Inconsistency detected in the contact graph (FFC)")
+				panic("Inconsistency detected in the contact graph (FFC)")
 			}
 		}
 	}
@@ -745,4 +750,25 @@ func (space *Space) LookupHandler(a, b uint, defaultHandler *CollisionHandler) *
 		return handler.(*CollisionHandler)
 	}
 	return defaultHandler
+}
+
+func (space *Space) NewCollisionHandler(collisionTypeA, collisionTypeB uint) *CollisionHandler {
+	hash := HashPair(HashValue(collisionTypeA), HashValue(collisionTypeB))
+	handler := &CollisionHandler{collisionTypeA, collisionTypeB, DefaultBegin, DefaultPreSolve, DefaultPostSolve, DefaultSeparate, nil}
+	return space.collisionHandlers.Insert(hash, handler, handlerSetTrans, nil).(*CollisionHandler)
+}
+
+func (space *Space) NewWildcardCollisionHandler(collisionType uint) *CollisionHandler {
+	space.UseWildcardDefaultHandler()
+
+	hash := HashPair(HashValue(collisionType), HashValue(WILDCARD_COLLISION_TYPE))
+	handler := &CollisionHandler{collisionType, WILDCARD_COLLISION_TYPE, AlwaysCollide, AlwaysCollide, DoNothing, DoNothing, nil}
+	return space.collisionHandlers.Insert(hash, handler, handlerSetTrans, nil).(*CollisionHandler)
+}
+
+func (space *Space) UseWildcardDefaultHandler() {
+	if !space.usesWildcards {
+		space.usesWildcards = true
+		space.defaultHandler = &CollisionHandlerDefault
+	}
 }

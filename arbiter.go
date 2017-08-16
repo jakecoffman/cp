@@ -1,8 +1,6 @@
 package physics
 
-import (
-	"math"
-)
+import "math"
 
 const WILDCARD_COLLISION_TYPE = math.MaxUint64
 
@@ -159,8 +157,25 @@ func (arbiter *Arbiter) IsFirstContact() bool {
 	return arbiter.state == CP_ARBITER_STATE_FIRST_COLLISION
 }
 
-func (arbiter *Arbiter) PreStep(i float64, i2 float64, i3 float64) {
-	panic("Arbiter PreStep")
+func (arb *Arbiter) PreStep(dt, slop, bias float64) {
+	a := arb.body_a
+	b := arb.body_b
+	n := arb.n
+	bodyDelta := b.p.Sub(a.p)
+
+	for _, con := range arb.contacts {
+		// Calculate the mass normal and mass tangent.
+		con.nMass = 1 / k_scalar(a, b, con.r1, con.r2, n)
+		con.tMass = 1 / k_scalar(a, b, con.r1, con.r2, n.Perp())
+
+		// Calculate the target bias velocity.
+		dist := con.r2.Sub(con.r1).Add(bodyDelta).Dot(n)
+		con.bias = -bias * math.Min(0, dist+slop) / dt
+		con.jBias = 0
+
+		// Calculate the target bounce velocity.
+		con.bounce = normal_relative_velocity(a, b, con.r1, con.r2, n) * arb.e
+	}
 }
 
 func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
@@ -196,7 +211,7 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 		}
 	}
 
-	arb.contacts = info.arr
+	arb.contacts = info.arr[:info.count]
 	arb.count = info.count
 	arb.n = info.n
 
@@ -238,6 +253,56 @@ func (arb *Arbiter) Ignore() bool {
 	return false
 }
 
+func (arb *Arbiter) CallWildcardBeginA(space *Space) bool {
+	handler := arb.handlerA
+	return handler.beginFunc(arb, space, handler.userData)
+}
+
+func (arb *Arbiter) CallWildcardBeginB(space *Space) bool {
+	handler := arb.handlerB
+	arb.swapped = !arb.swapped
+	retVal := handler.beginFunc(arb, space, handler.userData)
+	arb.swapped = !arb.swapped
+	return retVal
+}
+
+func (arb *Arbiter) CallWildcardPreSolveA(space *Space) bool {
+	handler := arb.handlerA
+	return handler.preSolveFunc(arb, space, handler.userData)
+}
+
+func (arb *Arbiter) CallWildcardPreSolveB(space *Space) bool {
+	handler := arb.handlerB
+	arb.swapped = !arb.swapped
+	retval := handler.preSolveFunc(arb, space, handler.userData)
+	arb.swapped = !arb.swapped
+	return retval
+}
+
+func (arb *Arbiter) CallWildcardPostSolveA(space *Space) {
+	handler := arb.handlerA
+	handler.postSolveFunc(arb, space, handler.userData)
+}
+
+func (arb *Arbiter) CallWildcardPostSolveB(space *Space) {
+	handler := arb.handlerB
+	arb.swapped = !arb.swapped
+	handler.postSolveFunc(arb, space, handler.userData)
+	arb.swapped = !arb.swapped
+}
+
+func (arb *Arbiter) CallWildcardSeparateA(space *Space) {
+	handler := arb.handlerA
+	handler.separateFunc(arb, space, handler.userData)
+}
+
+func (arb *Arbiter) CallWildcardSeparateB(space *Space) {
+	handler := arb.handlerB
+	arb.swapped = !arb.swapped
+	handler.separateFunc(arb, space, handler.userData)
+	arb.swapped = !arb.swapped
+}
+
 func apply_impulses(a, b *Body, r1, r2, j *Vector) {
 	apply_impulse(a, j.Neg(), r1)
 	apply_impulse(b, j, r2)
@@ -274,10 +339,38 @@ var CollisionHandlerDoNothing CollisionHandler = CollisionHandler{
 	nil,
 }
 
+var CollisionHandlerDefault CollisionHandler = CollisionHandler{
+	WILDCARD_COLLISION_TYPE,
+	WILDCARD_COLLISION_TYPE,
+	DefaultBegin,
+	DefaultPreSolve,
+	DefaultPostSolve,
+	DefaultSeparate,
+	nil,
+}
+
 func AlwaysCollide(_ *Arbiter, _ *Space, _ interface{}) bool {
 	return true
 }
 
 func DoNothing(_ *Arbiter, _ *Space, _ interface{}) {
 
+}
+
+func DefaultBegin(arb *Arbiter, space *Space, _ interface{}) bool {
+	return arb.CallWildcardBeginA(space) && arb.CallWildcardBeginB(space)
+}
+
+func DefaultPreSolve(arb *Arbiter, space *Space, _ interface{}) bool {
+	return arb.CallWildcardPreSolveA(space) && arb.CallWildcardPreSolveB(space)
+}
+
+func DefaultPostSolve(arb *Arbiter, space *Space, _ interface{}) {
+	arb.CallWildcardPostSolveA(space)
+	arb.CallWildcardPostSolveB(space)
+}
+
+func DefaultSeparate(arb *Arbiter, space *Space, _ interface{}) {
+	arb.CallWildcardSeparateA(space)
+	arb.CallWildcardSeparateB(space)
 }

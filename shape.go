@@ -6,6 +6,7 @@ type Shaper interface {
 	HashId() HashValue
 	SetHashId(HashValue)
 	SetSpace(*Space)
+	BB() *BB
 	SetBB(*BB)
 }
 
@@ -87,6 +88,10 @@ func (s *Shape) SetSpace(space *Space) {
 	s.space = space
 }
 
+func (s *Shape) BB() *BB {
+	return s.bb
+}
+
 func (s *Shape) SetBB(bb *BB) {
 	s.bb = bb
 }
@@ -132,6 +137,10 @@ func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 		massInfo: massInfo,
 
 		surfaceV: VectorZero(),
-		Filter:   &ShapeFilter{},
+		Filter:   &ShapeFilter{
+			group: NO_GROUP,
+			categories: ALL_CATEGORIES,
+			mask: ALL_CATEGORIES,
+		},
 	}
 }

@@ -18,5 +18,10 @@ func (c *ContactBuffer) InitHeader(stamp uint, splice *ContactBuffer) *ContactBu
 		c.next = c
 	}
 	c.numContacts = 0
+	c.contacts = [CONTACTS_BUFFER_SIZE]*Contact{}
+	for i := range c.contacts {
+		c.contacts[i] = &Contact{}
+	}
+
 	return c
 }

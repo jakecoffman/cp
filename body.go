@@ -1,8 +1,6 @@
 package physics
 
-import (
-	"math"
-)
+import "math"
 
 /// Rigid body velocity update function type.
 type BodyVelocityFunc func(body *Body, gravity *Vector, damping float64, dt float64)
@@ -116,8 +114,6 @@ func (body *Body) IdleTime() float64 {
 	return body.sleeping.idleTime
 }
 
-
-
 func (body *Body) SetType(typ int) {
 	oldType := body.GetType()
 	if oldType == typ {
@@ -197,14 +193,21 @@ func (body *Body) Angle() float64 {
 	return body.a
 }
 
+func (body *Body) Rotation() *Vector {
+	return &Vector{body.transform.a, body.transform.b}
+}
+
 func (body *Body) Position() *Vector {
+	// TODO: this is in chipmunk but it causes movement during rotation?!
 	return body.transform.Point(body.p)
+	//return body.p
 }
 
 func (body *Body) SetPosition(position *Vector) {
 	body.Activate()
 	body.p = body.transform.Vect(body.cog).Add(position)
-	body.SetTransform(body.p, body.a)
+	p := body.p
+	body.SetTransform(p, body.a)
 }
 
 func (body *Body) Velocity() *Vector {
@@ -264,17 +267,19 @@ func (body *Body) Activate() {
 		}
 	}
 
-	//for _, arbiter := range body.arbiterList {
-	//	var other *Body
-	//	if arbiter.body_a == body {
-	//		other = arbiter.body_b
-	//	} else {
-	//		other = arbiter.body_a
-	//	}
-	//	if other.GetType() == BODY_STATIC {
-	//		other.sleeping.idleTime = 0
-	//	}
-	//}
+	for arbiter := body.arbiterList; arbiter != nil; arbiter = arbiter.Next(body) {
+		// Reset the idle timer of things the body is touching as well.
+		// That way things don't get left hanging in the air.
+		var other *Body
+		if arbiter.body_a == body {
+			other = arbiter.body_b
+		} else {
+			other = arbiter.body_a
+		}
+		if other.GetType() != BODY_STATIC {
+			other.sleeping.idleTime = 0
+		}
+	}
 
 }
 

@@ -1,8 +1,6 @@
 package physics
 
-import (
-	"math"
-)
+import "math"
 
 const INFINITY = math.MaxFloat64
 const MAGIC_EPSILON = 1e-5
@@ -10,7 +8,6 @@ const (
 	RadianConst = math.Pi / 180
 	DegreeConst = 180 / math.Pi
 )
-
 
 type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{}) bool
 type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{}) bool
@@ -156,31 +153,27 @@ type PinJoint struct {
 	jnAcc, bias float64
 }
 
-//
-//const (
-//	NO_GROUP = 0
-//	GRABBABLE_MASK_BIT = 1<<31
-//
-//)
+var NO_GROUP uint32 = 0
+var ALL_CATEGORIES uint32 = math.MaxUint32
 
 type ShapeFilter struct {
 	/// Two objects with the same non-zero group value do not collide.
 	/// This is generally used to group objects in a composite object together to disable self collisions.
-	group uintptr
+	group uint32
 	/// A bitmask of user definable categories that this object belongs to.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
-	categories uint
+	categories uint32
 	/// A bitmask of user definable category types that this object object collides with.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
-	mask uint
+	mask uint32
 }
 
 func (a *ShapeFilter) Reject(b *ShapeFilter) bool {
 	// Reject the collision if:
 	return (a.group != 0 && a.group == b.group) ||
-			// One of the category/mask combinations fails.
-				(a.categories & b.mask) == 0 ||
-				(b.categories & a.mask) == 0
+		// One of the category/mask combinations fails.
+		(a.categories&b.mask) == 0 ||
+		(b.categories&a.mask) == 0
 }
 
 //var GrabFilter *ShapeFilter = &ShapeFilter{NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT}
@@ -272,4 +265,17 @@ func assert(truth bool, msg string) {
 	if !truth {
 		panic("Assertion failed: " + msg)
 	}
+}
+
+func k_scalar_body(body *Body, r, n *Vector) float64 {
+	rcn := r.Cross(n)
+	return body.m_inv + body.i_inv*rcn*rcn
+}
+
+func k_scalar(a, b *Body, r1, r2, n *Vector) float64 {
+	return k_scalar_body(a, r1, n) + k_scalar_body(b, r2, n)
+}
+
+func normal_relative_velocity(a, b *Body, r1, r2, n *Vector) float64 {
+	return relative_velocity(a, b, r1, r2).Dot(n)
 }
