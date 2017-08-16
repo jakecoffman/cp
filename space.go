@@ -32,7 +32,7 @@ type Space struct {
 	dynamicBodies      []*Body
 	staticBodies       []*Body
 	rousedBodies       []*Body
-	sleepingComponents []interface{} // <- IDK what this is
+	sleepingComponents []*Body
 
 	shapeIDCounter uint
 	staticShapes   *SpatialIndex
@@ -98,7 +98,7 @@ func NewSpace() *Space {
 		staticShapes:         NewBBTree(ShapeGetBB, nil),
 		dynamicBodies:        []*Body{},
 		staticBodies:         []*Body{},
-		sleepingComponents:   []interface{}{},
+		sleepingComponents:   []*Body{},
 		rousedBodies:         []*Body{},
 		SleepTimeThreshold:   math.MaxFloat64,
 		idleSpeedThreshold:   0.0,
@@ -119,6 +119,15 @@ func NewSpace() *Space {
 
 func (space *Space) StaticBody() *Body {
 	return space.Body
+}
+
+func (space *Space) SetGravity(gravity *Vector) {
+	space.gravity = gravity
+
+	// Wake up all of the bodies since the gravity changed.
+	for _, component := range space.sleepingComponents {
+		component.Activate()
+	}
 }
 
 func (space *Space) SetStaticBody(body *Body) {
