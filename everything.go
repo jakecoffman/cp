@@ -1,9 +1,6 @@
 package physics
 
-import (
-	"math"
-	"fmt"
-)
+import "math"
 
 const INFINITY = math.MaxFloat64
 const MAGIC_EPSILON = 1e-5

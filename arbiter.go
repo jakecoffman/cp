@@ -1,9 +1,6 @@
 package physics
 
-import (
-	"fmt"
-	"math"
-)
+import "math"
 
 const WILDCARD_COLLISION_TYPE = math.MaxUint64
 
