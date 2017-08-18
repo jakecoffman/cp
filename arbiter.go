@@ -1,6 +1,9 @@
 package physics
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 const WILDCARD_COLLISION_TYPE = math.MaxUint64
 
@@ -165,13 +168,13 @@ func (arb *Arbiter) PreStep(dt, slop, bias float64) {
 
 	for _, con := range arb.contacts {
 		// Calculate the mass normal and mass tangent.
-		con.nMass = 1 / k_scalar(a, b, con.r1, con.r2, n)
-		con.tMass = 1 / k_scalar(a, b, con.r1, con.r2, n.Perp())
+		con.nMass = 1.0 / k_scalar(a, b, con.r1, con.r2, n)
+		con.tMass = 1.0 / k_scalar(a, b, con.r1, con.r2, n.Perp())
 
 		// Calculate the target bias velocity.
 		dist := con.r2.Sub(con.r1).Add(bodyDelta).Dot(n)
 		con.bias = -bias * math.Min(0, dist+slop) / dt
-		con.jBias = 0
+		con.jBias = 0.0
 
 		// Calculate the target bounce velocity.
 		con.bounce = normal_relative_velocity(a, b, con.r1, con.r2, n) * arb.e
@@ -315,7 +318,7 @@ func apply_bias_impulses(a, b *Body, r1, r2, j *Vector) {
 
 func apply_bias_impulse(body *Body, j, r *Vector) {
 	body.v_bias = body.v_bias.Add(j.Mult(body.m_inv))
-	body.w_bias = body.i_inv * r.Cross(j)
+	body.w_bias += body.i_inv * r.Cross(j)
 }
 
 func apply_impulse(body *Body, j, r *Vector) {

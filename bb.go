@@ -1,9 +1,16 @@
 package physics
 
-import "math"
+import (
+	"math"
+	"fmt"
+)
 
 type BB struct {
 	L, B, R, T float64
+}
+
+func (bb *BB) String() string {
+	return fmt.Sprintf("%v %v %v %v", bb.L, bb.T, bb.R, bb.B)
 }
 
 func NewBBForExtents(c *Vector, hw, hh float64) *BB {

@@ -1,11 +1,8 @@
 package physics
 
 import (
-	"log"
-	"math"
-
 	"fmt"
-	"os"
+	"math"
 )
 
 type BBTreeVelocityFunc func(obj interface{}) *Vector
@@ -31,21 +28,6 @@ type Leaf struct {
 type Pair struct {
 	a, b        Thread
 	collisionId uint
-}
-
-func PrintTree(node *Node, depth int) {
-	if depth > 10 {
-		log.Fatal("too deep!")
-	}
-	if node != nil {
-		depth++
-		fmt.Fprintln(os.Stderr, depth, "Parent:")
-		fmt.Fprintln(os.Stderr, node.bb)
-		fmt.Fprintln(os.Stderr, "A:")
-		PrintTree(node.a, depth)
-		fmt.Fprintln(os.Stderr, "B:")
-		PrintTree(node.b, depth)
-	}
 }
 
 type Thread struct {
@@ -78,7 +60,7 @@ func (thread *Thread) Unlink() {
 
 type BBTree struct {
 	spatialIndex *SpatialIndex
-	velocityFunc *BBTreeVelocityFunc
+	velocityFunc BBTreeVelocityFunc
 
 	leaves *HashSet
 	root   *Node
@@ -197,14 +179,7 @@ func (leaf *Node) MarkLeaf(context *MarkContext) {
 		}
 	} else {
 		pair := leaf.pairs
-		history := []*Pair{}
 		for pair != nil {
-			for _, p := range history {
-				if p == pair {
-					log.Fatal("infinite loop detected:", p, *p)
-				}
-			}
-			history = append(history, pair)
 			if leaf == pair.b.leaf {
 				pair.collisionId = context.f(pair.a.leaf.obj, leaf.obj, pair.collisionId, context.data)
 				pair = pair.b.next
@@ -235,15 +210,12 @@ func (tree *BBTree) PairInsert(a *Node, b *Node) {
 	nextA := a.pairs
 	nextB := b.pairs
 	pair := tree.PairFromPool()
-	temp := Pair{
-		Thread{prev: nil, next: nextA, leaf: a},
-		Thread{prev: nil, next: nextB, leaf: b},
-		0,
-	}
+	pair.a = Thread{prev: nil, next: nextA, leaf: a}
+	pair.b = Thread{prev: nil, next: nextB, leaf: b}
+	pair.collisionId = 0
 
 	a.pairs = pair
 	b.pairs = pair
-	*pair = temp
 
 	if nextA != nil {
 		if nextA.a.leaf == a {
@@ -408,9 +380,10 @@ func (tree *BBTree) LeafUpdate(leaf *Node) bool {
 	bb := tree.spatialIndex.bbfunc(leaf.obj)
 
 	if !leaf.bb.Contains(bb) {
+		fmt.Println("True!")
 		leaf.bb = tree.GetBB(leaf.obj)
 
-		root := tree.SubtreeRemove(root, leaf)
+		root = tree.SubtreeRemove(root, leaf)
 		tree.root = tree.SubtreeInsert(root, leaf)
 
 		tree.PairsClear(leaf)
@@ -454,7 +427,7 @@ func (tree *BBTree) GetBB(obj interface{}) *BB {
 		x := (bb.R - bb.L) * coef
 		y := (bb.T - bb.B) * coef
 
-		v := (*tree.velocityFunc)(obj).Mult(0.1)
+		v := tree.velocityFunc(obj).Mult(0.1)
 		return &BB{
 			bb.L + math.Min(-x, v.X),
 			bb.B + math.Min(-y, v.Y),

@@ -1,6 +1,9 @@
 package physics
 
-import "math"
+import (
+	"math"
+	"fmt"
+)
 
 const INFINITY = math.MaxFloat64
 const MAGIC_EPSILON = 1e-5
@@ -135,8 +138,8 @@ type Constraint struct {
 	maxForce, errorBias, maxBias float64
 
 	collideBodies bool
-	preSolve      *ConstraintPreSolveFunc
-	postSolve     *ConstraintPostSolveFunc
+	preSolve      ConstraintPreSolveFunc
+	postSolve     ConstraintPostSolveFunc
 
 	userData interface{}
 }

@@ -1,9 +1,16 @@
 package physics
 
-import "math"
+import (
+	"math"
+	"fmt"
+)
 
 type Vector struct {
 	X, Y float64
+}
+
+func (v *Vector) String() string {
+	return fmt.Sprintf("%f,%f", v.X, v.Y)
 }
 
 func VectorZero() *Vector {
@@ -38,7 +45,7 @@ func (v *Vector) Dot(other *Vector) float64 {
 /// The cross product of 2D vectors results in a 3D vector with only a z component.
 /// This function returns the magnitude of the z value.
 func (v *Vector) Cross(other *Vector) float64 {
-	return v.X*other.X - v.Y*other.Y
+	return v.X*other.Y - v.Y*other.X
 }
 
 func (v *Vector) Perp() *Vector {

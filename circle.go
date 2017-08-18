@@ -28,7 +28,8 @@ func CircleShapeMassInfo(mass, radius float64, center *Vector) *ShapeMassInfo {
 
 func (circle *Circle) CacheData(transform *Transform) *BB {
 	circle.tc = transform.Point(circle.c)
-	return NewBBForCircle(circle.tc, circle.r)
+	bb := NewBBForCircle(circle.tc, circle.r)
+	return bb
 }
 
 func (*Circle) Destroy() {
@@ -41,11 +42,11 @@ func (circle *Circle) PointQuery(p Vector, info *PointQueryInfo) {
 	r := circle.r
 
 	info.shape = circle.Shape
-	info.point = circle.tc.Add(delta.Mult(r/d))
-	info.distance = d-r
+	info.point = circle.tc.Add(delta.Mult(r / d))
+	info.distance = d - r
 
 	if d > MAGIC_EPSILON {
-		info.gradient = delta.Mult(1/d)
+		info.gradient = delta.Mult(1 / d)
 	} else {
 		info.gradient = &Vector{0, 1}
 	}
@@ -60,7 +61,7 @@ func CircleSegmentQuery(shape *Shape, center *Vector, r1 float64, a, b *Vector, 
 	db := a.Sub(center)
 	rsum := r1 + r2
 
-	qa := da.Dot(da) - 2 * da.Dot(db) + db.Dot(db)
+	qa := da.Dot(da) - 2*da.Dot(db) + db.Dot(db)
 	qb := da.Dot(db) - da.Dot(da)
 	det := qb*qb - qa*(da.Dot(da)-rsum*rsum)
 

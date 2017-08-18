@@ -111,10 +111,15 @@ func NewSpace() *Space {
 		defaultHandler:       &CollisionHandlerDoNothing,
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
+	space.dynamicShapes.class.(*BBTree).velocityFunc = BBTreeVelocityFunc(ShapeVelocityFunc)
 	staticBody := NewBody(0, 0)
 	staticBody.SetType(BODY_STATIC)
 	space.SetStaticBody(staticBody)
 	return space
+}
+
+var ShapeVelocityFunc = func(obj interface{}) *Vector {
+	return obj.(*Shape).body.v
 }
 
 func (space *Space) StaticBody() *Body {
@@ -132,8 +137,8 @@ func (space *Space) SetGravity(gravity *Vector) {
 
 func (space *Space) SetStaticBody(body *Body) {
 	if space.Body != nil {
-		panic("Internal Error: Changing the designated static body while the old one still had shapes attached.")
 		space.Body.space = nil
+		panic("Internal Error: Changing the designated static body while the old one still had shapes attached.")
 	}
 	space.Body = body
 	body.space = space
@@ -275,6 +280,8 @@ func (space *Space) AddShape(shape *Shape) *Shape {
 }
 
 func (space *Space) AddBody(body *Body) *Body {
+	assert(body.space != space, "Already added to this space")
+	assert(body.space == nil, "Already added to another space")
 	if body.GetType() == BODY_STATIC {
 		space.staticBodies = append(space.staticBodies, body)
 	} else {
@@ -398,7 +405,24 @@ func (space *Space) ContactBufferGetArray() []*Contact {
 }
 
 func QueryReject(a, b *Shape) bool {
-	return !a.bb.Intersects(b.bb) || a.body == b.body || a.Filter.Reject(b.Filter) || QueryRejectConstraints(a.body, b.body)
+	if !a.bb.Intersects(b.bb) {
+		fmt.Println("    Rejected because no intersection")
+		return true
+	}
+	if a.body == b.body {
+		fmt.Println("    Rejected because it is itself")
+		return true
+	}
+	if a.Filter.Reject(b.Filter) {
+		fmt.Println("    Rejected because filtered")
+		return true
+	}
+	if QueryRejectConstraints(a.body, b.body) {
+		fmt.Println("    Rejected because of constraints")
+		return true
+	}
+	fmt.Println("    Not rejected")
+	return false
 }
 
 func QueryRejectConstraints(a, b *Body) bool {
@@ -573,12 +597,8 @@ func (space *Space) Step(dt float64) {
 	prev_dt := space.curr_dt
 	space.curr_dt = dt
 
-	bodies := space.dynamicBodies
-	constraints := space.constraints
-	arbiters := space.arbiters
-
 	// reset and empty the arbiter lists
-	for _, arb := range arbiters {
+	for _, arb := range space.arbiters {
 		arb.state = CP_ARBITER_STATE_NORMAL
 
 		// If both bodies are awake, unthread the arbiter from the contact graph.
@@ -590,9 +610,12 @@ func (space *Space) Step(dt float64) {
 
 	space.Lock()
 	{
-		for _, body := range bodies {
+		// Integrate positions
+		for _, body := range space.dynamicBodies {
 			body.position_func(body, dt)
 		}
+
+		// Find colliding pairs.
 		space.PushFreshContactBuffer()
 		space.dynamicShapes.class.Each(ShapeUpdateFunc, nil)
 		space.dynamicShapes.class.ReindexQuery(SpaceCollideShapesFunc, space)
@@ -610,14 +633,13 @@ func (space *Space) Step(dt float64) {
 		// Prestep the arbiters and constraints.
 		slop := space.collisionSlop
 		biasCoef := 1 - math.Pow(space.collisionBias, dt)
-		for _, arbiter := range arbiters {
+		for _, arbiter := range space.arbiters {
 			arbiter.PreStep(dt, slop, biasCoef)
 		}
 
-		for _, constraint := range constraints {
-			preSolve := constraint.preSolve
-			if preSolve != nil {
-				(*preSolve)(constraint, space)
+		for _, constraint := range space.constraints {
+			if constraint.preSolve != nil {
+				constraint.preSolve(constraint, space)
 			}
 
 			constraint.class.PreStep(constraint, dt)
@@ -626,7 +648,7 @@ func (space *Space) Step(dt float64) {
 		// Integrate velocities.
 		damping := math.Pow(space.damping, dt)
 		gravity := space.gravity
-		for _, body := range bodies {
+		for _, body := range space.dynamicBodies {
 			body.velocity_func(body, gravity, damping, dt)
 		}
 
@@ -637,35 +659,35 @@ func (space *Space) Step(dt float64) {
 		} else {
 			dt_coef = dt / prev_dt
 		}
-		for _, arbiter := range arbiters {
+		for _, arbiter := range space.arbiters {
 			arbiter.ApplyCachedImpulse(dt_coef)
 		}
 
-		for _, constraint := range constraints {
+		for _, constraint := range space.constraints {
 			constraint.class.ApplyCachedImpulse(constraint, dt_coef)
 		}
 
 		// Run the impulse solver.
 		var i uint
 		for i = 0; i < space.Iterations; i++ {
-			for j := 0; j < len(arbiters); j++ {
-				arbiters[j].ApplyImpulse()
+			for _, arbiter := range space.arbiters {
+				arbiter.ApplyImpulse()
 			}
 
-			for _, constraint := range constraints {
+			for _, constraint := range space.constraints {
 				constraint.class.ApplyImpulse(constraint, dt)
 			}
 		}
 
 		// Run the constraint post-solve callbacks
-		for _, constraint := range constraints {
+		for _, constraint := range space.constraints {
 			if constraint.postSolve != nil {
-				(*constraint.postSolve)(constraint, space)
+				constraint.postSolve(constraint, space)
 			}
 		}
 
 		// run the post-solve callbacks
-		for _, arb := range arbiters {
+		for _, arb := range space.arbiters {
 			arb.handler.postSolveFunc(arb, space, arb.handler)
 		}
 	}

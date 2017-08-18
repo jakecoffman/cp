@@ -11,7 +11,7 @@ func main() {
 	space := NewSpace()
 	space.SetGravity(gravity)
 
-	ground := NewSegment(space.StaticBody(), &Vector{-20, 5}, &Vector{20, -2}, 0)
+	ground := NewSegment(space.StaticBody(), &Vector{-20, 5}, &Vector{20, -5}, 0)
 	ground.U = 1
 	space.AddShape(ground)
 
@@ -28,12 +28,14 @@ func main() {
 
 	var timeStep float64 = 1.0/60.0
 	var time float64
+	var i uint
 	for time = 0; time < 2; time += timeStep {
 		pos := ballBody.Position()
 		vel := ballBody.Velocity()
 		fmt.Printf(
-			"Time is %5.2f. ballBody is at (%5.2f, %5.2f). It's velocity is (%5.2f, %5.2f)\n",
-			time, pos.X, pos.Y, vel.X, vel.Y)
+			"%d Time is %5.2f. ballBody is at (%5.2f, %5.2f). It's velocity is (%5.2f, %5.2f)\n",
+			i, time, pos.X, pos.Y, vel.X, vel.Y)
 		space.Step(timeStep)
+		i++
 	}
 }

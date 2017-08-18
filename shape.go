@@ -137,10 +137,10 @@ func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 		massInfo: massInfo,
 
 		surfaceV: VectorZero(),
-		Filter:   &ShapeFilter{
-			group: NO_GROUP,
+		Filter: &ShapeFilter{
+			group:      NO_GROUP,
 			categories: ALL_CATEGORIES,
-			mask: ALL_CATEGORIES,
+			mask:       ALL_CATEGORIES,
 		},
 	}
 }

@@ -198,16 +198,13 @@ func (body *Body) Rotation() *Vector {
 }
 
 func (body *Body) Position() *Vector {
-	// TODO: this is in chipmunk but it causes movement during rotation?!
-	return body.transform.Point(body.p)
-	//return body.p
+	return body.transform.Point(VectorZero())
 }
 
 func (body *Body) SetPosition(position *Vector) {
 	body.Activate()
 	body.p = body.transform.Vect(body.cog).Add(position)
-	p := body.p
-	body.SetTransform(p, body.a)
+	body.SetTransform(body.p, body.a)
 }
 
 func (body *Body) Velocity() *Vector {
@@ -248,15 +245,16 @@ func (body *Body) Activate() {
 	root := body.ComponentRoot()
 	if root != nil && root.IsSleeping() {
 		space := root.space
-		body := root
-		for body != nil {
-			next := body.sleeping.next
-			body.sleeping.idleTime = 0
-			body.sleeping.root = nil
-			body.sleeping.next = nil
-			space.Activate(body)
+		// in the chipmunk code they shadow body, so here I am not
+		bodyToo := root
+		for bodyToo != nil {
+			next := bodyToo.sleeping.next
+			bodyToo.sleeping.idleTime = 0
+			bodyToo.sleeping.root = nil
+			bodyToo.sleeping.next = nil
+			space.Activate(bodyToo)
 
-			body = next
+			bodyToo = next
 		}
 
 		for i := 0; i < len(space.sleepingComponents); i++ {
