@@ -432,7 +432,7 @@ func (tree *BBTree) GetBB(obj interface{}) *BB {
 			bb.L + math.Min(-x, v.X),
 			bb.B + math.Min(-y, v.Y),
 			bb.R + math.Max(x, v.X),
-			bb.T + cpfmax(y, v.Y),
+			bb.T + math.Max(y, v.Y),
 		}
 	}
 
@@ -490,10 +490,6 @@ func (tree *BBTree) NodeFromPool() *Node {
 func (tree *BBTree) RecycleNode(node *Node) {
 	node.parent = tree.pooledNodes
 	tree.pooledNodes = node
-}
-
-func cpfmax(x, y float64) float64 {
-	return math.Max(x, y)
 }
 
 func (tree *BBTree) GetMasterTree() *BBTree {

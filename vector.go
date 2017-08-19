@@ -150,7 +150,7 @@ func (a *Vector) PointGreater(b, c *Vector) bool {
 }
 
 func (v0 *Vector) CheckAxis(v1, p, n *Vector) bool {
-	return p.Dot(n) <= cpfmax(v0.Dot(n), v1.Dot(n))
+	return p.Dot(n) <= math.Max(v0.Dot(n), v1.Dot(n))
 }
 
 func (a *Vector) ClosestT(b *Vector) float64 {

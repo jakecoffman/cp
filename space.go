@@ -43,7 +43,6 @@ type Space struct {
 	arbiters           []*Arbiter
 	contactBuffersHead *ContactBuffer
 	cachedArbiters     *HashSet
-	pooledArbiters     []*Arbiter
 
 	locked int
 
@@ -103,7 +102,6 @@ func NewSpace() *Space {
 		SleepTimeThreshold:   math.MaxFloat64,
 		idleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
-		pooledArbiters:       []*Arbiter{},
 		cachedArbiters:       NewHashSet(arbiterSetEql),
 		constraints:          []*Constraint{},
 		collisionHandlers:    NewHashSet(handlerSetEql),
@@ -172,9 +170,8 @@ func (space *Space) Activate(body *Body) {
 			numContacts := arbiter.count
 			contacts := arbiter.contacts
 
-			// TODO (JAKE): I don't know why they are doing this, not sure if I did it right either
 			// Restore contact values back to the space's contact buffer memory
-			arbiter.contacts = space.ContactBufferGetArray()
+			arbiter.contacts = space.ContactBufferGetArray()[:numContacts]
 			for i, contact := range contacts {
 				arbiter.contacts[i] = contact
 			}
@@ -295,20 +292,11 @@ var ShapeUpdateFunc = func(shape interface{}, _ interface{}) {
 	(shape.(*Shape)).CacheBB()
 }
 
-func SpaceArbiterSetTrans(ptr, data interface{}) interface{} {
+func SpaceArbiterSetTrans(ptr, _ interface{}) interface{} {
 	shapes := ptr.([]*Shape)
-	space := data.(*Space)
-
-	if len(space.pooledArbiters) == 0 {
-		for i := 0; i < 256; i++ {
-			space.pooledArbiters = append(space.pooledArbiters, &Arbiter{})
-		}
-	}
-
-	popped := space.pooledArbiters[len(space.pooledArbiters)-1]
-	space.pooledArbiters = space.pooledArbiters[:len(space.pooledArbiters)-1]
-	popped.Init(shapes[0], shapes[1])
-	return popped
+	arb := &Arbiter{}
+	arb.Init(shapes[0], shapes[1])
+	return arb
 }
 
 func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interface{}) uint {
@@ -719,8 +707,7 @@ func SpaceArbiterSetFilter(elt, data interface{}) bool {
 	if ticks >= space.collisionPersistence {
 		arb.contacts = nil
 		arb.count = 0
-
-		space.pooledArbiters = append(space.pooledArbiters, arb)
+		arb = nil
 		return false
 	}
 
