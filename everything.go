@@ -220,20 +220,20 @@ func MomentForPoly(m float64, verts []*Vector, offset *Vector, r float64) float6
 
 func AreaForPoly(verts []*Vector, r float64) float64 {
 	var area float64
-	var perimiter float64
+	var perimeter float64
 	for i := range verts {
 		v1 := verts[i]
 		v2 := verts[(i+1)%len(verts)]
 
 		area += v1.Cross(v2)
-		perimiter += v1.Distance(v2)
+		perimeter += v1.Distance(v2)
 	}
 
-	return r*(math.Pi*math.Abs(r)+perimiter) + area/2.0
+	return r*(math.Pi*math.Abs(r)+perimeter) + area/2.0
 }
 
 func CentroidForPoly(verts []*Vector) *Vector {
-	var sum float64 = 0
+	var sum float64
 	vsum := VectorZero()
 
 	for i := range verts {

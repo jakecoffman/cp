@@ -41,7 +41,7 @@ func SegmentSupportPoint(shape *Shape, n *Vector) *SupportPoint {
 	}
 }
 
-func PolySupportPointIndex(count uint, planes []SplittingPlane, n *Vector) uint {
+func PolySupportPointIndex(count uint, planes []*SplittingPlane, n *Vector) uint {
 	max := -INFINITY
 	var index uint
 	var i uint
@@ -191,7 +191,7 @@ func (v0 *MinkowskiPoint) ClosestPoints(v1 *MinkowskiPoint) *ClosestPoints {
 	// First try calculating the MSA from the minkowski difference edge.
 	// This gives us a nice, accurate MSA when the surfaces are close together.
 	delta := v1.ab.Sub(v0.ab)
-	n := delta.Perp().Normalize()
+	n := delta.ReversePerp().Normalize()
 	d := n.Dot(p)
 
 	if d <= 0 || (-1 < t && t < 1) {

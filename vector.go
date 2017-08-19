@@ -52,7 +52,7 @@ func (v *Vector) Perp() *Vector {
 	return &Vector{-v.Y, v.X}
 }
 
-func (v *Vector) RPerp() *Vector {
+func (v *Vector) ReversePerp() *Vector {
 	return &Vector{v.Y, -v.X}
 }
 
@@ -90,8 +90,7 @@ func (v *Vector) Lerp(other *Vector, t float64) *Vector {
 }
 
 func (v *Vector) Normalize() *Vector {
-	// if this throws div by zero errors, then add a really small float64 to it
-	return v.Mult(1 / v.Length())
+	return v.Mult(1.0 / (v.Length()+math.SmallestNonzeroFloat64))
 }
 
 func (v *Vector) SLerp(other *Vector, t float64) *Vector {

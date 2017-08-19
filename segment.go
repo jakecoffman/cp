@@ -73,7 +73,7 @@ func NewSegment(body *Body, a, b *Vector, r float64) *Shape {
 	segment := &Segment{
 		A: a,
 		B: b,
-		n: b.Sub(a).Normalize().Perp(),
+		n: b.Sub(a).Normalize().ReversePerp(),
 
 		r:         r,
 		a_tangent: VectorZero(),

@@ -1,6 +1,7 @@
 package physics
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -12,7 +13,7 @@ type PolyShape struct {
 	count uint
 
 	// The untransformed planes are appended at the end of the transformed planes.
-	planes []SplittingPlane
+	planes []*SplittingPlane
 }
 
 func (poly *PolyShape) CacheData(transform *Transform) *BB {
@@ -26,7 +27,7 @@ func (poly *PolyShape) CacheData(transform *Transform) *BB {
 	t := -INFINITY
 
 	var i uint
-	for i=0; i<count; i++ {
+	for i = 0; i < count; i++ {
 		v := transform.Point(src[i].v0)
 		n := transform.Vect(src[i].n)
 
@@ -40,7 +41,7 @@ func (poly *PolyShape) CacheData(transform *Transform) *BB {
 	}
 
 	radius := poly.r
-	poly.Shape.bb = &BB{l-radius, b-radius, r+radius, t+radius}
+	poly.Shape.bb = &BB{l - radius, b - radius, r + radius, t + radius}
 	return poly.Shape.bb
 }
 
@@ -58,9 +59,9 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, radius float64, info *SegmentQu
 
 func NewPolyShape(body *Body, count uint, verts []*Vector, radius float64) *PolyShape {
 	poly := &PolyShape{
-		r: radius,
-		count: count,
-		planes: []SplittingPlane{},
+		r:      radius,
+		count:  count,
+		planes: []*SplittingPlane{},
 	}
 	poly.Shape = NewShape(poly, body, PolyShapeMassInfo(0, verts, radius))
 	poly.SetVerts(verts)
@@ -68,8 +69,8 @@ func NewPolyShape(body *Body, count uint, verts []*Vector, radius float64) *Poly
 }
 
 func NewBox(body *Body, w, h, r float64) *Shape {
-	hw := w / 2
-	hh := h / 2
+	hw := w / 2.0
+	hh := h / 2.0
 	bb := &BB{-hw, -hh, hw, hh}
 	verts := []*Vector{
 		{bb.R, bb.B},
@@ -84,14 +85,20 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 func (p *PolyShape) SetVerts(verts []*Vector) {
 	count := len(verts)
 	p.count = uint(count)
-	p.planes = make([]SplittingPlane, count*2)
+	p.planes = make([]*SplittingPlane, count*2)
 
-	for i := range verts {
+	for i := range p.planes {
+		p.planes[i] = &SplittingPlane{}
+	}
+
+	for i := 0; i<count; i++ {
 		a := verts[(i-1+count)%count]
 		b := verts[i]
-		n := b.Sub(a).Perp().Normalize()
+		n := b.Sub(a).ReversePerp().Normalize()
 
-		p.planes[i+count] = SplittingPlane{v0: b, n: n}
+		p.planes[i+count].v0 = b
+		p.planes[i+count].n = n
+		fmt.Println("Setting verts", b, n)
 	}
 }
 

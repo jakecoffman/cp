@@ -194,8 +194,8 @@ func DrawSegment(a, b *Vector, fill FColor) {
 func DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor) {
 	triangles := PushTriangles(6)
 
-	n := b.Sub(a).Perp().Normalize()
-	t := n.Perp()
+	n := b.Sub(a).ReversePerp().Normalize()
+	t := n.ReversePerp()
 
 	var half float64 = 1 / DrawPointLineScale
 	r := radius + half
@@ -243,8 +243,8 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FCol
 		v1 := verts[i]
 		v2 := verts[(i+1)%count]
 
-		n1 := v1.Sub(v0).Perp().Normalize()
-		n2 := v2.Sub(v1).Perp().Normalize()
+		n1 := v1.Sub(v0).ReversePerp().Normalize()
+		n2 := v2.Sub(v1).ReversePerp().Normalize()
 
 		offset := n1.Add(n2).Mult(1 / (n1.Dot(n2) + 1))
 		v := ExtrudeVerts{*offset, *n2}
