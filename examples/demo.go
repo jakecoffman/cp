@@ -11,7 +11,7 @@ func SetupGL() {
 	DrawInit()
 	//TextInit()
 
-	gl.ClearColor(52/255, 62/255, 72/255, 1)
+	gl.ClearColor(52.0/255.0, 62.0/255.0, 72.0/255.0, 1.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	gl.Enable(gl.LINE_SMOOTH)

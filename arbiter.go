@@ -206,8 +206,11 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 			old := arb.contacts[j]
 
 			// This could trigger false positives, but is fairly unlikely nor serious if it does.
-			con.jnAcc = old.jnAcc
-			con.jtAcc = old.jtAcc
+			if con.hash == old.hash {
+				// Copy the persistent contact information.
+				con.jnAcc = old.jnAcc
+				con.jtAcc = old.jtAcc
+			}
 		}
 	}
 

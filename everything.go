@@ -189,12 +189,12 @@ func AreaForCircle(r1, r2 float64) float64 {
 
 func MomentForSegment(m float64, a, b *Vector, r float64) float64 {
 	offset := a.Lerp(b, 0.5)
-	length := b.Distance(a) + 2*r
-	return m * ((length*length+4*r*r)/12 + offset.LengthSq())
+	length := b.Distance(a) + 2.0*r
+	return m * ((length*length+4.0*r*r)/12.0 + offset.LengthSq())
 }
 
 func AreaForSegment(a, b *Vector, r float64) float64 {
-	return r * (math.Pi*r + 2*a.Distance(b))
+	return r * (math.Pi*r + 2.0*a.Distance(b))
 }
 
 func MomentForPoly(m float64, verts []*Vector, offset *Vector, r float64) float64 {
@@ -215,7 +215,7 @@ func MomentForPoly(m float64, verts []*Vector, offset *Vector, r float64) float6
 		sum2 += a
 	}
 
-	return (m * sum1) / (6 * sum2)
+	return (m * sum1) / (6.0 * sum2)
 }
 
 func AreaForPoly(verts []*Vector, r float64) float64 {
@@ -229,7 +229,7 @@ func AreaForPoly(verts []*Vector, r float64) float64 {
 		perimiter += v1.Distance(v2)
 	}
 
-	return r*(math.Pi*math.Abs(r)+perimiter) + area/2
+	return r*(math.Pi*math.Abs(r)+perimiter) + area/2.0
 }
 
 func CentroidForPoly(verts []*Vector) *Vector {
@@ -245,11 +245,11 @@ func CentroidForPoly(verts []*Vector) *Vector {
 		vsum = vsum.Add(v1.Add(v2).Mult(cross))
 	}
 
-	return vsum.Mult(1 / (3 * sum))
+	return vsum.Mult(1.0 / (3.0 * sum))
 }
 
 func MomentForBox(m, width, height float64) float64 {
-	return m * (width*width + height*height) / 12
+	return m * (width*width + height*height) / 12.0
 }
 
 func MomentForBox2(m float64, box *BB) float64 {

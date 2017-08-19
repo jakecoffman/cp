@@ -99,7 +99,7 @@ func CircleToSegment(a, b *Shape, info *CollisionInfo) {
 	center := circle.tc
 
 	seg_delta := seg_b.Sub(seg_a)
-	closest_t := Clamp01(seg_delta.Dot(center.Sub(seg_a))/seg_delta.LengthSq())
+	closest_t := Clamp01(seg_delta.Dot(center.Sub(seg_a)) / seg_delta.LengthSq())
 	closest := seg_a.Add(seg_delta.Mult(closest_t))
 
 	mindist := circle.r + segment.r
@@ -108,7 +108,7 @@ func CircleToSegment(a, b *Shape, info *CollisionInfo) {
 	if distsq < mindist*mindist {
 		dist := math.Sqrt(distsq)
 		if dist != 0 {
-			info.n = delta.Mult(1/dist)
+			info.n = delta.Mult(1 / dist)
 		} else {
 			info.n = segment.tn
 		}
@@ -300,8 +300,8 @@ func ContactPoints(e1, e2 *Edge, points *ClosestPoints, info *CollisionInfo) {
 		p2 := n.Mult(-e2.r).Add(e2.a.p.Lerp(e2.b.p, Clamp01((d_e1_b-d_e2_a)*e2_denom)))
 		dist := p2.Sub(p1).Dot(n)
 		if dist <= 0 {
-			hash_1a2b := HashPair(e1.a.hash, e2.b.hash)
-			info.PushContact(p1, p2, hash_1a2b)
+			hash_1b2a := HashPair(e1.b.hash, e2.a.hash)
+			info.PushContact(p1, p2, hash_1b2a)
 		}
 	}
 }
@@ -338,7 +338,9 @@ func GJKRecurse(ctx *SupportContext, v0, v1 *MinkowskiPoint, iteration int) *Clo
 		return v0.ClosestPoints(v1)
 	}
 
-	if v1.ab.PointGreater(v0.ab, VectorZero()) {
+	vzero := VectorZero()
+
+	if v1.ab.PointGreater(v0.ab, vzero) {
 		// Origin is behind axis. Flip and try again.
 		return GJKRecurse(ctx, v1, v0, iteration)
 	}
@@ -353,7 +355,7 @@ func GJKRecurse(ctx *SupportContext, v0, v1 *MinkowskiPoint, iteration int) *Clo
 
 	// Draw debug
 
-	if p.ab.PointGreater(v0.ab, VectorZero()) && v1.ab.PointGreater(p.ab, VectorZero()) {
+	if p.ab.PointGreater(v0.ab, vzero) && v1.ab.PointGreater(p.ab, vzero) {
 		return EPA(ctx, v0, p, v1)
 	}
 

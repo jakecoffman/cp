@@ -155,7 +155,7 @@ func (v0 *Vector) CheckAxis(v1, p, n *Vector) bool {
 
 func (a *Vector) ClosestT(b *Vector) float64 {
 	delta := b.Sub(a)
-	return -Clamp(delta.Dot(a.Add(b))/delta.LengthSq(), -1, 1)
+	return -Clamp(delta.Dot(a.Add(b))/delta.LengthSq(), -1.0, 1.0)
 }
 
 func (a *Vector) LerpT(b *Vector, t float64) *Vector {
