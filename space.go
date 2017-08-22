@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
 	"unsafe"
 )
 
@@ -328,6 +327,8 @@ func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interfa
 	arb := value.(*Arbiter)
 	arb.Update(info, space)
 
+	assert(arb.body_a != arb.body_b, "EQUAL")
+
 	handler := arb.handler
 
 	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !handler.beginFunc(arb, space, handler.userData) {
@@ -428,16 +429,10 @@ func (space *Space) ProcessComponents(dt float64) {
 	sleep := space.SleepTimeThreshold != INFINITY
 	bodies := space.dynamicBodies
 
-	/* TODO: Debug? */
 	for _, body := range bodies {
-		if body.sleeping.next != nil {
-			fmt.Fprintln(os.Stderr, "Dangling pointer in contact graph (next)")
-		}
-		if body.sleeping.root != nil {
-			fmt.Fprintln(os.Stderr, "Dangling pointer in contact graph (root)")
-		}
+		assert(body.sleeping.next == nil, "Dangling pointer in contact graph (next)")
+		assert(body.sleeping.root == nil, "Dangling pointer in contact graph (root)")
 	}
-	/* end TODO */
 
 	// calculate the kinetic energy of all the bodies
 	if sleep {
@@ -511,7 +506,7 @@ func (space *Space) ProcessComponents(dt float64) {
 					// Check if the component should be put to sleep.
 					if !ComponentActive(body, space.SleepTimeThreshold) {
 						space.sleepingComponents = append(space.sleepingComponents, body)
-						for item := space.sleeping.root; item != nil; item = space.sleeping.next {
+						for item := body; item != nil; item = body.sleeping.next {
 							space.Deactivate(item)
 						}
 
@@ -541,30 +536,31 @@ func ComponentActive(root *Body, threshold float64) bool {
 }
 
 func FloodFillComponent(root *Body, body *Body) {
-	if body.GetType() == BODY_DYNAMIC {
-		other_root := body.ComponentRoot()
-		if other_root == nil {
-			root.ComponentAdd(body)
-			for arb := body.arbiterList; arb != nil; arb = ArbiterNext(arb, body) {
-				if body == arb.body_a {
-					FloodFillComponent(root, arb.body_b)
-				} else {
-					FloodFillComponent(root, arb.body_a)
-				}
-			}
+	if body.GetType() != BODY_DYNAMIC {
+		return
+	}
 
-			for _, constraint := range body.constraintList {
-				if body == constraint.a {
-					FloodFillComponent(root, constraint.b)
-				} else {
-					FloodFillComponent(root, constraint.a)
-				}
-			}
-		} else {
-			if other_root == root {
-				panic("Inconsistency detected in the contact graph (FFC)")
+	other_root := body.ComponentRoot()
+	if other_root == nil {
+		root.ComponentAdd(body)
+
+		for arb := body.arbiterList; arb != nil; arb = ArbiterNext(arb, body) {
+			if body == arb.body_a {
+				FloodFillComponent(root, arb.body_b)
+			} else {
+				FloodFillComponent(root, arb.body_a)
 			}
 		}
+
+		for _, constraint := range body.constraintList {
+			if body == constraint.a {
+				FloodFillComponent(root, constraint.b)
+			} else {
+				FloodFillComponent(root, constraint.a)
+			}
+		}
+	} else {
+		assert(other_root == root, "Inconsistency detected in the contact graph (FFC)")
 	}
 }
 
@@ -609,6 +605,10 @@ func (space *Space) Step(dt float64) {
 		space.dynamicShapes.class.ReindexQuery(SpaceCollideShapesFunc, space)
 	}
 	space.Unlock(false)
+
+	if len(space.arbiters) > 0 {
+		fmt.Println("There are", len(space.arbiters), "arbiters")
+	}
 
 	// Rebuild the contact graph (and detect sleeping components if sleeping is enabled)
 	space.ProcessComponents(dt)

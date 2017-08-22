@@ -1,9 +1,6 @@
 package physics
 
-import (
-	"fmt"
-	"math"
-)
+import "math"
 
 type PolyShape struct {
 	*Shape
@@ -91,14 +88,13 @@ func (p *PolyShape) SetVerts(verts []*Vector) {
 		p.planes[i] = &SplittingPlane{}
 	}
 
-	for i := 0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		a := verts[(i-1+count)%count]
 		b := verts[i]
 		n := b.Sub(a).ReversePerp().Normalize()
 
 		p.planes[i+count].v0 = b
 		p.planes[i+count].n = n
-		fmt.Println("Setting verts", b, n)
 	}
 }
 

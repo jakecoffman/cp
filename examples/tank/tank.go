@@ -1,15 +1,14 @@
 package main
 
 import (
-	"math/rand"
-
+	"fmt"
 	"log"
+	"math/rand"
+	"os"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	. "github.com/jakecoffman/physics"
-	"fmt"
-	"os"
 	"github.com/jakecoffman/physics/examples"
 )
 
@@ -26,7 +25,7 @@ func main() {
 	seg1.E = 1
 	seg1.U = 1
 
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 1; i++ {
 		addBox(space, 20, 1)
 		//pivot := NewPivotJoint2()
 		//space.AddConstraint()
@@ -69,6 +68,7 @@ func main() {
 		Display()
 		window.SwapBuffers()
 		glfw.PollEvents()
+		gl.Clear(gl.COLOR_BUFFER_BIT)
 	}
 }
 
@@ -119,8 +119,10 @@ var lastTime float64
 func Display() {
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.LoadIdentity()
-	gl.Translatef(0, 0, 0.0)
+	gl.Translatef(0.0, 0.0, 0.0)
 	gl.Scalef(1, 1, 1)
+
+	examples.CheckGLErrors()
 
 	Update()
 
@@ -128,13 +130,13 @@ func Display() {
 
 	// builds triangles buffer
 	DrawSpace(space, &drawOptions{
-		flags: DRAW_SHAPES | DRAW_CONSTRAINTS | DRAW_COLLISION_POINTS,
-		outline: FColor{R: 1, A: 1},
-		constraint: FColor{G: 1, A: 1},
+		flags:          DRAW_SHAPES | DRAW_CONSTRAINTS | DRAW_COLLISION_POINTS,
+		outline:        FColor{R: 1, A: 1},
+		constraint:     FColor{G: 1, A: 1},
 		collisionPoint: FColor{B: 1, A: 1},
 	})
 
-	// gives buffer to opengl to draw
+	// gives buffer to open-gl to draw
 	examples.FlushRenderer()
 }
 
@@ -161,9 +163,9 @@ func Tick(dt float64) {
 }
 
 type drawOptions struct {
-	flags int
+	flags                               int
 	outline, constraint, collisionPoint FColor
-	data interface{}
+	data                                interface{}
 }
 
 func (*drawOptions) DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor, data interface{}) {

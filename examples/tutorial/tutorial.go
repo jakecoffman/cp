@@ -23,12 +23,12 @@ func main() {
 	// First we need to make a cpBody to hold the physical properties of the object.
 	// These include the mass, position, velocity, angle, etc. of the object.
 	// Then we attach collision shapes to the cpBody to give it a size and shape.
-	var radius float64 = 5
+	//var radius float64 = 5
 	var mass float64 = 1
 
 	// The moment of inertia is like mass for rotation
 	// Use the cpMomentFor*() functions to help you approximate it.
-	moment := MomentForCircle(mass, 0, radius, VectorZero())
+	moment := MomentForBox(mass, 5, 5)
 
 	// The cpSpaceAdd*() functions return the thing that you are adding.
 	// It's convenient to create and add an object in one line.
@@ -38,7 +38,8 @@ func main() {
 	// Now we create the collision shape for the ball.
 	// You can create multiple collision shapes that point to the same body.
 	// They will all be attached to the body and move around to follow it.
-	ballShape := space.AddShape(NewCircle(ballBody, radius, VectorZero()))
+	radius := (&Vector{5, 5}).Length()
+	ballShape := space.AddShape(NewBox(ballBody, 5, 5, radius))
 	ballShape.U = 0.7
 
 	// Now that it's all set up, we simulate all the objects in the space by

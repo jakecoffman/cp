@@ -216,6 +216,15 @@ func (body *Body) SetVelocity(x, y float64) {
 	body.v = &Vector{x, y}
 }
 
+func (body *Body) Force() *Vector {
+	return body.f
+}
+
+func (body *Body) SetForce(force Vector) {
+	body.Activate()
+	body.f = &force
+}
+
 func (body *Body) AngularVelocity() float64 {
 	return body.w
 }

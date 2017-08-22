@@ -7,6 +7,7 @@ const (
 	DRAW_COLLISION_POINTS = 1 << 2
 )
 
+// 16 bytes
 type FColor struct {
 	R, G, B, A float32
 }

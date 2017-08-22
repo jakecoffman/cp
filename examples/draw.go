@@ -2,7 +2,8 @@ package examples
 
 import (
 	"math"
-	"unsafe"
+
+	"fmt"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	. "github.com/jakecoffman/physics"
@@ -15,6 +16,7 @@ const (
 
 var program uint32
 
+// 8 bytes
 type v2f struct {
 	x, y float32
 }
@@ -26,6 +28,7 @@ func v2f0() v2f {
 	return v2f{0, 0}
 }
 
+// 8*2 + 16*2 bytes = 48 bytes
 type Vertex struct {
 	vertex, aa_coord          v2f
 	fill_color, outline_color FColor
@@ -109,21 +112,14 @@ func DrawInit() {
 
 	CheckGLErrors()
 
-	v := Vertex{}
-	stride := int32(unsafe.Sizeof(v))
-
 	CheckGLErrors()
 
-	size := int32(unsafe.Sizeof(v.vertex) / 4)
-	SetAttribute(program, "vertex", size, gl.FLOAT, stride, 0)
-	size = int32(unsafe.Sizeof(v.aa_coord) / 4)
-	SetAttribute(program, "aa_coord", size, gl.FLOAT, stride, 8)
-	size = int32(unsafe.Sizeof(v.fill_color) / 4)
-	SetAttribute(program, "fill_color", size, gl.FLOAT, stride, 16)
-	size = int32(unsafe.Sizeof(v.outline_color) / 4)
-	SetAttribute(program, "outline_color", size, gl.FLOAT, stride, 32)
+	SetAttribute(program, "vertex", 8/4, gl.FLOAT, 48, 0)
+	SetAttribute(program, "aa_coord", 8/4, gl.FLOAT, 48, 8)
+	SetAttribute(program, "fill_color", 16/4, gl.FLOAT, 48, 16)
+	SetAttribute(program, "outline_color", 16/4, gl.FLOAT, 48, 32)
 
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 
 	CheckGLErrors()
 
@@ -142,16 +138,7 @@ func max(a, b int32) int32 {
 	return b
 }
 
-func PushTriangles(count int) []Triangle {
-	for i := 0; i < count; i++ {
-		triangleStack = append(triangleStack, Triangle{})
-	}
-	return triangleStack[len(triangleStack)-count:]
-}
-
 func DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor) {
-	triangles := PushTriangles(2)
-
 	r := radius + 1/DrawPointLineScale
 	a := Vertex{
 		v2f{float32(pos.X - r), float32(pos.Y - r)},
@@ -181,8 +168,8 @@ func DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor) {
 	t0 := Triangle{a, b, c}
 	t1 := Triangle{a, c, d}
 
-	triangles[0] = t0
-	triangles[1] = t1
+	triangleStack = append(triangleStack, t0)
+	triangleStack = append(triangleStack, t1)
 
 	DrawFatSegment(pos, pos.Add(ForAngle(angle).Mult(radius-DrawPointLineScale*0.5)), 0, outline, fill)
 }
@@ -192,8 +179,6 @@ func DrawSegment(a, b *Vector, fill FColor) {
 }
 
 func DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor) {
-	triangles := PushTriangles(6)
-
 	n := b.Sub(a).ReversePerp().Normalize()
 	t := n.ReversePerp()
 
@@ -223,12 +208,12 @@ func DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor) {
 	t4 := Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
 	t5 := Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v7, v2f{-1, 1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
 
-	triangles[0] = t0
-	triangles[1] = t1
-	triangles[2] = t2
-	triangles[3] = t3
-	triangles[4] = t4
-	triangles[5] = t5
+	triangleStack = append(triangleStack, t0)
+	triangleStack = append(triangleStack, t1)
+	triangleStack = append(triangleStack, t2)
+	triangleStack = append(triangleStack, t3)
+	triangleStack = append(triangleStack, t4)
+	triangleStack = append(triangleStack, t5)
 }
 
 func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FColor) {
@@ -251,7 +236,6 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FCol
 		extrude[i] = v
 	}
 
-	triangles := PushTriangles(int(5*count - 2))
 	cursor := 0
 
 	inset := math.Max(0, 1/DrawPointLineScale-radius)
@@ -260,11 +244,11 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FCol
 		v1 := V2f(verts[i+1].Add(extrude[i+1].offset.Mult(inset)))
 		v2 := V2f(verts[i+2].Add(extrude[i+2].offset.Mult(inset)))
 
-		triangles[cursor] = Triangle{
+		triangleStack = append(triangleStack, Triangle{
 			Vertex{v0, v2f0(), fill, fill},
 			Vertex{v1, v2f0(), fill, fill},
 			Vertex{v2, v2f0(), fill, fill},
-		}
+		})
 		cursor++
 	}
 
@@ -294,27 +278,25 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FCol
 		n1 := V2f(&nB)
 		offset0 := V2f(&offsetA)
 
-		triangles[cursor] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{inner1, v2f0(), fill, outline}, Vertex{outer1, n1, fill, outline}}
-		triangles[cursor+1] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer1, n1, fill, outline}}
-		triangles[cursor+2] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer2, offset0, fill, outline}}
-		triangles[cursor+3] = Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer2, offset0, fill, outline}, Vertex{outer3, n0, fill, outline}}
-		cursor+=4
+		triangleStack = append(triangleStack, Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{inner1, v2f0(), fill, outline}, Vertex{outer1, n1, fill, outline}})
+		triangleStack = append(triangleStack, Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer1, n1, fill, outline}})
+		triangleStack = append(triangleStack, Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer0, n1, fill, outline}, Vertex{outer2, offset0, fill, outline}})
+		triangleStack = append(triangleStack, Triangle{Vertex{inner0, v2f0(), fill, outline}, Vertex{outer2, offset0, fill, outline}, Vertex{outer3, n0, fill, outline}})
+		cursor += 4
 
 		j = i
 	}
 }
 
 func DrawDot(size float64, pos *Vector, fill FColor) {
-	triangles := PushTriangles(2)
-
 	r := size * 0.5 / DrawPointLineScale
 	a := Vertex{v2f{float32(pos.X - r), float32(pos.Y - r)}, v2f{-1, -1}, fill, fill}
 	b := Vertex{v2f{float32(pos.X - r), float32(pos.Y + r)}, v2f{-1, 1}, fill, fill}
 	c := Vertex{v2f{float32(pos.X + r), float32(pos.Y + r)}, v2f{1, 1}, fill, fill}
 	d := Vertex{v2f{float32(pos.X + r), float32(pos.Y - r)}, v2f{1, -1}, fill, fill}
 
-	triangles[0] = Triangle{a, b, c}
-	triangles[1] = Triangle{a, c, d}
+	triangleStack = append(triangleStack, Triangle{a, b, c})
+	triangleStack = append(triangleStack, Triangle{a, c, d})
 }
 
 func DrawBB(bb *BB, outline FColor) {
@@ -329,6 +311,7 @@ func DrawBB(bb *BB, outline FColor) {
 
 func FlushRenderer() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	fmt.Println("TRIANGLES:", len(triangleStack))
 	size := len(triangleStack) * (48 * 3) // size of Vertex
 	gl.BufferData(gl.ARRAY_BUFFER, size, gl.Ptr(triangleStack), gl.STREAM_DRAW_ARB)
 
@@ -339,6 +322,8 @@ func FlushRenderer() {
 	gl.BindVertexArrayAPPLE(vao)
 
 	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangleStack)*3))
+
+	CheckGLErrors()
 }
 
 func ClearRenderer() {

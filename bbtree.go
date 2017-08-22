@@ -327,7 +327,11 @@ func (node *Node) IsLeaf() bool {
 }
 
 func (tree *BBTree) Remove(obj interface{}, hashId HashValue) {
-	panic("implement me")
+	leaf := tree.leaves.Remove(hashId, obj).(*Node)
+
+	tree.root = tree.SubtreeRemove(tree.root, leaf)
+	tree.PairsClear(leaf)
+	tree.RecycleNode(leaf)
 }
 
 func (tree *BBTree) Reindex() {

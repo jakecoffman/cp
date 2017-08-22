@@ -74,10 +74,13 @@ type CollisionInfo struct {
 }
 
 func (info *CollisionInfo) PushContact(p1, p2 *Vector, hash HashValue) {
+	assert(info.count < MAX_CONTACTS_PER_ARBITER, "Internal error: Tried to push too many contacts.")
+
 	con := info.arr[info.count]
 	con.r1 = p1
 	con.r2 = p2
 	con.hash = hash
+
 	info.count++
 }
 

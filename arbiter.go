@@ -15,6 +15,7 @@ type Arbiter struct {
 	thread_a, thread_b ArbiterThread
 
 	count    uint
+	// a slice onto the current buffer array of contacts
 	contacts []*Contact
 	n        *Vector
 
