@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"math/rand"
-	"os"
+
+	"math"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -25,7 +24,7 @@ func main() {
 	seg1.E = 1
 	seg1.U = 1
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 50; i++ {
 		addBox(space, 20, 1)
 		//pivot := NewPivotJoint2()
 		//space.AddConstraint()
@@ -35,7 +34,7 @@ func main() {
 	//tankBody := addBox(space, 30, 10)
 
 	if err := glfw.Init(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	defer glfw.Terminate()
 
@@ -47,6 +46,7 @@ func main() {
 		panic(err)
 	}
 	window.MakeContextCurrent()
+	glfw.SwapInterval(1)
 
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -54,15 +54,24 @@ func main() {
 
 	examples.SetupGL()
 
+	gl.Viewport(0, 0, 600, 600)
+
+	scale := float64(math.Min(1, 1))
+	hw := 600 * (0.5 / scale)
+	hh := 600 * (0.5 / scale)
+
+	gl.MatrixMode(gl.PROJECTION)
+	gl.LoadIdentity()
+	gl.Ortho(-hw, hw, -hh, hh, -1, 1)
+
+	examples.CheckGLErrors()
+
 	window.SetCharCallback(func(w *glfw.Window, char rune) {
 		if char == 'q' {
 			window.SetShouldClose(true)
 			return
 		}
 	})
-
-	setupScene()
-	examples.CheckGLErrors()
 
 	for !window.ShouldClose() {
 		Display()
@@ -82,29 +91,6 @@ func addBox(space *Space, size, mass float64) *Body {
 	shape.E = 0
 	shape.U = 0.7
 	return body
-}
-
-func setupScene() {
-	gl.Enable(gl.DEPTH_TEST)
-	gl.Enable(gl.LIGHTING)
-
-	gl.ClearColor(0.5, 0.5, 0.5, 0.0)
-	gl.ClearDepth(1)
-	gl.DepthFunc(gl.LEQUAL)
-
-	ambient := []float32{0.5, 0.5, 0.5, 1}
-	diffuse := []float32{1, 1, 1, 1}
-	lightPosition := []float32{-5, 5, 10, 0}
-	gl.Lightfv(gl.LIGHT0, gl.AMBIENT, &ambient[0])
-	gl.Lightfv(gl.LIGHT0, gl.DIFFUSE, &diffuse[0])
-	gl.Lightfv(gl.LIGHT0, gl.POSITION, &lightPosition[0])
-	gl.Enable(gl.LIGHT0)
-
-	gl.MatrixMode(gl.PROJECTION)
-	gl.LoadIdentity()
-	gl.Frustum(-1, 1, -1, 1, 1.0, 10.0)
-	gl.MatrixMode(gl.MODELVIEW)
-	gl.LoadIdentity()
 }
 
 var (
@@ -127,6 +113,8 @@ func Display() {
 	Update()
 
 	examples.CheckGLErrors()
+
+	examples.ClearRenderer()
 
 	// builds triangles buffer
 	DrawSpace(space, &drawOptions{
@@ -157,8 +145,6 @@ func Update() {
 }
 
 func Tick(dt float64) {
-	fmt.Fprintln(os.Stderr, "Tick", dt)
-	examples.ClearRenderer()
 	space.Step(dt)
 }
 

@@ -3,8 +3,6 @@ package examples
 import (
 	"math"
 
-	"fmt"
-
 	"github.com/go-gl/gl/v2.1/gl"
 	. "github.com/jakecoffman/physics"
 )
@@ -101,27 +99,21 @@ func DrawInit() {
 
 	program = LinkProgram(vshader, fshader)
 
-	CheckGLErrors()
-
 	// TODO implement OS specific stuff in demo_darwin, etc
 	gl.GenVertexArraysAPPLE(1, &vao)
 	gl.BindVertexArrayAPPLE(vao)
+
+	CheckGLErrors()
 
 	gl.GenBuffers(1, &vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 
 	CheckGLErrors()
 
-	CheckGLErrors()
-
-	SetAttribute(program, "vertex", 8/4, gl.FLOAT, 48, 0)
-	SetAttribute(program, "aa_coord", 8/4, gl.FLOAT, 48, 8)
-	SetAttribute(program, "fill_color", 16/4, gl.FLOAT, 48, 16)
-	SetAttribute(program, "outline_color", 16/4, gl.FLOAT, 48, 32)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-
-	CheckGLErrors()
+	SetAttribute(program, "vertex", 2, gl.FLOAT, 48, 0)
+	SetAttribute(program, "aa_coord", 2, gl.FLOAT, 48, 8)
+	SetAttribute(program, "fill_color", 4, gl.FLOAT, 48, 16)
+	SetAttribute(program, "outline_color", 4, gl.FLOAT, 48, 32)
 
 	// TODO non-apple
 	gl.BindVertexArrayAPPLE(0)
@@ -311,9 +303,7 @@ func DrawBB(bb *BB, outline FColor) {
 
 func FlushRenderer() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	fmt.Println("TRIANGLES:", len(triangleStack))
-	size := len(triangleStack) * (48 * 3) // size of Vertex
-	gl.BufferData(gl.ARRAY_BUFFER, size, gl.Ptr(triangleStack), gl.STREAM_DRAW_ARB)
+	gl.BufferData(gl.ARRAY_BUFFER, len(triangleStack)*(48*3), gl.Ptr(triangleStack), gl.STREAM_DRAW_ARB)
 
 	gl.UseProgram(program)
 	gl.Uniform1f(gl.GetUniformLocation(program, gl.Str("u_outline_coef\x00")), DrawPointLineScale)

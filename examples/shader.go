@@ -1,16 +1,28 @@
 package examples
 
 import (
-	"github.com/go-gl/gl/v2.1/gl"
 	"fmt"
-	"strings"
 	"os"
+	"strings"
+
+	"github.com/go-gl/gl/v2.1/gl"
 )
 
 func CheckGLErrors() {
 	for err := gl.GetError(); err != 0; err = gl.GetError() {
-		if err != 0 {
-			panic(fmt.Sprint("GL Error ", err))
+		switch err {
+		case gl.NO_ERROR:
+			// ok
+		case gl.INVALID_ENUM:
+			panic("Invalid enum")
+		case gl.INVALID_VALUE:
+			panic("Invalid value")
+		case gl.INVALID_OPERATION:
+			panic("Invalid operation")
+		case gl.INVALID_FRAMEBUFFER_OPERATION:
+			panic("Invalid Framebuffer Operation")
+		case gl.OUT_OF_MEMORY:
+			panic("Out of memory")
 		}
 	}
 }
@@ -64,7 +76,7 @@ func LinkProgram(vshader, fshader uint32) uint32 {
 }
 
 func SetAttribute(program uint32, name string, size int32, gltype uint32, stride int32, offset int) {
-	var index uint32 = uint32(gl.GetAttribLocation(program, gl.Str(name + "\x00")))
+	var index uint32 = uint32(gl.GetAttribLocation(program, gl.Str(name+"\x00")))
 	gl.EnableVertexAttribArray(index)
 	gl.VertexAttribPointer(index, size, gltype, false, stride, gl.PtrOffset(offset))
 	CheckGLErrors()

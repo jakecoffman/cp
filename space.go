@@ -2,7 +2,6 @@ package physics
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"unsafe"
 )
@@ -722,7 +721,7 @@ func (space *Space) Unlock(runPostStep bool) {
 	space.locked--
 
 	if space.locked < 0 {
-		log.Fatal("Space lock underflow")
+		panic("Space lock underflow")
 	}
 
 	if space.locked != 0 {
