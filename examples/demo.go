@@ -1,8 +1,9 @@
 package examples
 
 import (
-	"fmt"
 	"math"
+
+	"log"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/jakecoffman/physics"
@@ -10,7 +11,7 @@ import (
 
 func SetupGL() {
 	version := gl.GoStr(gl.GetString(gl.VERSION))
-	fmt.Println("OpenGL version", version)
+	log.Println("OpenGL version", version)
 
 	vshader := CompileShader(gl.VERTEX_SHADER, vertexShader)
 	fshader := CompileShader(gl.FRAGMENT_SHADER, fragmentShader)

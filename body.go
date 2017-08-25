@@ -1,6 +1,10 @@
 package physics
 
-import "math"
+import (
+	"fmt"
+	"log"
+	"math"
+)
 
 /// Rigid body velocity update function type.
 type BodyVelocityFunc func(body *Body, gravity *Vector, damping float64, dt float64)
@@ -9,6 +13,8 @@ type BodyVelocityFunc func(body *Body, gravity *Vector, damping float64, dt floa
 type BodyPositionFunc func(body *Body, dt float64)
 
 type Body struct {
+	id int
+
 	// Integration functions
 	velocity_func BodyVelocityFunc
 	position_func BodyPositionFunc
@@ -56,8 +62,15 @@ type Body struct {
 	}
 }
 
+func (b Body) String() string {
+	return fmt.Sprint("Body ", b.id)
+}
+
+var bodyCur int = 0
+
 func NewBody(mass, moment float64) *Body {
 	body := &Body{
+		id:            bodyCur,
 		cog:           VectorZero(),
 		p:             VectorZero(),
 		v:             VectorZero(),
@@ -67,6 +80,7 @@ func NewBody(mass, moment float64) *Body {
 		velocity_func: BodyUpdateVelocity,
 		position_func: BodyUpdatePosition,
 	}
+	bodyCur++
 
 	body.SetMass(mass)
 	body.SetMoment(moment)
@@ -249,6 +263,7 @@ func (body *Body) Activate() {
 		return
 	}
 
+	log.Println("Activating", body)
 	body.sleeping.idleTime = 0
 
 	root := body.ComponentRoot()
@@ -288,13 +303,6 @@ func (body *Body) Activate() {
 		}
 	}
 
-}
-
-func (body *Body) ComponentRoot() *Body {
-	if body != nil {
-		return body.sleeping.root
-	}
-	return nil
 }
 
 func (body *Body) IsSleeping() bool {
@@ -339,6 +347,13 @@ func (root *Body) ComponentAdd(body *Body) {
 		body.sleeping.next = root.sleeping.next
 		root.sleeping.next = body
 	}
+}
+
+func (body *Body) ComponentRoot() *Body {
+	if body != nil {
+		return body.sleeping.root
+	}
+	return nil
 }
 
 func BodyUpdateVelocity(body *Body, gravity *Vector, damping, dt float64) {

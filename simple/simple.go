@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -66,7 +67,7 @@ func main() {
 	}
 
 	version := gl.GoStr(gl.GetString(gl.VERSION))
-	fmt.Println("OpenGL version", version)
+	log.Println("OpenGL version", version)
 
 	vshader := CompileShader(gl.VERTEX_SHADER, vertexShader)
 	fshader := CompileShader(gl.FRAGMENT_SHADER, fragmentShader)
@@ -111,7 +112,7 @@ func main() {
 	})
 
 	window.SetFramebufferSizeCallback(func(w *glfw.Window, width int, height int) {
-		fmt.Println("Framebuffer size callback", width, height)
+		log.Println("Framebuffer size callback", width, height)
 		gl.Viewport(0, 0, int32(width), int32(height))
 	})
 

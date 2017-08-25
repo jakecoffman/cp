@@ -1,11 +1,26 @@
 package main
 
 import (
+	"io/ioutil"
+	"log"
+
+	"os"
+	"runtime/pprof"
+
+	"time"
+
 	. "github.com/jakecoffman/physics"
-	"fmt"
+	"github.com/jakecoffman/physics/examples"
 )
 
 func main() {
+	f, err := os.Create("cpuprofile")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
 	gravity := &Vector{0, -100}
 
 	// Create an empty space.
@@ -33,7 +48,7 @@ func main() {
 	// The cpSpaceAdd*() functions return the thing that you are adding.
 	// It's convenient to create and add an object in one line.
 	ballBody := space.AddBody(NewBody(mass, moment))
-	ballBody.SetPosition(&Vector{0, 15})
+	ballBody.SetPosition(&Vector{0, 100})
 
 	// Now we create the collision shape for the ball.
 	// You can create multiple collision shapes that point to the same body.
@@ -45,16 +60,13 @@ func main() {
 	// Now that it's all set up, we simulate all the objects in the space by
 	// stepping forward through time in small increments called steps.
 	// It is *highly* recommended to use a fixed size time step.
-	var timeStep float64 = 1.0/60.0
-	var time float64
-	var i uint
-	for time = 0; time < 2; time += timeStep {
-		pos := ballBody.Position()
-		vel := ballBody.Velocity()
-		fmt.Printf(
-			"%d Time is %5.2f. ballBody is at (%5.2f, %5.2f). It's velocity is (%5.2f, %5.2f)\n",
-			i, time, pos.X, pos.Y, vel.X, vel.Y)
-		space.Step(timeStep)
-		i++
-	}
+	log.SetFlags(0)
+	log.SetOutput(ioutil.Discard)
+
+	go func() {
+		time.Sleep(10 * time.Second)
+		os.Exit(1)
+	}()
+
+	examples.Main(space, 200, 200, 0.01666)
 }

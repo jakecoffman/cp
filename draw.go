@@ -80,14 +80,13 @@ func DrawSpace(space *Space, options Drawer) {
 	}
 
 	if options.Flags() & DRAW_COLLISION_POINTS == 1 {
-		arbiters := space.arbiters
 		drawSeg := options.DrawSegment
 		data := options.Data()
 
-		for _, arb := range arbiters {
+		for _, arb := range space.arbiters {
 			n := arb.n
 
-			for j := 0; j < len(arbiters); j++ {
+			for j := 0; j < len(space.arbiters); j++ {
 				p1 := arb.body_a.p.Add(arb.contacts[j].r1)
 				p2 := arb.body_b.p.Add(arb.contacts[j].r2)
 

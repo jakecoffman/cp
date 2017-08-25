@@ -1,7 +1,7 @@
 package physics
 
 import (
-	"fmt"
+	"log"
 	"math"
 )
 
@@ -384,7 +384,7 @@ func (tree *BBTree) LeafUpdate(leaf *Node) bool {
 	bb := tree.spatialIndex.bbfunc(leaf.obj)
 
 	if !leaf.bb.Contains(bb) {
-		fmt.Println("True!")
+		log.Println("True!")
 		leaf.bb = tree.GetBB(leaf.obj)
 
 		root = tree.SubtreeRemove(root, leaf)

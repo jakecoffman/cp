@@ -1,7 +1,7 @@
 package physics
 
 import (
-	"fmt"
+	"log"
 	"math"
 	"unsafe"
 )
@@ -141,20 +141,24 @@ func (space *Space) SetStaticBody(body *Body) {
 }
 
 func (space *Space) Activate(body *Body) {
+	log.Println("Activating")
 	assert(body.GetType() == BODY_DYNAMIC, "Attempting to activate a non-dynamic body")
 
-	if space.locked > 0 {
+	if space.locked != 0 {
 		if !Contains(space.rousedBodies, body) {
 			space.rousedBodies = append(space.rousedBodies, body)
 		}
 		return
 	}
 
+	assert(body.sleeping.root == nil && body.sleeping.next == nil, "Activating body non-NULL node pointers.")
+
 	space.dynamicBodies = append(space.dynamicBodies, body)
 
 	for _, shape := range body.shapeList {
-		space.staticShapes.class.Remove(shape, shape.HashId())
-		space.dynamicShapes.class.Insert(shape, shape.HashId())
+		log.Println("    Waking", shape.hashid)
+		space.staticShapes.class.Remove(shape, shape.hashid)
+		space.dynamicShapes.class.Insert(shape, shape.hashid)
 	}
 
 	for arbiter := body.arbiterList; arbiter != nil; arbiter = arbiter.Next(body) {
@@ -196,6 +200,8 @@ func (space *Space) Activate(body *Body) {
 }
 
 func (space *Space) Deactivate(body *Body) {
+	assert(body.GetType() == BODY_DYNAMIC, "Attempting to deactivate non-dynamic body.")
+
 	for i, v := range space.dynamicBodies {
 		if v == body {
 			space.dynamicBodies = append(space.dynamicBodies[:i], space.dynamicBodies[i+1:]...)
@@ -327,17 +333,16 @@ func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interfa
 	arb.Update(info, space)
 
 	assert(arb.body_a != arb.body_b, "EQUAL")
+	log.Println("Collision:", arb.body_a, arb.body_b)
 
-	handler := arb.handler
-
-	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !handler.beginFunc(arb, space, handler.userData) {
+	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.beginFunc(arb, space, arb.handler.userData) {
 		arb.Ignore()
 	}
 
 	// Ignore the arbiter if it has been flagged
 	if arb.state != CP_ARBITER_STATE_IGNORE &&
 		// Call preSolve
-		handler.preSolveFunc(arb, space, handler.userData) &&
+		arb.handler.preSolveFunc(arb, space, arb.handler.userData) &&
 		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
 		arb.state != CP_ARBITER_STATE_IGNORE &&
 		// Process, but don't add collisions for sensors.
@@ -394,22 +399,22 @@ func (space *Space) ContactBufferGetArray() []*Contact {
 
 func QueryReject(a, b *Shape) bool {
 	if !a.bb.Intersects(b.bb) {
-		fmt.Println("    Rejected because no intersection")
+		log.Println("    Rejected because no intersection")
 		return true
 	}
 	if a.body == b.body {
-		fmt.Println("    Rejected because it is itself")
+		log.Println("    Rejected because it is itself")
 		return true
 	}
 	if a.Filter.Reject(b.Filter) {
-		fmt.Println("    Rejected because filtered")
+		log.Println("    Rejected because filtered")
 		return true
 	}
 	if QueryRejectConstraints(a.body, b.body) {
-		fmt.Println("    Rejected because of constraints")
+		log.Println("    Rejected because of constraints")
 		return true
 	}
-	fmt.Println("    Not rejected")
+	log.Println("    Not rejected")
 	return false
 }
 
@@ -426,9 +431,8 @@ func QueryRejectConstraints(a, b *Body) bool {
 
 func (space *Space) ProcessComponents(dt float64) {
 	sleep := space.SleepTimeThreshold != INFINITY
-	bodies := space.dynamicBodies
 
-	for _, body := range bodies {
+	for _, body := range space.dynamicBodies {
 		assert(body.sleeping.next == nil, "Dangling pointer in contact graph (next)")
 		assert(body.sleeping.root == nil, "Dangling pointer in contact graph (root)")
 	}
@@ -444,7 +448,7 @@ func (space *Space) ProcessComponents(dt float64) {
 		}
 
 		// update idling and reset component nodes
-		for _, body := range bodies {
+		for _, body := range space.dynamicBodies {
 			if body.GetType() != BODY_DYNAMIC {
 				continue
 			}
@@ -460,67 +464,67 @@ func (space *Space) ProcessComponents(dt float64) {
 				body.sleeping.idleTime += dt
 			}
 		}
+	}
 
-		// Awaken any sleeping bodies found and then push arbiters to the bodies' lists.
-		for _, arb := range space.arbiters {
-			a := arb.body_a
-			b := arb.body_b
-
-			if sleep {
-				if b.GetType() == BODY_KINEMATIC || a.IsSleeping() {
-					a.Activate()
-				}
-				if a.GetType() == BODY_KINEMATIC || b.IsSleeping() {
-					b.Activate()
-				}
-			}
-
-			a.PushArbiter(arb)
-			b.PushArbiter(arb)
-		}
+	// Awaken any sleeping bodies found and then push arbiters to the bodies' lists.
+	for _, arb := range space.arbiters {
+		a := arb.body_a
+		b := arb.body_b
 
 		if sleep {
-			// Bodies should be held active if connected by a joint to a kinematic.
-			constraints := space.constraints
-			for _, constraint := range constraints {
-				a := constraint.a
-				b := constraint.b
-
-				if b.GetType() == BODY_KINEMATIC {
-					b.Activate()
-				}
-				if a.GetType() == BODY_KINEMATIC {
-					a.Activate()
-				}
+			if b.GetType() == BODY_KINEMATIC || a.IsSleeping() {
+				a.Activate()
 			}
+			if a.GetType() == BODY_KINEMATIC || b.IsSleeping() {
+				b.Activate()
+			}
+		}
 
-			for i := 0; i < len(bodies); {
-				body := bodies[i]
+		a.PushArbiter(arb)
+		b.PushArbiter(arb)
+	}
 
-				if body.ComponentRoot() == nil {
-					// Body not in a component yet. Perform a DFS to flood fill mark
-					// the component in the contact graph using this body as the root.
-					FloodFillComponent(body, body)
+	if sleep {
+		// Bodies should be held active if connected by a joint to a kinematic.
+		for _, constraint := range space.constraints {
+			a := constraint.a
+			b := constraint.b
 
-					// Check if the component should be put to sleep.
-					if !ComponentActive(body, space.SleepTimeThreshold) {
-						space.sleepingComponents = append(space.sleepingComponents, body)
-						for item := body; item != nil; item = body.sleeping.next {
-							space.Deactivate(item)
-						}
+			if b.GetType() == BODY_KINEMATIC {
+				b.Activate()
+			}
+			if a.GetType() == BODY_KINEMATIC {
+				a.Activate()
+			}
+		}
 
-						// cpSpaceDeactivateBody() removed the current body from the list.
-						// Skip incrementing the index counter.
-						continue
+		for i := 0; i < len(space.dynamicBodies); {
+			body := space.dynamicBodies[i]
+
+			if body.ComponentRoot() == nil {
+				// Body not in a component yet. Perform a DFS to flood fill mark
+				// the component in the contact graph using this body as the root.
+				FloodFillComponent(body, body)
+
+				// Check if the component should be put to sleep.
+				if !ComponentActive(body, space.SleepTimeThreshold) {
+					log.Println("Putting", body, "to sleep")
+					space.sleepingComponents = append(space.sleepingComponents, body)
+					for item := body; item != nil; item = body.sleeping.next {
+						space.Deactivate(item)
 					}
+
+					// Deactivate() removed the current body from the list.
+					// Skip incrementing the index counter.
+					continue
 				}
-
-				i++
-
-				// Only sleeping bodies retain their component node pointers.
-				body.sleeping.root = nil
-				body.sleeping.next = nil
 			}
+
+			i++
+
+			// Only sleeping bodies retain their component node pointers.
+			body.sleeping.root = nil
+			body.sleeping.next = nil
 		}
 	}
 }
@@ -575,6 +579,8 @@ func (space *Space) Step(dt float64) {
 		return
 	}
 
+	log.Println("Step")
+
 	space.stamp++
 
 	prev_dt := space.curr_dt
@@ -606,7 +612,7 @@ func (space *Space) Step(dt float64) {
 	space.Unlock(false)
 
 	if len(space.arbiters) > 0 {
-		fmt.Println("There are", len(space.arbiters), "arbiters")
+		log.Println("There are", len(space.arbiters), "arbiters")
 	}
 
 	// Rebuild the contact graph (and detect sleeping components if sleeping is enabled)
@@ -728,13 +734,11 @@ func (space *Space) Unlock(runPostStep bool) {
 		return
 	}
 
-	waking := space.rousedBodies
-
-	for i := 0; i < len(waking); i++ {
-		space.Activate(waking[i])
-		waking[i] = nil
+	for i := 0; i < len(space.rousedBodies); i++ {
+		space.Activate(space.rousedBodies[i])
+		space.rousedBodies[i] = nil
 	}
-	waking = waking[0:0]
+	space.rousedBodies = space.rousedBodies[0:0]
 }
 
 func (space *Space) UncacheArbiter(arb *Arbiter) {

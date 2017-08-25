@@ -1,6 +1,9 @@
 package physics
 
-import "math"
+import (
+	"log"
+	"math"
+)
 
 const WILDCARD_COLLISION_TYPE = math.MaxUint64
 
@@ -14,7 +17,7 @@ type Arbiter struct {
 	body_a, body_b     *Body
 	thread_a, thread_b ArbiterThread
 
-	count    uint
+	count uint
 	// a slice onto the current buffer array of contacts
 	contacts []*Contact
 	n        *Vector
@@ -122,6 +125,7 @@ func (arbiter *Arbiter) ApplyImpulse() {
 	n := arbiter.n
 	surface_vr := arbiter.surface_vr
 	friction := arbiter.u
+	log.Println("Applying impulse between", a, b, a.v, b.v)
 
 	for _, con := range arbiter.contacts {
 		nMass := con.nMass
@@ -152,6 +156,8 @@ func (arbiter *Arbiter) ApplyImpulse() {
 		apply_bias_impulses(a, b, r1, r2, n.Mult(con.jBias-jbnOld))
 		apply_impulses(a, b, r1, r2, n.Rotate(&Vector{con.jnAcc - jnOld, con.jtAcc - jtOld}))
 	}
+
+	log.Println("Applyed impulse between", a, b, a.v, b.v)
 }
 
 func (arbiter *Arbiter) IsFirstContact() bool {
