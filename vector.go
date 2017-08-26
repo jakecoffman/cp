@@ -171,3 +171,7 @@ func (p *Vector) ClosestPointOnSegment(a, b *Vector) *Vector {
 	t := Clamp01(delta.Dot(p.Sub(b))/delta.LengthSq())
 	return b.Add(delta.Mult(t))
 }
+
+func (p *Vector) Clone() *Vector {
+	return &Vector{p.X, p.Y}
+}

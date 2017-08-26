@@ -2,7 +2,6 @@ package physics
 
 import (
 	"fmt"
-	"log"
 	"math"
 )
 
@@ -230,6 +229,11 @@ func (body *Body) SetVelocity(x, y float64) {
 	body.v = &Vector{x, y}
 }
 
+func (body *Body) SetVelocityVector(v *Vector) {
+	body.Activate()
+	body.v = v
+}
+
 func (body *Body) Force() *Vector {
 	return body.f
 }
@@ -263,7 +267,6 @@ func (body *Body) Activate() {
 		return
 	}
 
-	log.Println("Activating", body)
 	body.sleeping.idleTime = 0
 
 	root := body.ComponentRoot()
@@ -354,6 +357,10 @@ func (body *Body) ComponentRoot() *Body {
 		return body.sleeping.root
 	}
 	return nil
+}
+
+func (body *Body) WorldToLocal(point *Vector) *Vector {
+	return NewTransformRigidInverse(body.transform).Point(point)
 }
 
 func BodyUpdateVelocity(body *Body, gravity *Vector, damping, dt float64) {

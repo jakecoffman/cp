@@ -1,7 +1,6 @@
 package physics
 
 import (
-	"log"
 	"math"
 	"unsafe"
 )
@@ -141,7 +140,6 @@ func (space *Space) SetStaticBody(body *Body) {
 }
 
 func (space *Space) Activate(body *Body) {
-	log.Println("Activating")
 	assert(body.GetType() == BODY_DYNAMIC, "Attempting to activate a non-dynamic body")
 
 	if space.locked != 0 {
@@ -156,7 +154,6 @@ func (space *Space) Activate(body *Body) {
 	space.dynamicBodies = append(space.dynamicBodies, body)
 
 	for _, shape := range body.shapeList {
-		log.Println("    Waking", shape.hashid)
 		space.staticShapes.class.Remove(shape, shape.hashid)
 		space.dynamicShapes.class.Insert(shape, shape.hashid)
 	}
@@ -219,8 +216,12 @@ func (space *Space) Deactivate(body *Body) {
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
 			space.UncacheArbiter(arb)
 
-			// TODO not sure what this does below, why making new memory prevents time out?!
 			// Save contact values to a new block of memory so they won't time out
+			contacts := arb.contacts
+			arb.contacts = []*Contact{}
+			for _, c := range contacts {
+				arb.contacts = append(arb.contacts, c.Clone())
+			}
 		}
 	}
 
@@ -292,6 +293,29 @@ func (space *Space) AddBody(body *Body) *Body {
 	return body
 }
 
+func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
+	assert(constraint.space != space, "Already added to this space")
+	assert(constraint.space == nil, "Already added to another space")
+	assert(space.locked == 0, "Space is locked")
+
+	a := constraint.a
+	b := constraint.b
+	assert(a != nil && b != nil, "Constraint is attached to a null body")
+
+	a.Activate()
+	b.Activate()
+	space.constraints = append(space.constraints, constraint)
+
+	// Push onto the heads of the bodies' constraint lists
+	//constraint.next_a = a.constraintList
+	a.constraintList = append(a.constraintList, constraint)
+	//constraint.next_b = b.constraintList
+	b.constraintList = append(b.constraintList, constraint)
+	constraint.space = space
+
+	return constraint
+}
+
 var ShapeUpdateFunc = func(shape interface{}, _ interface{}) {
 	(shape.(*Shape)).CacheBB()
 }
@@ -333,7 +357,6 @@ func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interfa
 	arb.Update(info, space)
 
 	assert(arb.body_a != arb.body_b, "EQUAL")
-	log.Println("Collision:", arb.body_a, arb.body_b)
 
 	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.beginFunc(arb, space, arb.handler.userData) {
 		arb.Ignore()
@@ -399,22 +422,17 @@ func (space *Space) ContactBufferGetArray() []*Contact {
 
 func QueryReject(a, b *Shape) bool {
 	if !a.bb.Intersects(b.bb) {
-		log.Println("    Rejected because no intersection")
 		return true
 	}
 	if a.body == b.body {
-		log.Println("    Rejected because it is itself")
 		return true
 	}
 	if a.Filter.Reject(b.Filter) {
-		log.Println("    Rejected because filtered")
 		return true
 	}
 	if QueryRejectConstraints(a.body, b.body) {
-		log.Println("    Rejected because of constraints")
 		return true
 	}
-	log.Println("    Not rejected")
 	return false
 }
 
@@ -508,9 +526,8 @@ func (space *Space) ProcessComponents(dt float64) {
 
 				// Check if the component should be put to sleep.
 				if !ComponentActive(body, space.SleepTimeThreshold) {
-					log.Println("Putting", body, "to sleep")
 					space.sleepingComponents = append(space.sleepingComponents, body)
-					for item := body; item != nil; item = body.sleeping.next {
+					for item := body; item != nil; item = item.sleeping.next {
 						space.Deactivate(item)
 					}
 
@@ -539,12 +556,16 @@ func ComponentActive(root *Body, threshold float64) bool {
 }
 
 func FloodFillComponent(root *Body, body *Body) {
+	// Kinematic bodies cannot be put to sleep and prevent bodies they are touching from sleeping.
+	// Static bodies are effectively sleeping all the time.
 	if body.GetType() != BODY_DYNAMIC {
 		return
 	}
 
+	// body.sleeping.root
 	other_root := body.ComponentRoot()
 	if other_root == nil {
+		// body.sleeping.root = root
 		root.ComponentAdd(body)
 
 		for arb := body.arbiterList; arb != nil; arb = ArbiterNext(arb, body) {
@@ -579,8 +600,6 @@ func (space *Space) Step(dt float64) {
 		return
 	}
 
-	log.Println("Step")
-
 	space.stamp++
 
 	prev_dt := space.curr_dt
@@ -610,10 +629,6 @@ func (space *Space) Step(dt float64) {
 		space.dynamicShapes.class.ReindexQuery(SpaceCollideShapesFunc, space)
 	}
 	space.Unlock(false)
-
-	if len(space.arbiters) > 0 {
-		log.Println("There are", len(space.arbiters), "arbiters")
-	}
 
 	// Rebuild the contact graph (and detect sleeping components if sleeping is enabled)
 	space.ProcessComponents(dt)
@@ -647,11 +662,10 @@ func (space *Space) Step(dt float64) {
 
 		// Apply cached impulses
 		var dt_coef float64
-		if prev_dt == 0 {
-			dt_coef = 0
-		} else {
+		if prev_dt != 0 {
 			dt_coef = dt / prev_dt
 		}
+
 		for _, arbiter := range space.arbiters {
 			arbiter.ApplyCachedImpulse(dt_coef)
 		}

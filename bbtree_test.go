@@ -1,9 +1,6 @@
 package physics
 
-import (
-	"testing"
-	"log"
-)
+import "testing"
 
 func TestBBTree_GetMasterTree(t *testing.T) {
 	bbTree := &BBTree{}
@@ -24,9 +21,7 @@ func TestBBTree_GetMasterTree(t *testing.T) {
 		}
 	}
 
-	log.Println(count)
-
-	for i := 1; i<count*2; i++ {
+	for i := 1; i < count*2; i++ {
 		node = bbTree.NodeFromPool()
 	}
 

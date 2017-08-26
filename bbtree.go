@@ -1,9 +1,6 @@
 package physics
 
-import (
-	"log"
-	"math"
-)
+import "math"
 
 type BBTreeVelocityFunc func(obj interface{}) *Vector
 
@@ -384,7 +381,6 @@ func (tree *BBTree) LeafUpdate(leaf *Node) bool {
 	bb := tree.spatialIndex.bbfunc(leaf.obj)
 
 	if !leaf.bb.Contains(bb) {
-		log.Println("True!")
 		leaf.bb = tree.GetBB(leaf.obj)
 
 		root = tree.SubtreeRemove(root, leaf)

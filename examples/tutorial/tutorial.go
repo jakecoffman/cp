@@ -4,23 +4,11 @@ import (
 	"io/ioutil"
 	"log"
 
-	"os"
-	"runtime/pprof"
-
-	"time"
-
 	. "github.com/jakecoffman/physics"
 	"github.com/jakecoffman/physics/examples"
 )
 
 func main() {
-	f, err := os.Create("cpuprofile")
-	if err != nil {
-		log.Fatal(err)
-	}
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
-
 	gravity := &Vector{0, -100}
 
 	// Create an empty space.
@@ -63,10 +51,9 @@ func main() {
 	log.SetFlags(0)
 	log.SetOutput(ioutil.Discard)
 
-	go func() {
-		time.Sleep(10 * time.Second)
-		os.Exit(1)
-	}()
+	examples.Main(space, 200, 200, 0.01666, update)
+}
 
-	examples.Main(space, 200, 200, 0.01666)
+func update(space *Space, dt float64) {
+	space.Step(dt)
 }

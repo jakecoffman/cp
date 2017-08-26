@@ -112,7 +112,6 @@ func main() {
 	})
 
 	window.SetFramebufferSizeCallback(func(w *glfw.Window, width int, height int) {
-		log.Println("Framebuffer size callback", width, height)
 		gl.Viewport(0, 0, int32(width), int32(height))
 	})
 
