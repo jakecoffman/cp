@@ -66,15 +66,12 @@ func (set *HashSet) Insert(hash HashValue, ptr interface{}, trans HashSetTrans, 
 
 func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 	bin := set.table[hash]
-	var prevPtr *HashSetBin
+	// In Go we can't take the address of a map entry, so this differs a bit.
+	var prevPtr **HashSetBin
 
 	// Find the bin
 	for bin != nil && !set.eql(ptr, bin.elt) {
-		if prevPtr == nil {
-			prevPtr = bin
-		} else {
-			prevPtr = prevPtr.next
-		}
+		prevPtr = &bin.next
 		bin = bin.next
 	}
 
@@ -82,10 +79,11 @@ func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 	if bin != nil {
 		// Update the previous linked list pointer
 		if prevPtr != nil {
-			*prevPtr.next = *bin.next
+			*prevPtr = bin.next
 		} else {
 			delete(set.table, hash)
 		}
+
 		set.entries--
 
 		elt := bin.elt
