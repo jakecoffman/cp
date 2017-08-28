@@ -16,7 +16,7 @@ type Constraint struct {
 	class Constrainer
 	space *Space
 
-	a, b           *Body
+	a, b *Body
 	//next_a, next_b *Constraint
 
 	maxForce, errorBias, maxBias float64
@@ -31,12 +31,12 @@ type Constraint struct {
 func NewConstraint(class Constrainer, a, b *Body) *Constraint {
 	return &Constraint{
 		class: class,
-		a: a,
-		b: b,
+		a:     a,
+		b:     b,
 
-		maxForce: INFINITY,
-		errorBias: math.Pow(1.0 - 0.1, 60.0),
-		maxBias: INFINITY,
+		maxForce:  INFINITY,
+		errorBias: math.Pow(1.0-0.1, 60.0),
+		maxBias:   INFINITY,
 
 		collideBodies: true,
 	}
@@ -57,4 +57,10 @@ func (c *Constraint) SetMaxBias(max float64) {
 	assert(max >= 0, "Must be positive")
 	c.ActivateBodies()
 	c.maxBias = max
+}
+
+func (c *Constraint) SetErrorBias(errorBias float64) {
+	assert(errorBias >= 0, "Must be positive")
+	c.ActivateBodies()
+	c.errorBias = errorBias
 }

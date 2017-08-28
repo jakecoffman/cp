@@ -14,23 +14,23 @@ func NewDrawOptions(flags int, outline, constraint, collisionPoint FColor, data 
 	return &DrawOptions{flags, outline, constraint, collisionPoint, data}
 }
 
-func (*DrawOptions) DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor, data interface{}) {
+func (*DrawOptions) DrawCircle(pos Vector, angle, radius float64, outline, fill FColor, data interface{}) {
 	DrawCircle(pos, angle, radius, outline, fill)
 }
 
-func (*DrawOptions) DrawSegment(a, b *Vector, fill FColor, data interface{}) {
+func (*DrawOptions) DrawSegment(a, b Vector, fill FColor, data interface{}) {
 	DrawSegment(a, b, fill)
 }
 
-func (*DrawOptions) DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor, data interface{}) {
+func (*DrawOptions) DrawFatSegment(a, b Vector, radius float64, outline, fill FColor, data interface{}) {
 	DrawFatSegment(a, b, radius, outline, fill)
 }
 
-func (*DrawOptions) DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FColor, data interface{}) {
+func (*DrawOptions) DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColor, data interface{}) {
 	DrawPolygon(count, verts, radius, outline, fill)
 }
 
-func (*DrawOptions) DrawDot(size float64, pos *Vector, fill FColor, data interface{}) {
+func (*DrawOptions) DrawDot(size float64, pos Vector, fill FColor, data interface{}) {
 	DrawDot(size, pos, fill)
 }
 

@@ -54,7 +54,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, radius float64, info *SegmentQu
 	panic("implement me")
 }
 
-func NewPolyShape(body *Body, count uint, verts []*Vector, radius float64) *PolyShape {
+func NewPolyShape(body *Body, count uint, verts []Vector, radius float64) *PolyShape {
 	poly := &PolyShape{
 		r:      radius,
 		count:  count,
@@ -69,7 +69,7 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 	hw := w / 2.0
 	hh := h / 2.0
 	bb := &BB{-hw, -hh, hw, hh}
-	verts := []*Vector{
+	verts := []Vector{
 		{bb.R, bb.B},
 		{bb.R, bb.T},
 		{bb.L, bb.T},
@@ -79,7 +79,7 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 	return poly.Shape
 }
 
-func (p *PolyShape) SetVerts(verts []*Vector) {
+func (p *PolyShape) SetVerts(verts []Vector) {
 	count := len(verts)
 	p.count = uint(count)
 	p.planes = make([]*SplittingPlane, count*2)
@@ -98,7 +98,7 @@ func (p *PolyShape) SetVerts(verts []*Vector) {
 	}
 }
 
-func PolyShapeMassInfo(mass float64, verts []*Vector, r float64) *ShapeMassInfo {
+func PolyShapeMassInfo(mass float64, verts []Vector, r float64) *ShapeMassInfo {
 	centroid := CentroidForPoly(verts)
 	return &ShapeMassInfo{
 		m:    mass,

@@ -3,11 +3,11 @@ package physics
 type Segment struct {
 	*Shape
 
-	A, B, n    *Vector
-	ta, tb, tn *Vector
+	A, B, n    Vector
+	ta, tb, tn Vector
 	r          float64
 
-	a_tangent, b_tangent *Vector
+	a_tangent, b_tangent Vector
 }
 
 func (seg *Segment) CacheData(transform *Transform) *BB {
@@ -69,7 +69,7 @@ func (seg *Segment) SegmentQuery(a, b Vector, radius float64, info *SegmentQuery
 	panic("implement me")
 }
 
-func NewSegment(body *Body, a, b *Vector, r float64) *Shape {
+func NewSegment(body *Body, a, b Vector, r float64) *Shape {
 	segment := &Segment{
 		A: a,
 		B: b,
@@ -83,7 +83,7 @@ func NewSegment(body *Body, a, b *Vector, r float64) *Shape {
 	return segment.Shape
 }
 
-func NewSegmentMassInfo(mass float64, a, b *Vector, r float64) *ShapeMassInfo {
+func NewSegmentMassInfo(mass float64, a, b Vector, r float64) *ShapeMassInfo {
 	return &ShapeMassInfo{
 		m:    mass,
 		i:    MomentForBox(1, a.Distance(b)+2*r, 2*r),

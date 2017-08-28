@@ -30,7 +30,7 @@ type Shape struct {
 
 	sensor   bool
 	E, U     float64
-	surfaceV *Vector
+	surfaceV Vector
 
 	userData interface{}
 
@@ -53,6 +53,26 @@ func (s *Shape) Order() int {
 	default:
 		return 3
 	}
+}
+
+func (s *Shape) Elasticity() float64 {
+	return s.E
+}
+
+func (s *Shape) SetElasticity(elasticity float64) {
+	assert(elasticity >= 0, "Must be positive")
+	s.body.Activate()
+	s.E = elasticity
+}
+
+func (s *Shape) Friction() float64 {
+	return s.U
+}
+
+func (s *Shape) SetFriction(friction float64) {
+	assert(friction >= 0, "Must be positive")
+	s.body.Activate()
+	s.U = friction
 }
 
 func (s *Shape) GetSensor() bool {

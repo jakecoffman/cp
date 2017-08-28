@@ -13,11 +13,11 @@ type FColor struct {
 }
 
 type Drawer interface {
-	DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor, data interface{})
-	DrawSegment(a, b *Vector, fill FColor, data interface{})
-	DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor, data interface{})
-	DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FColor, data interface{})
-	DrawDot(size float64, pos *Vector, fill FColor, data interface{})
+	DrawCircle(pos Vector, angle, radius float64, outline, fill FColor, data interface{})
+	DrawSegment(a, b Vector, fill FColor, data interface{})
+	DrawFatSegment(a, b Vector, radius float64, outline, fill FColor, data interface{})
+	DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColor, data interface{})
+	DrawDot(size float64, pos Vector, fill FColor, data interface{})
 
 	Flags() int
 	OutlineColor() FColor
@@ -46,7 +46,7 @@ func DrawShape(shape *Shape, options Drawer) {
 
 		count := poly.count
 		planes := poly.planes
-		verts := make([]*Vector, count)
+		verts := make([]Vector, count)
 
 		var i uint
 		for i = 0; i < count; i++ {
