@@ -4,11 +4,11 @@ import "math"
 
 type Circle struct {
 	*Shape
-	c, tc Vector
+	c, tc *Vector
 	r     float64
 }
 
-func NewCircle(body *Body, radius float64, offset Vector) *Shape {
+func NewCircle(body *Body, radius float64, offset *Vector) *Shape {
 	circle := &Circle{
 		c: offset,
 		r: radius,
@@ -17,7 +17,7 @@ func NewCircle(body *Body, radius float64, offset Vector) *Shape {
 	return circle.Shape
 }
 
-func CircleShapeMassInfo(mass, radius float64, center Vector) *ShapeMassInfo {
+func CircleShapeMassInfo(mass, radius float64, center *Vector) *ShapeMassInfo {
 	return &ShapeMassInfo{
 		m:    mass,
 		i:    MomentForCircle(1, 0, radius, VectorZero()),
@@ -48,15 +48,15 @@ func (circle *Circle) PointQuery(p Vector, info *PointQueryInfo) {
 	if d > MAGIC_EPSILON {
 		info.gradient = delta.Mult(1 / d)
 	} else {
-		info.gradient = Vector{0, 1}
+		info.gradient = &Vector{0, 1}
 	}
 }
 
 func (circle *Circle) SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo) {
-	CircleSegmentQuery(circle.Shape, circle.tc, circle.r, a, b, radius, info)
+	CircleSegmentQuery(circle.Shape, circle.tc, circle.r, &a, &b, radius, info)
 }
 
-func CircleSegmentQuery(shape *Shape, center Vector, r1 float64, a, b Vector, r2 float64, info *SegmentQueryInfo) {
+func CircleSegmentQuery(shape *Shape, center *Vector, r1 float64, a, b *Vector, r2 float64, info *SegmentQueryInfo) {
 	da := a.Sub(center)
 	db := a.Sub(center)
 	rsum := r1 + r2
@@ -71,8 +71,8 @@ func CircleSegmentQuery(shape *Shape, center Vector, r1 float64, a, b Vector, r2
 			n := da.Lerp(db, t).Normalize()
 
 			info.shape = shape
-			info.point = a.Lerp(b, t).Sub(n.Mult(r2))
-			info.normal = n
+			info.point = *a.Lerp(b, t).Sub(n.Mult(r2))
+			info.normal = *n
 			info.alpha = t
 		}
 	}

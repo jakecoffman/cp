@@ -6,7 +6,7 @@ const WILDCARD_COLLISION_TYPE = math.MaxUint64
 
 type Arbiter struct {
 	e, u       float64
-	surface_vr Vector
+	surface_vr *Vector
 
 	data interface{}
 
@@ -17,7 +17,7 @@ type Arbiter struct {
 	count uint
 	// a slice onto the current buffer array of contacts
 	contacts []*Contact
-	n        Vector
+	n        *Vector
 
 	// Regular, wildcard A and wildcard B collision handlers.
 	handler, handlerA, handlerB *CollisionHandler
@@ -111,7 +111,7 @@ func (arbiter *Arbiter) ApplyCachedImpulse(dt_coef float64) {
 	}
 
 	for _, contact := range arbiter.contacts {
-		j := arbiter.n.Rotate(Vector{contact.jnAcc, contact.jtAcc})
+		j := arbiter.n.Rotate(&Vector{contact.jnAcc, contact.jtAcc})
 		apply_impulses(arbiter.body_a, arbiter.body_b, contact.r1, contact.r2, j.Mult(dt_coef))
 	}
 }
@@ -150,7 +150,7 @@ func (arbiter *Arbiter) ApplyImpulse() {
 		con.jtAcc = Clamp(jtOld+jt, -jtMax, jtMax)
 
 		apply_bias_impulses(a, b, r1, r2, n.Mult(con.jBias-jbnOld))
-		apply_impulses(a, b, r1, r2, n.Rotate(Vector{con.jnAcc - jnOld, con.jtAcc - jtOld}))
+		apply_impulses(a, b, r1, r2, n.Rotate(&Vector{con.jnAcc - jnOld, con.jtAcc - jtOld}))
 	}
 }
 
@@ -307,27 +307,27 @@ func (arb *Arbiter) CallWildcardSeparateB(space *Space) {
 	arb.swapped = !arb.swapped
 }
 
-func apply_impulses(a, b *Body, r1, r2, j Vector) {
+func apply_impulses(a, b *Body, r1, r2, j *Vector) {
 	apply_impulse(a, j.Neg(), r1)
 	apply_impulse(b, j, r2)
 }
 
-func apply_bias_impulses(a, b *Body, r1, r2, j Vector) {
+func apply_bias_impulses(a, b *Body, r1, r2, j *Vector) {
 	apply_bias_impulse(a, j.Neg(), r1)
 	apply_bias_impulse(b, j, r2)
 }
 
-func apply_bias_impulse(body *Body, j, r Vector) {
+func apply_bias_impulse(body *Body, j, r *Vector) {
 	body.v_bias = body.v_bias.Add(j.Mult(body.m_inv))
 	body.w_bias += body.i_inv * r.Cross(j)
 }
 
-func apply_impulse(body *Body, j, r Vector) {
+func apply_impulse(body *Body, j, r *Vector) {
 	body.v = body.v.Add(j.Mult(body.m_inv))
 	body.w += body.i_inv * r.Cross(j)
 }
 
-func relative_velocity(a, b *Body, r1, r2 Vector) Vector {
+func relative_velocity(a, b *Body, r1, r2 *Vector) *Vector {
 	v1_sum := a.v.Add(r1.Perp().Mult(a.w))
 	v2_sum := b.v.Add(r2.Perp().Mult(b.w))
 	return v2_sum.Sub(v1_sum)

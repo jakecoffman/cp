@@ -11,7 +11,7 @@ const CONTACTS_BUFFER_SIZE = 1024
 type Space struct {
 	Iterations uint // must be non-zero
 
-	gravity Vector
+	gravity *Vector
 	damping float64
 
 	idleSpeedThreshold float64
@@ -50,7 +50,7 @@ type Space struct {
 	skipPostStep      bool
 	postStepCallbacks []PostStepCallback
 
-	StaticBody *Body // staticBody
+	*Body // staticBody
 }
 
 func arbiterSetEql(ptr, elt interface{}) bool {
@@ -113,11 +113,15 @@ func NewSpace() *Space {
 	return space
 }
 
-var ShapeVelocityFunc = func(obj interface{}) Vector {
+var ShapeVelocityFunc = func(obj interface{}) *Vector {
 	return obj.(*Shape).body.v
 }
 
-func (space *Space) SetGravity(gravity Vector) {
+func (space *Space) StaticBody() *Body {
+	return space.Body
+}
+
+func (space *Space) SetGravity(gravity *Vector) {
 	space.gravity = gravity
 
 	// Wake up all of the bodies since the gravity changed.
@@ -127,11 +131,11 @@ func (space *Space) SetGravity(gravity Vector) {
 }
 
 func (space *Space) SetStaticBody(body *Body) {
-	if space.StaticBody != nil {
-		space.StaticBody.space = nil
+	if space.Body != nil {
+		space.Body.space = nil
 		panic("Internal Error: Changing the designated static body while the old one still had shapes attached.")
 	}
-	space.StaticBody = body
+	space.Body = body
 	body.space = space
 }
 
@@ -224,9 +228,9 @@ func (space *Space) Deactivate(body *Body) {
 	for _, constraint := range body.constraintList {
 		bodyA := constraint.a
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
-			for i, c := range space.StaticBody.constraintList {
+			for i, c := range space.constraintList {
 				if c == constraint {
-					space.StaticBody.constraintList = append(space.StaticBody.constraintList[0:i], space.StaticBody.constraintList[i+1:]...)
+					space.constraintList = append(space.constraintList[0:i], space.constraintList[i+1:]...)
 				}
 			}
 		}

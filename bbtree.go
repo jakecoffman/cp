@@ -2,7 +2,7 @@ package physics
 
 import "math"
 
-type BBTreeVelocityFunc func(obj interface{}) Vector
+type BBTreeVelocityFunc func(obj interface{}) *Vector
 
 type Node struct {
 	obj    interface{}
@@ -416,7 +416,7 @@ func (tree *BBTree) Query(obj interface{}, bb *BB, f SpatialIndexQuery, data int
 	panic("implement me")
 }
 
-func (tree *BBTree) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+func (tree *BBTree) SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
 	panic("implement me")
 }
 

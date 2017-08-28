@@ -5,13 +5,15 @@ import (
 
 	"math"
 
+	"log"
+
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 	. "github.com/jakecoffman/physics"
 )
 
-var Mouse Vector
+var Mouse *Vector
 var mouseBody *Body
 
 var accumulator float64
@@ -55,6 +57,9 @@ func Update(space *Space, tick float64, update UpdateFunc) {
 
 	for accumulator += dt; accumulator > tick; accumulator -= tick {
 		// Tick
+		if mouseBody == nil {
+			panic("WAT")
+		}
 		newPoint := mouseBody.Position().Lerp(Mouse, 0.25)
 		mouseBody.SetVelocityVector(newPoint.Sub(mouseBody.Position()).Mult(60.0))
 		mouseBody.SetPosition(newPoint)
@@ -123,7 +128,7 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 	}
 }
 
-func MouseToSpace(x, y float64, ww, wh int) Vector {
+func MouseToSpace(x, y float64, ww, wh int) *Vector {
 	var model [16]float64
 	gl.GetDoublev(gl.MODELVIEW_MATRIX, &model[0])
 	modelMat := mgl32.Mat4{}
@@ -154,5 +159,7 @@ func MouseToSpace(x, y float64, ww, wh int) Vector {
 		panic(err)
 	}
 
-	return Vector{float64(obj.X()), float64(obj.Y())}
+	loc := &Vector{float64(obj.X()), float64(obj.Y())}
+	log.Println("Mouse:", loc)
+	return loc
 }

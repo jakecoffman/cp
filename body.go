@@ -2,10 +2,11 @@ package physics
 
 import (
 	"fmt"
+	"math"
 )
 
 /// Rigid body velocity update function type.
-type BodyVelocityFunc func(body *Body, gravity Vector, damping float64, dt float64)
+type BodyVelocityFunc func(body *Body, gravity *Vector, damping float64, dt float64)
 
 /// Rigid body position update function type.
 type BodyPositionFunc func(body *Body, dt float64)
@@ -26,12 +27,12 @@ type Body struct {
 	i_inv float64
 
 	// center of gravity
-	cog Vector
+	cog *Vector
 
 	// position, velocity, force
-	p Vector
-	v Vector
-	f Vector
+	p *Vector
+	v *Vector
+	f *Vector
 
 	// Angle, angular velocity, torque (radians)
 	a float64
@@ -44,7 +45,7 @@ type Body struct {
 
 	// "pseudo-velocities" used for eliminating overlap.
 	// Erin Catto has some papers that talk about what these are.
-	v_bias Vector
+	v_bias *Vector
 	w_bias float64
 
 	space *Space
@@ -161,10 +162,10 @@ func (body *Body) SetType(typ int) {
 }
 
 func (body *Body) GetType() int {
-	if body.sleeping.idleTime == INFINITY {
+	if body.sleeping.idleTime == math.MaxFloat64 {
 		return BODY_STATIC
 	}
-	if body.m == INFINITY {
+	if body.m == math.MaxFloat64 {
 		return BODY_KINEMATIC
 	}
 	return BODY_DYNAMIC
@@ -205,41 +206,41 @@ func (body *Body) Angle() float64 {
 	return body.a
 }
 
-func (body *Body) Rotation() Vector {
-	return Vector{body.transform.a, body.transform.b}
+func (body *Body) Rotation() *Vector {
+	return &Vector{body.transform.a, body.transform.b}
 }
 
-func (body *Body) Position() Vector {
+func (body *Body) Position() *Vector {
 	return body.transform.Point(VectorZero())
 }
 
-func (body *Body) SetPosition(position Vector) {
+func (body *Body) SetPosition(position *Vector) {
 	body.Activate()
 	body.p = body.transform.Vect(body.cog).Add(position)
 	body.SetTransform(body.p, body.a)
 }
 
-func (body *Body) Velocity() Vector {
+func (body *Body) Velocity() *Vector {
 	return body.v
 }
 
 func (body *Body) SetVelocity(x, y float64) {
 	body.Activate()
-	body.v = Vector{x, y}
+	body.v = &Vector{x, y}
 }
 
-func (body *Body) SetVelocityVector(v Vector) {
+func (body *Body) SetVelocityVector(v *Vector) {
 	body.Activate()
 	body.v = v
 }
 
-func (body *Body) Force() Vector {
+func (body *Body) Force() *Vector {
 	return body.f
 }
 
 func (body *Body) SetForce(force Vector) {
 	body.Activate()
-	body.f = force
+	body.f = &force
 }
 
 func (body *Body) AngularVelocity() float64 {
@@ -251,7 +252,7 @@ func (body *Body) SetAngularVelocity(angularVelocity float64) {
 	body.w = angularVelocity
 }
 
-func (body *Body) SetTransform(p Vector, a float64) {
+func (body *Body) SetTransform(p *Vector, a float64) {
 	rot := ForAngle(a)
 	c := body.cog
 
@@ -358,11 +359,11 @@ func (body *Body) ComponentRoot() *Body {
 	return nil
 }
 
-func (body *Body) WorldToLocal(point Vector) Vector {
+func (body *Body) WorldToLocal(point *Vector) *Vector {
 	return NewTransformRigidInverse(body.transform).Point(point)
 }
 
-func BodyUpdateVelocity(body *Body, gravity Vector, damping, dt float64) {
+func BodyUpdateVelocity(body *Body, gravity *Vector, damping, dt float64) {
 	if body.GetType() == BODY_KINEMATIC {
 		return
 	}
