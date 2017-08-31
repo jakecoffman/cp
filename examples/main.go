@@ -5,8 +5,6 @@ import (
 
 	"math"
 
-	"log"
-
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/go-gl/mathgl/mgl32"
@@ -159,7 +157,5 @@ func MouseToSpace(x, y float64, ww, wh int) *Vector {
 		panic(err)
 	}
 
-	loc := &Vector{float64(obj.X()), float64(obj.Y())}
-	log.Println("Mouse:", loc)
-	return loc
+	return &Vector{float64(obj.X()), float64(obj.Y())}
 }

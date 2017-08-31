@@ -14,8 +14,8 @@ var (
 )
 
 const (
-	width  = 800
-	height = 800
+	width  = 640
+	height = 480
 
 	hwidth  = width / 2
 	hheight = height / 2
@@ -39,9 +39,8 @@ func main() {
 	for i := 0; i < len(sides); i += 2 {
 		var seg *Shape
 		seg = space.AddShape(NewSegment(space.Body, sides[i], sides[i+1], 0))
-		seg.Body().Activate()
-		seg.E = 1
-		seg.U = 1
+		seg.SetElasticity(1)
+		seg.SetFriction(1)
 	}
 
 	for i := 0; i < 50; i++ {
@@ -57,19 +56,20 @@ func main() {
 
 	// We joint the tank to the control body and control the tank indirectly by modifying the control body.
 	tankControlBody = space.AddBody(NewKinematicBody())
-	tankBody = addBox(space, 15, 10)
+	tankBody = addBox(space, 30, 10)
 
 	pivot := space.AddConstraint(NewPivotJoint2(tankControlBody, tankBody, VectorZero(), VectorZero()))
 	pivot.SetMaxBias(0)
 	pivot.SetMaxForce(10000)
 
 	gear := space.AddConstraint(NewGearJoint(tankControlBody, tankBody, 0.0, 1.0))
-	gear.SetMaxBias(0)
+	gear.SetErrorBias(0) // attempt to fully correct the joint each step
+	gear.SetMaxBias(1.2)
 	gear.SetMaxForce(50000)
 
 	//log.SetFlags(0)
 	//log.SetOutput(ioutil.Discard)
-	examples.Main(space, 800, 800, 1.0/60.0, update)
+	examples.Main(space, width, height, 1.0/60.0, update)
 }
 
 func addBox(space *Space, size, mass float64) *Body {
@@ -77,7 +77,7 @@ func addBox(space *Space, size, mass float64) *Body {
 	body := space.AddBody(NewBody(mass, MomentForBox(mass, size, size)))
 	body.SetPosition(&Vector{rand.Float64()*(width-2*radius) - (hwidth - radius), rand.Float64()*(height-2*radius) - (hheight - radius)})
 
-	shape := NewBox(body, size, size, radius)
+	shape := NewBox(body, size, size, 0)
 	space.AddShape(shape)
 	shape.E = 0
 	shape.U = 0.7

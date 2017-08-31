@@ -96,6 +96,26 @@ func (s *Shape) SetBB(bb *BB) {
 	s.bb = bb
 }
 
+func (s *Shape) Friction() float64 {
+	return s.U
+}
+
+func (s *Shape) SetFriction(u float64) {
+	assert(s.U >= 0, "Must be positive")
+	s.body.Activate()
+	s.U = u
+}
+
+func (s *Shape) Elasticity() float64 {
+	return s.E
+}
+
+func (s *Shape) SetElasticity(e float64) {
+	assert(s.E >= 0, "Must be positive")
+	s.body.Activate()
+	s.E = e
+}
+
 func (s *Shape) CacheBB() *BB {
 	return s.Update(s.body.transform)
 }

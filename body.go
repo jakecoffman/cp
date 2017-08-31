@@ -1,9 +1,6 @@
 package physics
 
-import (
-	"fmt"
-	"math"
-)
+import "fmt"
 
 /// Rigid body velocity update function type.
 type BodyVelocityFunc func(body *Body, gravity *Vector, damping float64, dt float64)
@@ -162,10 +159,10 @@ func (body *Body) SetType(typ int) {
 }
 
 func (body *Body) GetType() int {
-	if body.sleeping.idleTime == math.MaxFloat64 {
+	if body.sleeping.idleTime == INFINITY {
 		return BODY_STATIC
 	}
-	if body.m == math.MaxFloat64 {
+	if body.m == INFINITY {
 		return BODY_KINEMATIC
 	}
 	return BODY_DYNAMIC
