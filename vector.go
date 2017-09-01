@@ -101,8 +101,8 @@ func (v *Vector) SLerp(other *Vector, t float64) *Vector {
 		return v.Lerp(other, t)
 	}
 
-	denom := 1 / math.Sin(omega)
-	return v.Mult(math.Sin((1-t)*omega) * denom).Add(other.Mult(math.Sin(t*omega) * denom))
+	denom := 1.0 / math.Sin(omega)
+	return v.Mult(math.Sin((1.0-t)*omega) * denom).Add(other.Mult(math.Sin(t*omega) * denom))
 }
 
 func Clamp(f, min, max float64) float64 {
@@ -163,7 +163,7 @@ func (a *Vector) LerpT(b *Vector, t float64) *Vector {
 }
 
 func (v0 *Vector) ClosestDist(v1 *Vector) float64 {
-	return v1.LerpT(v1, v0.ClosestT(v1)).LengthSq()
+	return v0.LerpT(v1, v0.ClosestT(v1)).LengthSq()
 }
 
 func (p *Vector) ClosestPointOnSegment(a, b *Vector) *Vector {

@@ -268,6 +268,7 @@ func (body *Body) Activate() {
 
 	root := body.ComponentRoot()
 	if root != nil && root.IsSleeping() {
+		assert(root.GetType() == BODY_DYNAMIC, "Non-dynamic root")
 		space := root.space
 		// in the chipmunk code they shadow body, so here I am not
 		bodyToo := root
