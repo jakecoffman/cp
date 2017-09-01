@@ -17,6 +17,7 @@ func NewGearJoint(a, b *Body, phase, ratio float64) *Constraint {
 		phase:     phase,
 		ratio:     ratio,
 		ratio_inv: 1.0 / ratio,
+		jAcc: 0,
 	}
 	constraint := NewConstraint(joint, a, b)
 	joint.Constraint = constraint
@@ -24,20 +25,20 @@ func NewGearJoint(a, b *Body, phase, ratio float64) *Constraint {
 }
 
 func (joint *GearJoint) PreStep(constraint *Constraint, dt float64) {
-	a := joint.Constraint.a
-	b := joint.Constraint.b
+	a := joint.a
+	b := joint.b
 
 	// calculate moment of inertia coefficient.
 	joint.iSum = 1.0 / (a.i_inv*joint.ratio_inv + joint.ratio*b.i_inv)
 
 	// calculate bias velocity
 	maxBias := joint.Constraint.maxBias
-	joint.bias = Clamp(-bias_coef(joint.Constraint.errorBias, dt)*(b.a*joint.ratio-a.a-joint.phase)/dt, -maxBias, maxBias)
+	joint.bias = Clamp(-bias_coef(joint.errorBias, dt)*(b.a*joint.ratio-a.a-joint.phase)/dt, -maxBias, maxBias)
 }
 
 func (joint *GearJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
-	a := joint.Constraint.a
-	b := joint.Constraint.b
+	a := joint.a
+	b := joint.b
 
 	j := joint.jAcc * dt_coef
 	a.w -= j * a.i_inv * joint.ratio_inv
@@ -45,8 +46,8 @@ func (joint *GearJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float
 }
 
 func (joint *GearJoint) ApplyImpulse(constraint *Constraint, dt float64) {
-	a := joint.Constraint.a
-	b := joint.Constraint.b
+	a := joint.a
+	b := joint.b
 
 	// compute relative rotational velocity
 	wr := b.w*joint.ratio - a.w

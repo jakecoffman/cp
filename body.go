@@ -49,7 +49,7 @@ type Body struct {
 
 	shapeList      []*Shape
 	arbiterList    *Arbiter
-	constraintList []*Constraint
+	constraintList *Constraint
 
 	sleeping struct {
 		root     *Body

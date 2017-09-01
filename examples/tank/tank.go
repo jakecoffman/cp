@@ -38,18 +38,18 @@ func main() {
 
 	for i := 0; i < len(sides); i += 2 {
 		var seg *Shape
-		seg = space.AddShape(NewSegment(space.Body, sides[i], sides[i+1], 0))
+		seg = space.AddShape(NewSegment(space.StaticBody, sides[i], sides[i+1], 0))
 		seg.SetElasticity(1)
 		seg.SetFriction(1)
 	}
 
 	for i := 0; i < 50; i++ {
 		body := addBox(space, 10, 1)
-		pivot := space.AddConstraint(NewPivotJoint2(space.Body, body, VectorZero(), VectorZero()))
+		pivot := space.AddConstraint(NewPivotJoint2(space.StaticBody, body, VectorZero(), VectorZero()))
 		pivot.SetMaxBias(0)       // disable joint correction
 		pivot.SetMaxForce(1000.0) // emulate linear friction
 
-		gear := space.AddConstraint(NewGearJoint(space.Body, body, 0.0, 1.0))
+		gear := space.AddConstraint(NewGearJoint(space.StaticBody, body, 0.0, 1.0))
 		gear.SetMaxBias(0)
 		gear.SetMaxForce(5000.0) // emulate angular friction
 	}

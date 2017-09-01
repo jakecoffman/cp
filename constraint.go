@@ -17,7 +17,7 @@ type Constraint struct {
 	space *Space
 
 	a, b *Body
-	//next_a, next_b *Constraint
+	next_a, next_b *Constraint
 
 	maxForce, errorBias, maxBias float64
 
@@ -33,12 +33,15 @@ func NewConstraint(class Constrainer, a, b *Body) *Constraint {
 		class: class,
 		a:     a,
 		b:     b,
+		space: nil,
 
 		maxForce:  INFINITY,
 		errorBias: math.Pow(1.0-0.1, 60.0),
 		maxBias:   INFINITY,
 
 		collideBodies: true,
+		preSolve:      nil,
+		postSolve:     nil,
 	}
 }
 
@@ -63,4 +66,12 @@ func (c *Constraint) SetErrorBias(errorBias float64) {
 	assert(errorBias >= 0, "Must be positive")
 	c.ActivateBodies()
 	c.errorBias = errorBias
+}
+
+func (c *Constraint) Next(body *Body) *Constraint {
+	if c.a == body {
+		return c.next_a
+	} else {
+		return c.next_b
+	}
 }

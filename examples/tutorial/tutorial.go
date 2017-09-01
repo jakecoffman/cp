@@ -18,7 +18,7 @@ func main() {
 	// Add a static line segment shape for the ground.
 	// We'll make it slightly tilted so the ball will roll off.
 	// We attach it to space->staticBody to tell Chipmunk it shouldn't be movable.
-	ground := NewSegment(space.StaticBody(), &Vector{-20, 5}, &Vector{20, -5}, 0)
+	ground := NewSegment(space.StaticBody, &Vector{-20, 5}, &Vector{20, -5}, 0)
 	ground.U = 1
 	space.AddShape(ground)
 

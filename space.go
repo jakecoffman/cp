@@ -50,7 +50,7 @@ type Space struct {
 	skipPostStep      bool
 	postStepCallbacks []PostStepCallback
 
-	*Body // staticBody
+	StaticBody *Body
 }
 
 func arbiterSetEql(ptr, elt interface{}) bool {
@@ -117,10 +117,6 @@ var ShapeVelocityFunc = func(obj interface{}) *Vector {
 	return obj.(*Shape).body.v
 }
 
-func (space *Space) StaticBody() *Body {
-	return space.Body
-}
-
 func (space *Space) SetGravity(gravity *Vector) {
 	space.gravity = gravity
 
@@ -131,11 +127,11 @@ func (space *Space) SetGravity(gravity *Vector) {
 }
 
 func (space *Space) SetStaticBody(body *Body) {
-	if space.Body != nil {
-		space.Body.space = nil
+	if space.StaticBody != nil {
+		space.StaticBody.space = nil
 		panic("Internal Error: Changing the designated static body while the old one still had shapes attached.")
 	}
-	space.Body = body
+	space.StaticBody = body
 	body.space = space
 }
 
@@ -189,7 +185,7 @@ func (space *Space) Activate(body *Body) {
 		}
 	}
 
-	for _, constraint := range body.constraintList {
+	for constraint := body.constraintList; constraint != nil; constraint = constraint.Next(body) {
 		if body == constraint.a || constraint.a.GetType() == BODY_STATIC {
 			space.constraints = append(space.constraints, constraint)
 		}
@@ -225,12 +221,12 @@ func (space *Space) Deactivate(body *Body) {
 		}
 	}
 
-	for _, constraint := range body.constraintList {
+	for constraint := body.constraintList; constraint != nil; constraint = constraint.Next(body) {
 		bodyA := constraint.a
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
-			for i, c := range space.constraintList {
+			for i, c := range space.constraints {
 				if c == constraint {
-					space.constraintList = append(space.constraintList[0:i], space.constraintList[i+1:]...)
+					space.constraints = append(space.constraints[0:i], space.constraints[i+1:]...)
 				}
 			}
 		}
@@ -307,10 +303,10 @@ func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
 	space.constraints = append(space.constraints, constraint)
 
 	// Push onto the heads of the bodies' constraint lists
-	//constraint.next_a = a.constraintList
-	a.constraintList = append(a.constraintList, constraint)
-	//constraint.next_b = b.constraintList
-	b.constraintList = append(b.constraintList, constraint)
+	constraint.next_a = a.constraintList
+	a.constraintList = constraint
+	constraint.next_b = b.constraintList
+	b.constraintList = constraint
 	constraint.space = space
 
 	return constraint
@@ -437,7 +433,7 @@ func QueryReject(a, b *Shape) bool {
 }
 
 func QueryRejectConstraints(a, b *Body) bool {
-	for _, constraint := range a.constraintList {
+	for constraint := a.constraintList; constraint != nil; constraint = constraint.Next(a) {
 		if !constraint.collideBodies && ((constraint.a == a && constraint.b == b) ||
 			(constraint.a == b && constraint.b == a)) {
 			return true
@@ -576,7 +572,7 @@ func FloodFillComponent(root *Body, body *Body) {
 			}
 		}
 
-		for _, constraint := range body.constraintList {
+		for constraint := body.constraintList; constraint != nil; constraint = constraint.Next(body) {
 			if body == constraint.a {
 				FloodFillComponent(root, constraint.b)
 			} else {

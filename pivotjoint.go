@@ -56,10 +56,7 @@ func (joint *PivotJoint) PreStep(constraint *Constraint, dt float64) {
 }
 
 func (joint *PivotJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
-	a := joint.Constraint.a
-	b := joint.Constraint.b
-
-	apply_impulses(a, b, joint.r1, joint.r2, joint.jAcc.Mult(dt_coef))
+	apply_impulses(joint.a, joint.b, joint.r1, joint.r2, joint.jAcc.Mult(dt_coef))
 }
 
 func (joint *PivotJoint) ApplyImpulse(constraint *Constraint, dt float64) {

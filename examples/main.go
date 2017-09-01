@@ -55,9 +55,6 @@ func Update(space *Space, tick float64, update UpdateFunc) {
 
 	for accumulator += dt; accumulator > tick; accumulator -= tick {
 		// Tick
-		if mouseBody == nil {
-			panic("WAT")
-		}
 		newPoint := mouseBody.Position().Lerp(Mouse, 0.25)
 		mouseBody.SetVelocityVector(newPoint.Sub(mouseBody.Position()).Mult(60.0))
 		mouseBody.SetPosition(newPoint)
@@ -146,7 +143,7 @@ func MouseToSpace(x, y float64, ww, wh int) *Vector {
 
 	//var mx, my, mz float64
 	obj, err := mgl32.UnProject(
-		mgl32.Vec3{float32(x), float32(float64(ww) - y), 0},
+		mgl32.Vec3{float32(x), float32(float64(wh) - y), 0},
 		modelMat,
 		projMat,
 		0, 0,
