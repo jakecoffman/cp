@@ -66,7 +66,7 @@ func ForAngle(a float64) *Vector {
 }
 
 func (v *Vector) ToAngle() float64 {
-	return math.Atan2(v.X, v.Y)
+	return math.Atan2(v.Y, v.X)
 }
 
 func (v *Vector) Rotate(other *Vector) *Vector {
