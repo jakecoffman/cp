@@ -19,7 +19,7 @@ func main() {
 	// We'll make it slightly tilted so the ball will roll off.
 	// We attach it to space->staticBody to tell Chipmunk it shouldn't be movable.
 	ground := NewSegment(space.StaticBody, &Vector{-20, 5}, &Vector{20, -5}, 0)
-	ground.U = 1
+	ground.SetFriction(1)
 	space.AddShape(ground)
 
 	// Now let's make a ball that falls onto the line and rolls off.
@@ -43,7 +43,7 @@ func main() {
 	// They will all be attached to the body and move around to follow it.
 	radius := (&Vector{5, 5}).Length()
 	ballShape := space.AddShape(NewBox(ballBody, 5, 5, radius))
-	ballShape.U = 0.7
+	ballShape.SetFriction(0.7)
 
 	// Now that it's all set up, we simulate all the objects in the space by
 	// stepping forward through time in small increments called steps.

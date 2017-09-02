@@ -501,14 +501,11 @@ func (space *Space) ProcessComponents(dt float64) {
 	if sleep {
 		// Bodies should be held active if connected by a joint to a kinematic.
 		for _, constraint := range space.constraints {
-			a := constraint.a
-			b := constraint.b
-
-			if b.GetType() == BODY_KINEMATIC {
-				b.Activate()
+			if constraint.b.GetType() == BODY_KINEMATIC {
+				constraint.a.Activate()
 			}
-			if a.GetType() == BODY_KINEMATIC {
-				a.Activate()
+			if constraint.a.GetType() == BODY_KINEMATIC {
+				constraint.b.Activate()
 			}
 		}
 
@@ -802,4 +799,8 @@ func (space *Space) UseWildcardDefaultHandler() {
 		space.usesWildcards = true
 		space.defaultHandler = &CollisionHandlerDefault
 	}
+}
+
+func (space *Space) UseSpatialHash(dim float64, count int) {
+
 }

@@ -260,7 +260,7 @@ func (body *Body) SetTransform(p *Vector, a float64) {
 }
 
 func (body *Body) Activate() {
-	if body == nil || body.GetType() != BODY_DYNAMIC {
+	if !(body != nil && body.GetType() == BODY_DYNAMIC) {
 		return
 	}
 

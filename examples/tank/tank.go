@@ -44,7 +44,7 @@ func main() {
 	}
 
 	for i := 0; i < 50; i++ {
-		body := addBox(space, 10, 1)
+		body := addBox(space, 20, 1)
 		pivot := space.AddConstraint(NewPivotJoint2(space.StaticBody, body, VectorZero(), VectorZero()))
 		pivot.SetMaxBias(0)       // disable joint correction
 		pivot.SetMaxForce(1000.0) // emulate linear friction
@@ -67,8 +67,6 @@ func main() {
 	gear.SetMaxBias(1.2)
 	gear.SetMaxForce(50000)
 
-	//log.SetFlags(0)
-	//log.SetOutput(ioutil.Discard)
 	examples.Main(space, width, height, 1.0/60.0, update)
 }
 
@@ -77,10 +75,9 @@ func addBox(space *Space, size, mass float64) *Body {
 	body := space.AddBody(NewBody(mass, MomentForBox(mass, size, size)))
 	body.SetPosition(&Vector{rand.Float64()*(width-2*radius) - (hwidth - radius), rand.Float64()*(height-2*radius) - (hheight - radius)})
 
-	shape := NewBox(body, size, size, 0)
-	space.AddShape(shape)
-	shape.E = 0
-	shape.U = 0.7
+	shape := space.AddShape(NewBox(body, size, size, 0))
+	shape.SetElasticity(0)
+	shape.SetFriction(0.7)
 	return body
 }
 

@@ -29,7 +29,7 @@ type Shape struct {
 	bb       *BB
 
 	sensor   bool
-	E, U     float64
+	e, u     float64
 	surfaceV *Vector
 
 	userData interface{}
@@ -97,23 +97,23 @@ func (s *Shape) SetBB(bb *BB) {
 }
 
 func (s *Shape) Friction() float64 {
-	return s.U
+	return s.u
 }
 
 func (s *Shape) SetFriction(u float64) {
-	assert(s.U >= 0, "Must be positive")
+	assert(s.u >= 0, "Must be positive")
 	s.body.Activate()
-	s.U = u
+	s.u = u
 }
 
 func (s *Shape) Elasticity() float64 {
-	return s.E
+	return s.e
 }
 
 func (s *Shape) SetElasticity(e float64) {
-	assert(s.E >= 0, "Must be positive")
+	assert(s.e >= 0, "Must be positive")
 	s.body.Activate()
-	s.E = e
+	s.e = e
 }
 
 func (s *Shape) CacheBB() *BB {
