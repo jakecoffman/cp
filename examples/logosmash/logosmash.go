@@ -17,7 +17,7 @@ func main() {
 	space := NewSpace()
 	space.Iterations = 1
 
-	// The space will contain a very large number of similary sized objects.
+	// The space will contain a very large number of similarly sized objects.
 	// This is the perfect candidate for using the spatial hash.
 	// Generally you will never need to do this.
 	space.UseSpatialHash(2.0, 10000)
@@ -47,6 +47,14 @@ func main() {
 	body = space.AddBody(NewBody(1e9, INFINITY))
 	body.SetPosition(&Vector{-1000, -10})
 	body.SetVelocity(400, 0)
+
+	shape = space.AddShape(NewCircle(body, 8, VectorZero()))
+	shape.SetElasticity(0)
+	shape.SetFriction(0)
+
+	bodyCount++
+
+	examples.Main(space, 640, 480, 1.0/60.0, update)
 }
 
 func getPixel(x, y uint) int {
@@ -70,6 +78,8 @@ func makeBall(x, y float64) *Shape {
 	shape := NewCircle(body, 0.95, VectorZero())
 	shape.SetElasticity(0)
 	shape.SetFriction(0)
+
+	return shape
 }
 
 var imageBitmap = []int{

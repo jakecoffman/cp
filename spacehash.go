@@ -11,34 +11,38 @@ type SpaceHash struct {
 	table     []*SpaceHashBin
 	handleSet *HashSet
 
-	pooledBins    *SpaceHashBin
+	pooledBins *SpaceHashBin
 	pooledHandles []*Handle
 
 	stamp uint
 }
 
-func NewSpaceHash(celldim float64, cell int, bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
+func NewSpaceHash(celldim float64, num int, bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
 	spaceHash := &SpaceHash{
-		celldim: celldim,
+		celldim:  celldim,
+		numCells: num,
+		table:    make([]*SpaceHashBin, num),
 		handleSet: NewHashSet(func(obj, elt interface{}) bool {
 			return obj == elt.(*Handle).obj
 		}),
 		stamp: 1,
 	}
-	return NewSpatialIndex(spaceHash, bbfunc, staticIndex)
+	spatialIndex := NewSpatialIndex(spaceHash, bbfunc, staticIndex)
+	spaceHash.SpatialIndex = spatialIndex
+	return spatialIndex
 }
 
 func (hash *SpaceHash) hashHandle(hand *Handle, bb *BB) {
 	dim := hash.celldim
 
 	// TODO: chipmunk said floor is slow, use custom floor
-	//l := math.Floor(bb.L / dim)
+	l := math.Floor(bb.L / dim)
 	r := math.Floor(bb.R / dim)
 	b := math.Floor(bb.B / dim)
 	t := math.Floor(bb.T / dim)
 
 	n := hash.numCells
-	for i := 1.0; i <= r; i++ {
+	for i := l; i <= r; i++ {
 		for j := b; j <= t; j++ {
 			idx := hashFunc(HashValue(i), HashValue(j), HashValue(n))
 			bin := hash.table[idx]
@@ -60,8 +64,8 @@ func (hash *SpaceHash) Destroy() {
 	panic("implement me")
 }
 
-func (*SpaceHash) Count() int {
-	panic("implement me")
+func (hash *SpaceHash) Count() int {
+	return int(hash.handleSet.Count())
 }
 
 func (hash *SpaceHash) Each(f SpatialIndexIterator, data interface{}) {
@@ -70,8 +74,8 @@ func (hash *SpaceHash) Each(f SpatialIndexIterator, data interface{}) {
 	}, nil)
 }
 
-func (*SpaceHash) Contains(obj interface{}, hashId HashValue) bool {
-	panic("implement me")
+func (hash *SpaceHash) Contains(obj interface{}, hashId HashValue) bool {
+	return hash.handleSet.Find(hashId, obj) != nil
 }
 
 func (hash *SpaceHash) Insert(obj interface{}, hashId HashValue) {
@@ -108,19 +112,194 @@ func (hash *SpaceHash) ReindexObject(obj interface{}, hashId HashValue) {
 }
 
 func (hash *SpaceHash) removeOrphanedHandles(binPtr **SpaceHashBin) {
+	bin := *binPtr
+	for bin != nil {
+		hand := bin.handle
+		next := bin.next
 
+		if hand.obj == nil {
+			// orphaned handle
+			*binPtr = bin.next
+			hash.recycleBin(bin)
+
+			hand.release(hash.pooledHandles)
+		} else {
+			binPtr = &bin.next
+		}
+
+		bin = next
+	}
 }
 
-func (*SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
-	panic("implement me")
+func (hash *SpaceHash) queryHelper(binPtr **SpaceHashBin, obj interface{}, f SpatialIndexQuery, data interface{}) {
+restart:
+	for bin := *binPtr; bin != nil; bin = bin.next {
+		hand := bin.handle
+		other := hand.obj
+
+		if hand.stamp == hash.stamp || obj == other {
+			continue
+		} else if other != nil {
+			f(obj, other, 0, data)
+			hand.stamp = hash.stamp
+		} else {
+			hash.removeOrphanedHandles(binPtr)
+			goto restart
+		}
+	}
 }
 
-func (*SpaceHash) Query(obj interface{}, bb *BB, f SpatialIndexQuery, data interface{}) {
-	panic("implement me")
+func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
+	hash.clearTable()
+
+	hash.handleSet.Each(func(elt, _ interface{}) {
+		// queryRehash_helper
+		hand := elt.(*Handle)
+
+		bb := hash.SpatialIndex.bbfunc(hand.obj)
+
+		l := math.Floor(bb.L / hash.celldim)
+		r := math.Floor(bb.R / hash.celldim)
+		b := math.Floor(bb.B / hash.celldim)
+		t := math.Floor(bb.T / hash.celldim)
+
+		for i := l; i <= r; i++ {
+			for j := b; j <= t; j++ {
+				idx := hashFunc(HashValue(i), HashValue(j), HashValue(hash.numCells))
+				bin := hash.table[idx]
+
+				if bin.containsHandle(hand) {
+					continue
+				}
+
+				hand.retain()
+				hash.queryHelper(&bin, hand.obj, f, data)
+
+				newBin := hash.getEmptyBin()
+				newBin.handle = hand
+				newBin.next = bin
+				hash.table[idx] = newBin
+			}
+		}
+
+		hash.stamp++
+	}, nil)
+
+	hash.CollideStatic(hash.staticIndex, f, data)
 }
 
-func (*SpaceHash) SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
-	panic("implement me")
+func (hash *SpaceHash) Query(obj interface{}, bb *BB, f SpatialIndexQuery, data interface{}) {
+	dim := hash.celldim
+	l := math.Floor(bb.L / dim)
+	r := math.Floor(bb.R / dim)
+	b := math.Floor(bb.B / dim)
+	t := math.Floor(bb.T / dim)
+
+	n := hash.numCells
+
+	for i := l; i <= r; i++ {
+		for j := b; j <= t; j++ {
+			hash.queryHelper(&hash.table[hashFunc(HashValue(i), HashValue(j), HashValue(n))], obj, f, data)
+		}
+	}
+
+	hash.stamp++
+}
+
+func (hash *SpaceHash) segmentQueryHelper(binPtr **SpaceHashBin, obj interface{}, f SpatialIndexSegmentQuery, data interface{}) float64 {
+	t := 1.0
+
+restart:
+	for bin := *binPtr; bin != nil; bin = bin.next {
+		hand := bin.handle
+		other := hand.obj
+
+		if hand.stamp == hash.stamp {
+			continue
+		} else if other != nil {
+			t = math.Min(t, f(obj, other, data))
+			hand.stamp = hash.stamp
+		} else {
+			hash.removeOrphanedHandles(binPtr)
+			goto restart
+		}
+	}
+
+	return t
+}
+
+// modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
+func (hash *SpaceHash) SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+	a = a.Mult(1.0 / hash.celldim)
+	b = b.Mult(1.0 / hash.celldim)
+
+	cellX := int(math.Floor(a.X))
+	cellY := int(math.Floor(a.Y))
+
+	t := 0.0
+
+	var xInc, yInc int
+	var tempV, tempH float64
+
+	if b.X > a.X {
+		xInc = 1
+		tempH = math.Floor(a.X+1.0) - a.X
+	} else {
+		xInc = -1
+		tempH = a.X - math.Floor(a.X)
+	}
+
+	if b.Y > a.Y {
+		yInc = 1
+		tempV = math.Floor(a.Y+1.0) - a.Y
+	} else {
+		yInc = -1
+		tempV = a.Y - math.Floor(a.Y)
+	}
+
+	dx := math.Abs(b.X - a.X)
+	dy := math.Abs(b.Y - a.Y)
+	var dtdx, dtdy float64
+	if dx != 0 {
+		dtdx = 1.0 / dx
+	} else {
+		dtdx = INFINITY
+	}
+
+	if dy != 0 {
+		dtdy = 1.0 / dy
+	} else {
+		dtdy = INFINITY
+	}
+
+	var nextH, nextV float64
+	if tempH != 0 {
+		nextH = tempH * dtdx
+	} else {
+		nextH = dtdx
+	}
+	if tempV != 0 {
+		nextV = tempV * dtdy
+	} else {
+		nextV = dtdy
+	}
+
+	for t < t_exit {
+		idx := hashFunc(HashValue(cellX), HashValue(cellY), HashValue(hash.numCells))
+		t_exit = math.Min(t_exit, hash.segmentQueryHelper(&hash.table[idx], obj, f, data))
+
+		if nextV < nextH {
+			cellY += yInc
+			t = nextV
+			nextV += dtdy
+		} else {
+			cellX += xInc
+			t = nextH
+			nextH += dtdx
+		}
+	}
+
+	hash.stamp++
 }
 
 type SpaceHashBin struct {
@@ -148,12 +327,10 @@ type Handle struct {
 	stamp   uint
 }
 
-func (hand *Handle) Init(obj interface{}) *Handle {
-	return &Handle{
-		obj:     obj,
-		retains: 0,
-		stamp:   0,
-	}
+func (hand *Handle) Init(obj interface{}) {
+	hand.obj = obj
+	hand.retains = 0
+	hand.stamp = 0
 }
 
 func (hand *Handle) retain() {

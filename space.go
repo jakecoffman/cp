@@ -802,5 +802,18 @@ func (space *Space) UseWildcardDefaultHandler() {
 }
 
 func (space *Space) UseSpatialHash(dim float64, count int) {
+	staticShapes := NewSpaceHash(dim, count, ShapeGetBB, nil)
+	dynamicShapes := NewSpaceHash(dim, count, ShapeGetBB, staticShapes)
 
+	space.staticShapes.class.Each(func(obj interface{}, _ interface{}){
+		shape := obj.(*Shape)
+		staticShapes.class.Insert(shape, shape.hashid)
+	}, nil)
+	space.dynamicShapes.class.Each(func(obj interface{}, _ interface{}){
+		shape := obj.(*Shape)
+		dynamicShapes.class.Insert(shape, shape.hashid)
+	}, nil)
+
+	space.staticShapes = staticShapes
+	space.dynamicShapes = dynamicShapes
 }

@@ -83,7 +83,22 @@ type ClosestPoints struct {
 type CollisionFunc func(a, b *Shape, info *CollisionInfo)
 
 func CircleToCircle(a, b *Shape, info *CollisionInfo) {
+	c1 := a.Class.(*Circle)
+	c2 := b.Class.(*Circle)
 
+	mindist := c1.r + c2.r
+	delta := c2.tc.Sub(c1.tc)
+	distsq := delta.LengthSq()
+
+	if distsq < mindist*mindist {
+		dist := math.Sqrt(distsq)
+		if dist != 0 {
+			info.n = delta.Mult(1.0 / dist)
+		} else {
+			info.n = &Vector{1, 0}
+		}
+		info.PushContact(c1.tc.Add(info.n.Mult(c1.r)), c2.tc.Add(info.n.Mult(-c2.r)), 0)
+	}
 }
 
 func CollisionError(a, b *Shape, info *CollisionInfo) {
@@ -123,11 +138,11 @@ func CircleToSegment(a, b *Shape, info *CollisionInfo) {
 }
 
 func SegmentToSegment(a, b *Shape, info *CollisionInfo) {
-
+	panic("SegmentToSegment")
 }
 
 func CircleToPoly(a, b *Shape, info *CollisionInfo) {
-
+	panic("CircleToPoly")
 }
 
 func SegmentToPoly(seg, poly *Shape, info *CollisionInfo) {
