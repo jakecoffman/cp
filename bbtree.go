@@ -93,18 +93,11 @@ func (tree *BBTree) Count() int {
 	return int(tree.leaves.Count())
 }
 
-type EachContext struct {
-	f    SpatialIndexIterator
-	data interface{}
-}
-
 func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
-	context := &EachContext{f, data}
-	tree.leaves.Each(func(elt, data interface{}) {
+	tree.leaves.Each(func(elt interface{}) {
 		node := elt.(*Node)
-		c := data.(*EachContext)
-		c.f(node.obj, c.data)
-	}, context)
+		f(node.obj, data)
+	})
 }
 
 func (tree *BBTree) Contains(obj interface{}, hashId HashValue) bool {
@@ -339,17 +332,15 @@ func (tree *BBTree) ReindexObject(obj interface{}, hashId HashValue) {
 	panic("implement me")
 }
 
-func leafUpdateWrap(leaf, tree interface{}) {
-	tree.(*BBTree).LeafUpdate(leaf.(*Node))
-}
-
 func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	if tree.root == nil {
 		return
 	}
 
 	// LeafUpdate() may modify tree->root. Don't cache it.
-	tree.leaves.Each(leafUpdateWrap, tree)
+	tree.leaves.Each(func(leaf interface{}) {
+		tree.LeafUpdate(leaf.(*Node))
+	})
 
 	staticIndex := tree.spatialIndex.staticIndex
 	var staticRoot *Node

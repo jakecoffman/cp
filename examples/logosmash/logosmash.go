@@ -3,6 +3,11 @@ package main
 import (
 	"math/rand"
 
+	"os"
+
+	"runtime/pprof"
+	"time"
+
 	. "github.com/jakecoffman/physics"
 	"github.com/jakecoffman/physics/examples"
 )
@@ -14,6 +19,12 @@ const (
 )
 
 func main() {
+	f, err := os.Create("cpuprofile")
+	if err != nil {
+		panic(err)
+	}
+	pprof.StartCPUProfile(f)
+
 	space := NewSpace()
 	space.Iterations = 1
 
@@ -54,6 +65,11 @@ func main() {
 
 	bodyCount++
 
+	go func() {
+		time.Sleep(5 * time.Second)
+		pprof.StopCPUProfile()
+		os.Exit(0)
+	}()
 	examples.Main(space, 640, 480, 1.0/60.0, update)
 }
 

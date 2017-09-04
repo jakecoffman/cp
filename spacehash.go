@@ -69,9 +69,9 @@ func (hash *SpaceHash) Count() int {
 }
 
 func (hash *SpaceHash) Each(f SpatialIndexIterator, data interface{}) {
-	hash.handleSet.Each(func(elt, _ interface{}) {
+	hash.handleSet.Each(func(elt interface{}) {
 		f(elt.(*Handle).obj, data)
-	}, nil)
+	})
 }
 
 func (hash *SpaceHash) Contains(obj interface{}, hashId HashValue) bool {
@@ -94,10 +94,10 @@ func (hash *SpaceHash) Remove(obj interface{}, hashId HashValue) {
 
 func (hash *SpaceHash) Reindex() {
 	hash.clearTable()
-	hash.handleSet.Each(func(elt, _ interface{}) {
+	hash.handleSet.Each(func(elt interface{}) {
 		hand := elt.(*Handle)
 		hash.bbfunc(hand.obj)
-	}, nil)
+	})
 }
 
 func (hash *SpaceHash) ReindexObject(obj interface{}, hashId HashValue) {
@@ -152,7 +152,7 @@ restart:
 func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	hash.clearTable()
 
-	hash.handleSet.Each(func(elt, _ interface{}) {
+	hash.handleSet.Each(func(elt interface{}) {
 		// queryRehash_helper
 		hand := elt.(*Handle)
 
@@ -183,7 +183,7 @@ func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 		}
 
 		hash.stamp++
-	}, nil)
+	})
 
 	hash.CollideStatic(hash.staticIndex, f, data)
 }

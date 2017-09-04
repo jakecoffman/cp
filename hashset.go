@@ -3,7 +3,7 @@ package physics
 type HashValue uintptr
 type HashSetEqual func(ptr, elt interface{}) bool
 type HashSetTrans func(ptr, data interface{}) interface{}
-type HashSetIterator func(elt, data interface{})
+type HashSetIterator func(elt interface{})
 type HashSetFilter func(elt, data interface{}) bool
 
 type HashSetBin struct {
@@ -109,11 +109,11 @@ func (set *HashSet) Find(hash HashValue, ptr interface{}) interface{} {
 	}
 }
 
-func (set *HashSet) Each(f HashSetIterator, data interface{}) {
+func (set *HashSet) Each(f HashSetIterator) {
 	for _, bin := range set.table {
 		for bin != nil {
 			next := bin.next
-			f(bin.elt, data)
+			f(bin.elt)
 			bin = next
 		}
 	}
