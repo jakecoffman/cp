@@ -2,11 +2,14 @@ package physics
 
 import "math"
 
-const INFINITY = math.MaxFloat64
-const MAGIC_EPSILON = 1e-5
 const (
+	INFINITY      = math.MaxFloat64
+	MAGIC_EPSILON = 1e-5
+
 	RadianConst = math.Pi / 180
 	DegreeConst = 180 / math.Pi
+
+	POOLED_BUFFER_SIZE = 1024
 )
 
 type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{}) bool
@@ -66,16 +69,16 @@ type Contact struct {
 
 func (c *Contact) Clone() *Contact {
 	return &Contact{
-		r1: c.r1.Clone(),
-		r2: c.r2.Clone(),
-		nMass: c.nMass,
-		tMass: c.tMass,
+		r1:     c.r1.Clone(),
+		r2:     c.r2.Clone(),
+		nMass:  c.nMass,
+		tMass:  c.tMass,
 		bounce: c.bounce,
-		jnAcc: c.jnAcc,
-		jtAcc: c.jtAcc,
-		jBias: c.jBias,
-		bias: c.bias,
-		hash: c.hash,
+		jnAcc:  c.jnAcc,
+		jtAcc:  c.jtAcc,
+		jBias:  c.jBias,
+		bias:   c.bias,
+		hash:   c.hash,
 	}
 }
 
@@ -274,33 +277,39 @@ func k_tensor(a, b *Body, r1, r2 *Vector) *Mat2x2 {
 	m_sum := a.m_inv + b.m_inv
 
 	// start with Identity*m_sum
-	k11 := m_sum; k12 := 0.0
-	k21 := 0.0; k22 := m_sum
+	k11 := m_sum
+	k12 := 0.0
+	k21 := 0.0
+	k22 := m_sum
 
 	// add the influence from r1
 	a_i_inv := a.i_inv
-	r1xsq := r1.X*r1.X * a_i_inv
-	r1ysq := r1.Y*r1.Y * a_i_inv
-	r1nxy := -r1.X*r1.Y * a_i_inv
-	k11 += r1ysq; k12 += r1nxy
-	k21 += r1nxy; k22 += r1xsq
+	r1xsq := r1.X * r1.X * a_i_inv
+	r1ysq := r1.Y * r1.Y * a_i_inv
+	r1nxy := -r1.X * r1.Y * a_i_inv
+	k11 += r1ysq
+	k12 += r1nxy
+	k21 += r1nxy
+	k22 += r1xsq
 
 	// add the influence from r2
 	b_i_inv := b.i_inv
-	r2xsq := r2.X*r2.X * b_i_inv
-	r2ysq := r2.Y*r2.Y * b_i_inv
+	r2xsq := r2.X * r2.X * b_i_inv
+	r2ysq := r2.Y * r2.Y * b_i_inv
 	r2nxy := -r2.X * r2.Y * b_i_inv
-	k11 += r2ysq; k12 += r2nxy
-	k21 += r2nxy; k22 += r2xsq
+	k11 += r2ysq
+	k12 += r2nxy
+	k21 += r2nxy
+	k22 += r2xsq
 
 	// invert
 	det := k11*k22 - k12*k21
 	assert(det != 0.0, "Unsolvable constraint")
 
-	det_inv := 1.0/det
+	det_inv := 1.0 / det
 	return &Mat2x2{
-		k22*det_inv, -k12*det_inv,
-		-k21*det_inv, k11*det_inv,
+		k22 * det_inv, -k12 * det_inv,
+		-k21 * det_inv, k11 * det_inv,
 	}
 }
 

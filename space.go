@@ -39,7 +39,8 @@ type Space struct {
 
 	arbiters           []*Arbiter
 	contactBuffersHead *ContactBuffer
-	cachedArbiters     *HashSet
+	cachedArbiters     *HashSetArbiter
+	pooledArbiters     chan *Arbiter
 
 	locked int
 
@@ -53,10 +54,7 @@ type Space struct {
 	StaticBody *Body
 }
 
-func arbiterSetEql(ptr, elt interface{}) bool {
-	shapes := ptr.([]*Shape)
-	arb := elt.(*Arbiter)
-
+func arbiterSetEql(shapes []*Shape, arb *Arbiter) bool {
 	a := shapes[0]
 	b := shapes[1]
 
@@ -99,7 +97,8 @@ func NewSpace() *Space {
 		SleepTimeThreshold:   math.MaxFloat64,
 		idleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
-		cachedArbiters:       NewHashSet(arbiterSetEql),
+		cachedArbiters:       NewHashSetArbiter(arbiterSetEql),
+		pooledArbiters:       make(chan *Arbiter, POOLED_BUFFER_SIZE),
 		constraints:          []*Constraint{},
 		collisionHandlers:    NewHashSet(handlerSetEql),
 		postStepCallbacks:    []PostStepCallback{},
@@ -145,7 +144,7 @@ func (space *Space) Activate(body *Body) {
 		return
 	}
 
-	assert(body.sleeping.root == nil && body.sleeping.next == nil, "Activating body non-NULL node pointers.")
+	assert(body.sleepingRoot == nil && body.sleepingNext == nil, "Activating body non-NULL node pointers.")
 
 	space.dynamicBodies = append(space.dynamicBodies, body)
 
@@ -177,7 +176,7 @@ func (space *Space) Activate(body *Body) {
 			b := arbiter.b
 			shapePair := []*Shape{a, b}
 			arbHashId := HashPair(HashValue(unsafe.Pointer(a)), HashValue(unsafe.Pointer(b)))
-			space.cachedArbiters.Insert(arbHashId, shapePair, nil, arbiter)
+			space.cachedArbiters.InsertArb(arbHashId, shapePair, arbiter)
 
 			// update arbiters state
 			arbiter.stamp = space.stamp
@@ -316,9 +315,15 @@ var ShapeUpdateFunc = func(shape interface{}, _ interface{}) {
 	(shape.(*Shape)).CacheBB()
 }
 
-func SpaceArbiterSetTrans(ptr, _ interface{}) interface{} {
-	shapes := ptr.([]*Shape)
-	arb := &Arbiter{}
+func SpaceArbiterSetTrans(shapes []*Shape, space *Space) *Arbiter {
+	var arb *Arbiter
+
+	select {
+	case arb = <-space.pooledArbiters:
+
+	default:
+		arb = &Arbiter{}
+	}
 	arb.Init(shapes[0], shapes[1])
 	return arb
 }
@@ -417,13 +422,13 @@ func (space *Space) ContactBufferGetArray() []*Contact {
 }
 
 func QueryReject(a, b *Shape) bool {
-	if !a.bb.Intersects(b.bb) {
-		return true
-	}
 	if a.body == b.body {
 		return true
 	}
 	if a.Filter.Reject(b.Filter) {
+		return true
+	}
+	if !a.bb.Intersects(b.bb) {
 		return true
 	}
 	if QueryRejectConstraints(a.body, b.body) {
@@ -447,8 +452,8 @@ func (space *Space) ProcessComponents(dt float64) {
 	sleep := space.SleepTimeThreshold != INFINITY
 
 	for _, body := range space.dynamicBodies {
-		assert(body.sleeping.next == nil, "Dangling pointer in contact graph (next)")
-		assert(body.sleeping.root == nil, "Dangling pointer in contact graph (root)")
+		assert(body.sleepingNext == nil, "Dangling pointer in contact graph (next)")
+		assert(body.sleepingRoot == nil, "Dangling pointer in contact graph (root)")
 	}
 
 	// calculate the kinetic energy of all the bodies
@@ -473,9 +478,9 @@ func (space *Space) ProcessComponents(dt float64) {
 				keThreshold = body.m * dvsq
 			}
 			if body.KineticEnergy() > keThreshold {
-				body.sleeping.idleTime = 0
+				body.sleepingIdleTime = 0
 			} else {
-				body.sleeping.idleTime += dt
+				body.sleepingIdleTime += dt
 			}
 		}
 	}
@@ -520,7 +525,7 @@ func (space *Space) ProcessComponents(dt float64) {
 				// Check if the component should be put to sleep.
 				if !ComponentActive(body, space.SleepTimeThreshold) {
 					space.sleepingComponents = append(space.sleepingComponents, body)
-					for item := body; item != nil; item = item.sleeping.next {
+					for item := body; item != nil; item = item.sleepingNext {
 						space.Deactivate(item)
 					}
 
@@ -533,15 +538,15 @@ func (space *Space) ProcessComponents(dt float64) {
 			i++
 
 			// Only sleeping bodies retain their component node pointers.
-			body.sleeping.root = nil
-			body.sleeping.next = nil
+			body.sleepingRoot = nil
+			body.sleepingNext = nil
 		}
 	}
 }
 
 func ComponentActive(root *Body, threshold float64) bool {
-	for item := root; item != nil; item = item.sleeping.next {
-		if item.sleeping.idleTime < threshold {
+	for item := root; item != nil; item = item.sleepingNext {
+		if item.sleepingIdleTime < threshold {
 			return true
 		}
 	}
@@ -629,7 +634,7 @@ func (space *Space) Step(dt float64) {
 	space.Lock()
 	{
 		// Clear out old cached arbiters and call separate callbacks
-		space.cachedArbiters.Filter(SpaceArbiterSetFilter, space)
+		space.cachedArbiters.Filter(space)
 
 		// Prestep the arbiters and constraints.
 		slop := space.collisionSlop
@@ -692,38 +697,6 @@ func (space *Space) Step(dt float64) {
 		}
 	}
 	space.Unlock(true)
-}
-
-// Hashset filter func to throw away old arbiters.
-func SpaceArbiterSetFilter(elt, data interface{}) bool {
-	arb := elt.(*Arbiter)
-	space := data.(*Space)
-	ticks := space.stamp - arb.stamp
-	a := arb.body_a
-	b := arb.body_b
-
-	// TODO: should make an arbiter state for this so it doesn't require filtering arbiters for dangling body pointers on body removal.
-	// Preserve arbiters on sensors and rejected arbiters for sleeping objects.
-	// This prevents errant separate callbacks from happening.
-
-	if (a.GetType() == BODY_STATIC || a.IsSleeping()) && (b.GetType() == BODY_STATIC || b.IsSleeping()) {
-		return true
-	}
-
-	if ticks >= 1 && arb.state != CP_ARBITER_STATE_CACHED {
-		arb.state = CP_ARBITER_STATE_CACHED
-		handler := arb.handler
-		handler.separateFunc(arb, space, handler.userData)
-	}
-
-	if ticks >= space.collisionPersistence {
-		arb.contacts = nil
-		arb.count = 0
-		arb = nil
-		return false
-	}
-
-	return true
 }
 
 func (space *Space) Lock() {
@@ -805,11 +778,11 @@ func (space *Space) UseSpatialHash(dim float64, count int) {
 	staticShapes := NewSpaceHash(dim, count, ShapeGetBB, nil)
 	dynamicShapes := NewSpaceHash(dim, count, ShapeGetBB, staticShapes)
 
-	space.staticShapes.class.Each(func(obj interface{}, _ interface{}){
+	space.staticShapes.class.Each(func(obj interface{}, _ interface{}) {
 		shape := obj.(*Shape)
 		staticShapes.class.Insert(shape, shape.hashid)
 	}, nil)
-	space.dynamicShapes.class.Each(func(obj interface{}, _ interface{}){
+	space.dynamicShapes.class.Each(func(obj interface{}, _ interface{}) {
 		shape := obj.(*Shape)
 		dynamicShapes.class.Insert(shape, shape.hashid)
 	}, nil)

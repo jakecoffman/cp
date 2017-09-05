@@ -235,7 +235,7 @@ func (subtree *BBTree) PairFromPool() *Pair {
 	}
 
 	// Pool is exhausted make more
-	for i := 0; i < 32; i++ {
+	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
 		tree.RecyclePair(&Pair{})
 	}
 
@@ -471,7 +471,7 @@ func (tree *BBTree) NodeFromPool() *Node {
 	}
 
 	// Pool is exhausted make more
-	for i := 0; i < 32; i++ {
+	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
 		tree.RecycleNode(&Node{})
 	}
 

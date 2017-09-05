@@ -66,7 +66,7 @@ func main() {
 	bodyCount++
 
 	go func() {
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		pprof.StopCPUProfile()
 		os.Exit(0)
 	}()

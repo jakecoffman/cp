@@ -11,8 +11,8 @@ type SpaceHash struct {
 	table     []*SpaceHashBin
 	handleSet *HashSet
 
-	pooledBins *SpaceHashBin
-	pooledHandles []*Handle
+	pooledBins    *SpaceHashBin
+	pooledHandles chan *Handle
 
 	stamp uint
 }
@@ -25,7 +25,11 @@ func NewSpaceHash(celldim float64, num int, bbfunc SpatialIndexBB, staticIndex *
 		handleSet: NewHashSet(func(obj, elt interface{}) bool {
 			return obj == elt.(*Handle).obj
 		}),
-		stamp: 1,
+		stamp:         1,
+		pooledHandles: make(chan *Handle, POOLED_BUFFER_SIZE),
+	}
+	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
+		spaceHash.pooledHandles <- &Handle{}
 	}
 	spatialIndex := NewSpatialIndex(spaceHash, bbfunc, staticIndex)
 	spaceHash.SpatialIndex = spatialIndex
@@ -337,24 +341,26 @@ func (hand *Handle) retain() {
 	hand.retains++
 }
 
-func (hand *Handle) release(pooledHandles []*Handle) {
+func (hand *Handle) release(pooledHandles chan *Handle) {
 	hand.retains--
 	if hand.retains == 0 {
-		pooledHandles = append(pooledHandles, hand)
+		select {
+		case pooledHandles <- hand:
+		default:
+		}
 	}
 }
 
 func handleSetTrans(obj, elt interface{}) interface{} {
 	hash := elt.(*SpaceHash)
-	if len(hash.pooledHandles) == 0 {
-		for i := 0; i < 256; i++ {
-			hash.pooledHandles = append(hash.pooledHandles, &Handle{})
-		}
+	var hand *Handle
+	select {
+	case hand = <-hash.pooledHandles:
+	default:
+		hand = &Handle{}
 	}
-	hand := hash.pooledHandles[0]
 	hand.Init(obj)
 	hand.retain()
-	hash.pooledHandles = hash.pooledHandles[1:]
 	return hand
 }
 
@@ -392,7 +398,7 @@ func (hash *SpaceHash) getEmptyBin() *SpaceHashBin {
 	}
 
 	// pool is exhausted, make more
-	for i := 0; i < 256; i++ {
+	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
 		hash.recycleBin(&SpaceHashBin{})
 	}
 	return &SpaceHashBin{}

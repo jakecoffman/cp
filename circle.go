@@ -28,8 +28,7 @@ func CircleShapeMassInfo(mass, radius float64, center *Vector) *ShapeMassInfo {
 
 func (circle *Circle) CacheData(transform *Transform) *BB {
 	circle.tc = transform.Point(circle.c)
-	bb := NewBBForCircle(circle.tc, circle.r)
-	return bb
+	return NewBBForCircle(circle.tc, circle.r)
 }
 
 func (*Circle) Destroy() {

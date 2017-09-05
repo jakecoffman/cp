@@ -1,6 +1,8 @@
 package physics
 
-import "fmt"
+import (
+	"fmt"
+)
 
 /// Rigid body velocity update function type.
 type BodyVelocityFunc func(body *Body, gravity *Vector, damping float64, dt float64)
@@ -51,11 +53,9 @@ type Body struct {
 	arbiterList    *Arbiter
 	constraintList *Constraint
 
-	sleeping struct {
-		root     *Body
-		next     *Body
-		idleTime float64
-	}
+	sleepingRoot     *Body
+	sleepingNext     *Body
+	sleepingIdleTime float64
 }
 
 func (b Body) String() string {
@@ -121,7 +121,7 @@ const (
 )
 
 func (body *Body) IdleTime() float64 {
-	return body.sleeping.idleTime
+	return body.sleepingIdleTime
 }
 
 func (body *Body) SetType(typ int) {
@@ -131,9 +131,9 @@ func (body *Body) SetType(typ int) {
 	}
 
 	if typ == BODY_STATIC {
-		body.sleeping.idleTime = INFINITY
+		body.sleepingIdleTime = INFINITY
 	} else {
-		body.sleeping.idleTime = 0
+		body.sleepingIdleTime = 0
 	}
 
 	if typ == BODY_DYNAMIC {
@@ -159,7 +159,7 @@ func (body *Body) SetType(typ int) {
 }
 
 func (body *Body) GetType() int {
-	if body.sleeping.idleTime == INFINITY {
+	if body.sleepingIdleTime == INFINITY {
 		return BODY_STATIC
 	}
 	if body.m == INFINITY {
@@ -264,7 +264,7 @@ func (body *Body) Activate() {
 		return
 	}
 
-	body.sleeping.idleTime = 0
+	body.sleepingIdleTime = 0
 
 	root := body.ComponentRoot()
 	if root != nil && root.IsSleeping() {
@@ -273,10 +273,10 @@ func (body *Body) Activate() {
 		// in the chipmunk code they shadow body, so here I am not
 		bodyToo := root
 		for bodyToo != nil {
-			next := bodyToo.sleeping.next
-			bodyToo.sleeping.idleTime = 0
-			bodyToo.sleeping.root = nil
-			bodyToo.sleeping.next = nil
+			next := bodyToo.sleepingNext
+			bodyToo.sleepingIdleTime = 0
+			bodyToo.sleepingRoot = nil
+			bodyToo.sleepingNext = nil
 			space.Activate(bodyToo)
 
 			bodyToo = next
@@ -300,14 +300,14 @@ func (body *Body) Activate() {
 			other = arbiter.body_a
 		}
 		if other.GetType() != BODY_STATIC {
-			other.sleeping.idleTime = 0
+			other.sleepingIdleTime = 0
 		}
 	}
 
 }
 
 func (body *Body) IsSleeping() bool {
-	return body.sleeping.root != nil
+	return body.sleepingRoot != nil
 }
 
 func (body *Body) AddShape(shape *Shape) *Shape {
@@ -342,17 +342,17 @@ func (body *Body) PushArbiter(arb *Arbiter) {
 }
 
 func (root *Body) ComponentAdd(body *Body) {
-	body.sleeping.root = root
+	body.sleepingRoot = root
 
 	if body != root {
-		body.sleeping.next = root.sleeping.next
-		root.sleeping.next = body
+		body.sleepingNext = root.sleepingNext
+		root.sleepingNext = body
 	}
 }
 
 func (body *Body) ComponentRoot() *Body {
 	if body != nil {
-		return body.sleeping.root
+		return body.sleepingRoot
 	}
 	return nil
 }

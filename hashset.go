@@ -18,7 +18,8 @@ type HashSet struct {
 	eql          HashSetEqual
 	defaultValue interface{}
 
-	table map[HashValue]*HashSetBin
+	table      map[HashValue]*HashSetBin
+	pooledBins *HashSetBin
 }
 
 func NewHashSet(eql HashSetEqual) *HashSet {
@@ -47,7 +48,7 @@ func (set *HashSet) Insert(hash HashValue, ptr interface{}, trans HashSetTrans, 
 
 	// Create it if necessary.
 	if bin == nil {
-		bin = &HashSetBin{}
+		bin = set.GetUnusedBin()
 		bin.hash = hash
 		if trans != nil {
 			bin.elt = trans(ptr, data)
@@ -87,8 +88,7 @@ func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 		set.entries--
 
 		elt := bin.elt
-		bin.next = nil
-		bin.elt = nil
+		set.Recycle(bin)
 
 		return elt
 	}
@@ -120,20 +120,47 @@ func (set *HashSet) Each(f HashSetIterator) {
 }
 
 func (set *HashSet) Filter(f HashSetFilter, data interface{}) {
-	for _, bin := range set.table {
-		prevPtr := &bin
+	for i, first := range set.table {
+		prevPtr := &first
+		bin := first
 		for bin != nil {
 			next := bin.next
 
 			if f(bin.elt, data) {
 				prevPtr = &bin.next
 			} else {
-				*prevPtr = next
+				if first == *prevPtr {
+					set.table[i] = nil
+				} else {
+					*prevPtr = bin.next
+				}
 
 				set.entries--
+				set.Recycle(bin)
 			}
 
 			bin = next
 		}
 	}
+}
+
+func (set *HashSet) Recycle(bin *HashSetBin) {
+	bin.next = set.pooledBins
+	set.pooledBins = bin
+	bin.elt = nil
+}
+
+func (set *HashSet) GetUnusedBin() *HashSetBin {
+	bin := set.pooledBins
+
+	if bin != nil {
+		set.pooledBins = bin.next
+		return bin
+	}
+
+	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
+		set.Recycle(&HashSetBin{})
+	}
+
+	return &HashSetBin{}
 }
