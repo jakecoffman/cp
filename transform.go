@@ -70,12 +70,12 @@ func (t *Transform) Mult(t2 *Transform) *Transform {
 	)
 }
 
-func (t *Transform) Point(p *Vector) *Vector {
-	return &Vector{X: t.a*p.X + t.c*p.Y + t.tx, Y: t.b*p.X + t.d*p.Y + t.ty}
+func (t *Transform) Point(p Vector) Vector {
+	return Vector{X: t.a*p.X + t.c*p.Y + t.tx, Y: t.b*p.X + t.d*p.Y + t.ty}
 }
 
-func (t *Transform) Vect(v *Vector) *Vector {
-	return &Vector{t.a*v.X + t.c*v.Y, t.b*v.X + t.d*v.Y}
+func (t *Transform) Vect(v Vector) Vector {
+	return Vector{t.a*v.X + t.c*v.Y, t.b*v.X + t.d*v.Y}
 }
 
 func (t *Transform) BB(bb *BB) *BB {
@@ -104,7 +104,7 @@ func (outer *Transform) Ortho(bb *BB) *Transform {
 	)
 }
 
-func (outer *Transform) BoneScale(v0, v1 *Vector) *Transform {
+func (outer *Transform) BoneScale(v0, v1 Vector) *Transform {
 	d := v1.Sub(v0)
 	return NewTransformTranspose(
 		d.X, -d.Y, v0.X,
@@ -112,7 +112,7 @@ func (outer *Transform) BoneScale(v0, v1 *Vector) *Transform {
 	)
 }
 
-func (outer *Transform) AxialScale(axis, pivot *Vector, scale float64) *Transform {
+func (outer *Transform) AxialScale(axis, pivot Vector, scale float64) *Transform {
 	A := axis.X * axis.Y * (scale - 1.0)
 	B := axis.Dot(pivot) * (1.0 - scale)
 

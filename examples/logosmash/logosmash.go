@@ -56,7 +56,7 @@ func main() {
 	}
 
 	body = space.AddBody(NewBody(1e9, INFINITY))
-	body.SetPosition(&Vector{-1000, -10})
+	body.SetPosition(Vector{-1000, -10})
 	body.SetVelocity(400, 0)
 
 	shape = space.AddShape(NewCircle(body, 8, VectorZero()))
@@ -89,7 +89,7 @@ func drawDot(body *Body, _ interface{}) {
 
 func makeBall(x, y float64) *Shape {
 	body := NewBody(1.0, INFINITY)
-	body.SetPosition(&Vector{x, y})
+	body.SetPosition(Vector{x, y})
 
 	shape := NewCircle(body, 0.95, VectorZero())
 	shape.SetElasticity(0)

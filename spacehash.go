@@ -233,7 +233,7 @@ restart:
 }
 
 // modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
-func (hash *SpaceHash) SegmentQuery(obj interface{}, a, b *Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+func (hash *SpaceHash) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
 	a = a.Mult(1.0 / hash.celldim)
 	b = b.Mult(1.0 / hash.celldim)
 

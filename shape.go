@@ -30,7 +30,7 @@ type Shape struct {
 
 	sensor   bool
 	e, u     float64
-	surfaceV *Vector
+	surfaceV Vector
 
 	userData interface{}
 

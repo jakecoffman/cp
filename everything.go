@@ -56,7 +56,7 @@ const (
 )
 
 type Contact struct {
-	r1, r2 *Vector
+	r1, r2 Vector
 
 	nMass, tMass float64
 	bounce       float64 // TODO: look for an alternate bounce solution
@@ -86,12 +86,12 @@ type CollisionInfo struct {
 	a, b        *Shape
 	collisionId uint
 
-	n     *Vector
+	n     Vector
 	count uint
 	arr   []*Contact
 }
 
-func (info *CollisionInfo) PushContact(p1, p2 *Vector, hash HashValue) {
+func (info *CollisionInfo) PushContact(p1, p2 Vector, hash HashValue) {
 	assert(info.count < MAX_CONTACTS_PER_ARBITER, "Internal error: Tried to push too many contacts.")
 
 	con := info.arr[info.count]
@@ -104,19 +104,19 @@ func (info *CollisionInfo) PushContact(p1, p2 *Vector, hash HashValue) {
 
 type ShapeMassInfo struct {
 	m, i, area float64
-	cog        *Vector
+	cog        Vector
 }
 
 type PointQueryInfo struct {
 	/// The nearest shape, NULL if no shape was within range.
 	shape *Shape
 	/// The closest point on the shape's surface. (in world space coordinates)
-	point *Vector
+	point Vector
 	/// The distance to the point. The distance is negative if the point is inside the shape.
 	distance float64
 	/// The gradient of the signed distance function.
 	/// The value should be similar to info.p/info.d, but accurate even for very small values of info.d.
-	gradient *Vector
+	gradient Vector
 }
 
 type SegmentQueryInfo struct {
@@ -131,12 +131,12 @@ type SegmentQueryInfo struct {
 }
 
 type SplittingPlane struct {
-	v0, n *Vector
+	v0, n Vector
 }
 
 type PinJoint struct {
 	constraint       *Constraint
-	anchorA, anchorB *Vector
+	anchorA, anchorB Vector
 	dist             float64
 
 	r1, r2 Vector
@@ -172,7 +172,7 @@ func (a *ShapeFilter) Reject(b *ShapeFilter) bool {
 //var GrabFilter *ShapeFilter = &ShapeFilter{NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT}
 //var NotGrabbableFilter *ShapeFilter = &ShapeFilter{NO_GROUP, ^GRABBABLE_MASK_BIT, ^GRABBABLE_MASK_BIT}
 
-func MomentForCircle(m, r1, r2 float64, offset *Vector) float64 {
+func MomentForCircle(m, r1, r2 float64, offset Vector) float64 {
 	return m * (0.5*(r1*r1+r2*r2) + offset.LengthSq())
 }
 
@@ -180,17 +180,17 @@ func AreaForCircle(r1, r2 float64) float64 {
 	return math.Pi * math.Abs(r1*r1-r2*r2)
 }
 
-func MomentForSegment(m float64, a, b *Vector, r float64) float64 {
+func MomentForSegment(m float64, a, b Vector, r float64) float64 {
 	offset := a.Lerp(b, 0.5)
 	length := b.Distance(a) + 2.0*r
 	return m * ((length*length+4.0*r*r)/12.0 + offset.LengthSq())
 }
 
-func AreaForSegment(a, b *Vector, r float64) float64 {
+func AreaForSegment(a, b Vector, r float64) float64 {
 	return r * (math.Pi*r + 2.0*a.Distance(b))
 }
 
-func MomentForPoly(m float64, verts []*Vector, offset *Vector, r float64) float64 {
+func MomentForPoly(m float64, verts []Vector, offset Vector, r float64) float64 {
 	if len(verts) == 2 {
 		return MomentForSegment(m, verts[0], verts[1], 0)
 	}
@@ -211,7 +211,7 @@ func MomentForPoly(m float64, verts []*Vector, offset *Vector, r float64) float6
 	return (m * sum1) / (6.0 * sum2)
 }
 
-func AreaForPoly(verts []*Vector, r float64) float64 {
+func AreaForPoly(verts []Vector, r float64) float64 {
 	var area float64
 	var perimeter float64
 	for i := range verts {
@@ -225,7 +225,7 @@ func AreaForPoly(verts []*Vector, r float64) float64 {
 	return r*(math.Pi*math.Abs(r)+perimeter) + area/2.0
 }
 
-func CentroidForPoly(verts []*Vector) *Vector {
+func CentroidForPoly(verts []Vector) Vector {
 	var sum float64
 	vsum := VectorZero()
 
@@ -260,20 +260,20 @@ func assert(truth bool, msg string) {
 	}
 }
 
-func k_scalar_body(body *Body, r, n *Vector) float64 {
+func k_scalar_body(body *Body, r, n Vector) float64 {
 	rcn := r.Cross(n)
 	return body.m_inv + body.i_inv*rcn*rcn
 }
 
-func k_scalar(a, b *Body, r1, r2, n *Vector) float64 {
+func k_scalar(a, b *Body, r1, r2, n Vector) float64 {
 	return k_scalar_body(a, r1, n) + k_scalar_body(b, r2, n)
 }
 
-func normal_relative_velocity(a, b *Body, r1, r2, n *Vector) float64 {
+func normal_relative_velocity(a, b *Body, r1, r2, n Vector) float64 {
 	return relative_velocity(a, b, r1, r2).Dot(n)
 }
 
-func k_tensor(a, b *Body, r1, r2 *Vector) *Mat2x2 {
+func k_tensor(a, b *Body, r1, r2 Vector) *Mat2x2 {
 	m_sum := a.m_inv + b.m_inv
 
 	// start with Identity*m_sum
@@ -321,6 +321,6 @@ type Mat2x2 struct {
 	a, b, c, d float64
 }
 
-func (m *Mat2x2) Transform(v *Vector) *Vector {
-	return &Vector{v.X*m.a + v.Y*m.b, v.X*m.c + v.Y*m.d}
+func (m *Mat2x2) Transform(v Vector) Vector {
+	return Vector{v.X*m.a + v.Y*m.b, v.X*m.c + v.Y*m.d}
 }

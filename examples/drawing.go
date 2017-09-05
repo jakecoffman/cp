@@ -19,7 +19,7 @@ type v2f struct {
 	x, y float32
 }
 
-func V2f(v *Vector) v2f {
+func V2f(v Vector) v2f {
 	return v2f{float32(v.X), float32(v.Y)}
 }
 func v2f0() v2f {
@@ -41,7 +41,7 @@ var vbo uint32 = 0
 
 var triangleStack []Triangle = []Triangle{}
 
-func DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor) {
+func DrawCircle(pos Vector, angle, radius float64, outline, fill FColor) {
 	r := radius + 1/DrawPointLineScale
 	a := Vertex{
 		v2f{float32(pos.X - r), float32(pos.Y - r)},
@@ -77,11 +77,11 @@ func DrawCircle(pos *Vector, angle, radius float64, outline, fill FColor) {
 	DrawFatSegment(pos, pos.Add(ForAngle(angle).Mult(radius-DrawPointLineScale*0.5)), 0, outline, fill)
 }
 
-func DrawSegment(a, b *Vector, fill FColor) {
+func DrawSegment(a, b Vector, fill FColor) {
 	DrawFatSegment(a, b, 0, fill, fill)
 }
 
-func DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor) {
+func DrawFatSegment(a, b Vector, radius float64, outline, fill FColor) {
 	n := b.Sub(a).ReversePerp().Normalize()
 	t := n.ReversePerp()
 
@@ -119,9 +119,9 @@ func DrawFatSegment(a, b *Vector, radius float64, outline, fill FColor) {
 	triangleStack = append(triangleStack, t5)
 }
 
-func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FColor) {
+func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColor) {
 	type ExtrudeVerts struct {
-		offset, n *Vector
+		offset, n Vector
 	}
 	extrude := make([]*ExtrudeVerts, count)
 
@@ -206,7 +206,7 @@ func DrawPolygon(count uint, verts []*Vector, radius float64, outline, fill FCol
 	}
 }
 
-func DrawDot(size float64, pos *Vector, fill FColor) {
+func DrawDot(size float64, pos Vector, fill FColor) {
 	r := size * 0.5 / DrawPointLineScale
 	a := Vertex{v2f{float32(pos.X - r), float32(pos.Y - r)}, v2f{-1, -1}, fill, fill}
 	b := Vertex{v2f{float32(pos.X - r), float32(pos.Y + r)}, v2f{-1, 1}, fill, fill}
@@ -218,7 +218,7 @@ func DrawDot(size float64, pos *Vector, fill FColor) {
 }
 
 func DrawBB(bb *BB, outline FColor) {
-	verts := []*Vector{
+	verts := []Vector{
 		{bb.R, bb.B},
 		{bb.R, bb.T},
 		{bb.L, bb.T},

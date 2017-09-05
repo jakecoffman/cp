@@ -11,7 +11,7 @@ const CONTACTS_BUFFER_SIZE = 1024
 type Space struct {
 	Iterations uint // must be non-zero
 
-	gravity *Vector
+	gravity Vector
 	damping float64
 
 	idleSpeedThreshold float64
@@ -112,11 +112,11 @@ func NewSpace() *Space {
 	return space
 }
 
-var ShapeVelocityFunc = func(obj interface{}) *Vector {
+var ShapeVelocityFunc = func(obj interface{}) Vector {
 	return obj.(*Shape).body.v
 }
 
-func (space *Space) SetGravity(gravity *Vector) {
+func (space *Space) SetGravity(gravity Vector) {
 	space.gravity = gravity
 
 	// Wake up all of the bodies since the gravity changed.

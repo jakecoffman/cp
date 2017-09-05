@@ -13,7 +13,7 @@ func (bb *BB) String() string {
 	return fmt.Sprintf("%v %v %v %v", bb.L, bb.T, bb.R, bb.B)
 }
 
-func NewBBForExtents(c *Vector, hw, hh float64) *BB {
+func NewBBForExtents(c Vector, hw, hh float64) *BB {
 	return &BB{
 		L: c.X - hw,
 		B: c.Y - hh,
@@ -22,7 +22,7 @@ func NewBBForExtents(c *Vector, hw, hh float64) *BB {
 	}
 }
 
-func NewBBForCircle(p *Vector, r float64) *BB {
+func NewBBForCircle(p Vector, r float64) *BB {
 	return NewBBForExtents(p, r, r)
 }
 
@@ -56,8 +56,8 @@ func (bb *BB) Expand(v *Vector) *BB {
 	}
 }
 
-func (bb *BB) Center() *Vector {
-	return (&Vector{bb.L, bb.B}).Lerp(&Vector{bb.R, bb.T}, 0.5)
+func (bb *BB) Center() Vector {
+	return Vector{bb.L, bb.B}.Lerp(Vector{bb.R, bb.T}, 0.5)
 }
 
 func (bb *BB) Area() float64 {
@@ -68,7 +68,7 @@ func (a *BB) MergedArea(b *BB) float64 {
 	return (math.Max(a.R, b.R) - math.Min(a.L, b.L)) * (math.Max(a.T, b.T) - math.Min(a.B, b.B))
 }
 
-func (bb *BB) SegmentQuery(a, b *Vector) float64 {
+func (bb *BB) SegmentQuery(a, b Vector) float64 {
 	delta := b.Sub(a)
 	tmin := -INFINITY
 	tmax := INFINITY
@@ -102,7 +102,7 @@ func (bb *BB) SegmentQuery(a, b *Vector) float64 {
 	}
 }
 
-func (bb *BB) IntersectsSegment(a, b *Vector) bool {
+func (bb *BB) IntersectsSegment(a, b Vector) bool {
 	return bb.SegmentQuery(a, b) != INFINITY
 }
 

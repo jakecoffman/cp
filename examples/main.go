@@ -11,7 +11,7 @@ import (
 	. "github.com/jakecoffman/physics"
 )
 
-var Mouse *Vector
+var Mouse Vector
 var mouseBody *Body
 
 var accumulator float64
@@ -123,7 +123,7 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 	}
 }
 
-func MouseToSpace(x, y float64, ww, wh int) *Vector {
+func MouseToSpace(x, y float64, ww, wh int) Vector {
 	var model [16]float64
 	gl.GetDoublev(gl.MODELVIEW_MATRIX, &model[0])
 	modelMat := mgl32.Mat4{}
@@ -154,5 +154,5 @@ func MouseToSpace(x, y float64, ww, wh int) *Vector {
 		panic(err)
 	}
 
-	return &Vector{float64(obj.X()), float64(obj.Y())}
+	return Vector{float64(obj.X()), float64(obj.Y())}
 }

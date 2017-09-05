@@ -2,26 +2,26 @@ package physics
 
 type PivotJoint struct {
 	*Constraint
-	anchorA, anchorB *Vector
+	anchorA, anchorB Vector
 
-	r1, r2 *Vector
+	r1, r2 Vector
 	k      *Mat2x2
 
-	jAcc, bias *Vector
+	jAcc, bias Vector
 }
 
 func NewPivotJoint(a, b *Body, pivot Vector) *Constraint {
-	var anchorA *Vector
-	var anchorB *Vector
+	var anchorA Vector
+	var anchorB Vector
 
 	if a != nil {
-		anchorA = a.WorldToLocal(&pivot)
+		anchorA = a.WorldToLocal(pivot)
 	} else {
 		anchorA = pivot.Clone()
 	}
 
 	if b != nil {
-		anchorB = b.WorldToLocal(&pivot)
+		anchorB = b.WorldToLocal(pivot)
 	} else {
 		anchorB = pivot.Clone()
 	}
@@ -29,7 +29,7 @@ func NewPivotJoint(a, b *Body, pivot Vector) *Constraint {
 	return NewPivotJoint2(a, b, anchorA, anchorB)
 }
 
-func NewPivotJoint2(a, b *Body, anchorA, anchorB *Vector) *Constraint {
+func NewPivotJoint2(a, b *Body, anchorA, anchorB Vector) *Constraint {
 	joint := &PivotJoint{
 		anchorA: anchorA,
 		anchorB: anchorB,
