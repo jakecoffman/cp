@@ -19,12 +19,6 @@ const (
 )
 
 func main() {
-	f, err := os.Create("cpuprofile")
-	if err != nil {
-		panic(err)
-	}
-	pprof.StartCPUProfile(f)
-
 	space := NewSpace()
 	space.Iterations = 1
 

@@ -1,27 +1,27 @@
 package physics
 
-type SpatialIndexBB func(obj interface{}) *BB
-type SpatialIndexIterator func(obj interface{}, data interface{})
-type SpatialIndexQuery func(obj1, obj2 interface{}, collisionId uint, data interface{}) uint
-type SpatialIndexSegmentQuery func(obj1, obj2, data interface{}) float64
+type SpatialIndexBB func(obj *Shape) BB
+type SpatialIndexIterator func(obj *Shape, data interface{})
+type SpatialIndexQuery func(obj1, obj2 *Shape, collisionId uint, data interface{}) uint
+type SpatialIndexSegmentQuery func(obj1, obj2 *Shape, data interface{}) float64
 
 // implemented by BBTree
 type SpatialIndexer interface {
 	Destroy()
 	Count() int
 	Each(f SpatialIndexIterator, data interface{})
-	Contains(obj interface{}, hashId HashValue) bool
-	Insert(obj interface{}, hashId HashValue)
-	Remove(obj interface{}, hashId HashValue)
+	Contains(obj *Shape, hashId HashValue) bool
+	Insert(obj *Shape, hashId HashValue)
+	Remove(obj *Shape, hashId HashValue)
 	Reindex()
-	ReindexObject(obj interface{}, hashId HashValue)
+	ReindexObject(obj *Shape, hashId HashValue)
 	ReindexQuery(f SpatialIndexQuery, data interface{})
-	Query(obj interface{}, bb *BB, f SpatialIndexQuery, data interface{})
-	SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{})
+	Query(obj *Shape, bb BB, f SpatialIndexQuery, data interface{})
+	SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{})
 }
 
-func ShapeGetBB(obj interface{}) *BB {
-	return obj.(*Shape).bb
+func ShapeGetBB(obj *Shape) BB {
+	return obj.bb
 }
 
 type SpatialIndex struct {
@@ -65,7 +65,7 @@ type DynamicToStaticContext struct {
 	data        interface{}
 }
 
-var DyanamicToStaticIter = func(obj interface{}, context interface{}) {
+var DyanamicToStaticIter = func(obj *Shape, context interface{}) {
 	dtsc := context.(*DynamicToStaticContext)
 	dtsc.staticIndex.class.Query(obj, dtsc.bbfunc(obj), dtsc.queryFunc, dtsc.data)
 }

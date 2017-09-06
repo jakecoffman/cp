@@ -5,8 +5,8 @@ import "math"
 type BBTreeVelocityFunc func(obj interface{}) Vector
 
 type Node struct {
-	obj    interface{}
-	bb     *BB
+	obj    *Shape
+	bb     BB
 	parent *Node
 
 	Children
@@ -74,7 +74,7 @@ func leafSetEql(obj, node interface{}) bool {
 
 func leafSetTrans(obj, tre interface{}) interface{} {
 	tree := tre.(*BBTree)
-	return tree.NewLeaf(obj)
+	return tree.NewLeaf(obj.(*Shape))
 }
 
 func NewBBTree(bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
@@ -100,11 +100,11 @@ func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
 	})
 }
 
-func (tree *BBTree) Contains(obj interface{}, hashId HashValue) bool {
+func (tree *BBTree) Contains(obj *Shape, hashId HashValue) bool {
 	return tree.leaves.Find(hashId, obj) != nil
 }
 
-func (tree *BBTree) Insert(obj interface{}, hashId HashValue) {
+func (tree *BBTree) Insert(obj *Shape, hashId HashValue) {
 	elt := tree.leaves.Insert(hashId, obj, leafSetTrans, tree)
 	leaf := elt.(*Node)
 
@@ -132,7 +132,7 @@ type MarkContext struct {
 	data       interface{}
 }
 
-func VoidQueryFunc(obj1, obj2 interface{}, collisionId uint, data interface{}) uint {
+func VoidQueryFunc(obj1, obj2 *Shape, collisionId uint, data interface{}) uint {
 	return collisionId
 }
 
@@ -316,7 +316,7 @@ func (node *Node) IsLeaf() bool {
 	return node.obj != nil
 }
 
-func (tree *BBTree) Remove(obj interface{}, hashId HashValue) {
+func (tree *BBTree) Remove(obj *Shape, hashId HashValue) {
 	leaf := tree.leaves.Remove(hashId, obj).(*Node)
 
 	tree.root = tree.SubtreeRemove(tree.root, leaf)
@@ -328,7 +328,7 @@ func (tree *BBTree) Reindex() {
 	panic("implement me")
 }
 
-func (tree *BBTree) ReindexObject(obj interface{}, hashId HashValue) {
+func (tree *BBTree) ReindexObject(obj *Shape, hashId HashValue) {
 	panic("implement me")
 }
 
@@ -403,15 +403,15 @@ func (tree *BBTree) PairsClear(leaf *Node) {
 	}
 }
 
-func (tree *BBTree) Query(obj interface{}, bb *BB, f SpatialIndexQuery, data interface{}) {
+func (tree *BBTree) Query(obj *Shape, bb BB, f SpatialIndexQuery, data interface{}) {
 	panic("implement me")
 }
 
-func (tree *BBTree) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+func (tree *BBTree) SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
 	panic("implement me")
 }
 
-func (tree *BBTree) GetBB(obj interface{}) *BB {
+func (tree *BBTree) GetBB(obj *Shape) BB {
 	bb := tree.spatialIndex.bbfunc(obj)
 	if tree.velocityFunc != nil {
 		coef := 0.1
@@ -419,7 +419,7 @@ func (tree *BBTree) GetBB(obj interface{}) *BB {
 		y := (bb.T - bb.B) * coef
 
 		v := tree.velocityFunc(obj).Mult(0.1)
-		return &BB{
+		return BB{
 			bb.L + math.Min(-x, v.X),
 			bb.B + math.Min(-y, v.Y),
 			bb.R + math.Max(x, v.X),
@@ -451,7 +451,7 @@ func NodeSetB(node, value *Node) {
 	value.parent = node
 }
 
-func (tree *BBTree) NewLeaf(obj interface{}) *Node {
+func (tree *BBTree) NewLeaf(obj *Shape) *Node {
 	node := tree.NodeFromPool()
 	node.obj = obj
 	node.bb = tree.GetBB(obj)

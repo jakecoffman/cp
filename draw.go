@@ -65,11 +65,11 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 
 func DrawSpace(space *Space, options Drawer) {
 	if options.Flags() & DRAW_SHAPES == 1 {
-		space.dynamicShapes.class.Each(func(obj interface{}, data interface{}) {
-			DrawShape(obj.(*Shape), data.(Drawer))
+		space.dynamicShapes.class.Each(func(obj *Shape, data interface{}) {
+			DrawShape(obj, data.(Drawer))
 		}, options)
-		space.staticShapes.class.Each(func(obj interface{}, data interface{}) {
-			DrawShape(obj.(*Shape), data.(Drawer))
+		space.staticShapes.class.Each(func(obj *Shape, data interface{}) {
+			DrawShape(obj, data.(Drawer))
 		}, options)
 	}
 

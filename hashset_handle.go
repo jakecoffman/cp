@@ -148,9 +148,10 @@ func (set *HashSetHandle) Find(hash HashValue, ptr *Shape) interface{} {
 }
 
 func (set *HashSetHandle) Each(f HashSetIteratorHandle) {
+	var next *HashSetBinHandle
 	for _, bin := range set.table {
 		for bin != nil {
-			next := bin.next
+			next = bin.next
 			f(bin.elt)
 			bin = next
 		}

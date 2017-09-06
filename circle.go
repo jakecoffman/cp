@@ -26,7 +26,7 @@ func CircleShapeMassInfo(mass, radius float64, center Vector) *ShapeMassInfo {
 	}
 }
 
-func (circle *Circle) CacheData(transform *Transform) *BB {
+func (circle *Circle) CacheData(transform Transform) BB {
 	circle.tc = transform.Point(circle.c)
 	return NewBBForCircle(circle.tc, circle.r)
 }

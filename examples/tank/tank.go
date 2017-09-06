@@ -29,7 +29,7 @@ func main() {
 	//space.Iterations = 10
 	space.SleepTimeThreshold = 0.5
 
-	sides := []*Vector{
+	sides := []Vector{
 		{-hwidth, -hheight}, {-hwidth, hheight},
 		{hwidth, -hheight}, {hwidth, hheight},
 		{-hwidth, -hheight}, {hwidth, -hheight},
@@ -73,7 +73,7 @@ func main() {
 func addBox(space *Space, size, mass float64) *Body {
 	radius := (&Vector{size, size}).Length()
 	body := space.AddBody(NewBody(mass, MomentForBox(mass, size, size)))
-	body.SetPosition(&Vector{rand.Float64()*(width-2*radius) - (hwidth - radius), rand.Float64()*(height-2*radius) - (hheight - radius)})
+	body.SetPosition(Vector{rand.Float64()*(width-2*radius) - (hwidth - radius), rand.Float64()*(height-2*radius) - (hheight - radius)})
 
 	shape := space.AddShape(NewBox(body, size, size, 0))
 	shape.SetElasticity(0)
@@ -97,7 +97,7 @@ func update(space *Space, dt float64) {
 		} else {
 			direction = -1.0
 		}
-		tankControlBody.SetVelocityVector(tankBody.Rotation().Rotate(&Vector{30.0 * direction, 0.0}))
+		tankControlBody.SetVelocityVector(tankBody.Rotation().Rotate(Vector{30.0 * direction, 0.0}))
 	}
 
 	space.Step(dt)

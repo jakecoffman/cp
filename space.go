@@ -311,8 +311,8 @@ func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
 	return constraint
 }
 
-var ShapeUpdateFunc = func(shape interface{}, _ interface{}) {
-	(shape.(*Shape)).CacheBB()
+var ShapeUpdateFunc = func(shape *Shape, _ interface{}) {
+	shape.CacheBB()
 }
 
 func SpaceArbiterSetTrans(shapes []*Shape, space *Space) *Arbiter {
@@ -328,9 +328,7 @@ func SpaceArbiterSetTrans(shapes []*Shape, space *Space) *Arbiter {
 	return arb
 }
 
-func SpaceCollideShapesFunc(va, vb interface{}, collisionId uint, vspace interface{}) uint {
-	a := va.(*Shape)
-	b := vb.(*Shape)
+func SpaceCollideShapesFunc(a, b *Shape, collisionId uint, vspace interface{}) uint {
 	space := vspace.(*Space)
 
 	// Reject any of the simple cases
@@ -778,12 +776,10 @@ func (space *Space) UseSpatialHash(dim float64, count int) {
 	staticShapes := NewSpaceHash(dim, count, ShapeGetBB, nil)
 	dynamicShapes := NewSpaceHash(dim, count, ShapeGetBB, staticShapes)
 
-	space.staticShapes.class.Each(func(obj interface{}, _ interface{}) {
-		shape := obj.(*Shape)
+	space.staticShapes.class.Each(func(shape *Shape, _ interface{}) {
 		staticShapes.class.Insert(shape, shape.hashid)
 	}, nil)
-	space.dynamicShapes.class.Each(func(obj interface{}, _ interface{}) {
-		shape := obj.(*Shape)
+	space.dynamicShapes.class.Each(func(shape *Shape, _ interface{}) {
 		dynamicShapes.class.Insert(shape, shape.hashid)
 	}, nil)
 

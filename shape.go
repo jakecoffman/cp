@@ -6,12 +6,12 @@ type Shaper interface {
 	HashId() HashValue
 	SetHashId(HashValue)
 	SetSpace(*Space)
-	BB() *BB
-	SetBB(*BB)
+	BB() BB
+	SetBB(BB)
 }
 
 type ShapeClass interface {
-	CacheData(transform *Transform) *BB
+	CacheData(transform Transform) BB
 	Destroy()
 	PointQuery(p Vector, info *PointQueryInfo)
 	SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo)
@@ -26,7 +26,7 @@ type Shape struct {
 	space    *Space
 	body     *Body
 	massInfo *ShapeMassInfo
-	bb       *BB
+	bb       BB
 
 	sensor   bool
 	e, u     float64
@@ -88,11 +88,11 @@ func (s *Shape) SetSpace(space *Space) {
 	s.space = space
 }
 
-func (s *Shape) BB() *BB {
+func (s *Shape) BB() BB {
 	return s.bb
 }
 
-func (s *Shape) SetBB(bb *BB) {
+func (s *Shape) SetBB(bb BB) {
 	s.bb = bb
 }
 
@@ -116,11 +116,11 @@ func (s *Shape) SetElasticity(e float64) {
 	s.e = e
 }
 
-func (s *Shape) CacheBB() *BB {
+func (s *Shape) CacheBB() BB {
 	return s.Update(s.body.transform)
 }
 
-func (s *Shape) Update(transform *Transform) *BB {
+func (s *Shape) Update(transform Transform) BB {
 	s.bb = s.Class.CacheData(transform)
 	return s.bb
 }

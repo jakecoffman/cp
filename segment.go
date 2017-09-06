@@ -10,7 +10,7 @@ type Segment struct {
 	a_tangent, b_tangent Vector
 }
 
-func (seg *Segment) CacheData(transform *Transform) *BB {
+func (seg *Segment) CacheData(transform Transform) BB {
 	seg.ta = transform.Point(seg.A)
 	seg.tb = transform.Point(seg.B)
 	seg.tn = transform.Vect(seg.n)
@@ -34,7 +34,7 @@ func (seg *Segment) CacheData(transform *Transform) *BB {
 	}
 
 	rad := seg.r
-	return &BB{l - rad, b - rad, r + rad, t + rad}
+	return BB{l - rad, b - rad, r + rad, t + rad}
 }
 
 func (seg *Segment) Destroy() {

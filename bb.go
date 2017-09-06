@@ -9,12 +9,12 @@ type BB struct {
 	L, B, R, T float64
 }
 
-func (bb *BB) String() string {
+func (bb BB) String() string {
 	return fmt.Sprintf("%v %v %v %v", bb.L, bb.T, bb.R, bb.B)
 }
 
-func NewBBForExtents(c Vector, hw, hh float64) *BB {
-	return &BB{
+func NewBBForExtents(c Vector, hw, hh float64) BB {
+	return BB{
 		L: c.X - hw,
 		B: c.Y - hh,
 		R: c.X + hw,
@@ -22,24 +22,24 @@ func NewBBForExtents(c Vector, hw, hh float64) *BB {
 	}
 }
 
-func NewBBForCircle(p Vector, r float64) *BB {
+func NewBBForCircle(p Vector, r float64) BB {
 	return NewBBForExtents(p, r, r)
 }
 
-func (a *BB) Intersects(b *BB) bool {
+func (a BB) Intersects(b BB) bool {
 	return a.L <= b.R && b.L <= a.R && a.B <= b.T && b.B <= a.T
 }
 
-func (bb *BB) Contains(other *BB) bool {
+func (bb BB) Contains(other BB) bool {
 	return bb.L <= other.L && bb.R >= other.R && bb.B <= other.B && bb.T >= other.T
 }
 
-func (bb *BB) ContainsVect(v *Vector) bool {
+func (bb BB) ContainsVect(v Vector) bool {
 	return bb.L <= v.X && bb.R >= v.X && bb.B <= v.Y && bb.T >= v.Y
 }
 
-func (a *BB) Merge(b *BB) *BB {
-	return &BB{
+func (a BB) Merge(b BB) BB {
+	return BB{
 		math.Min(a.L, b.L),
 		math.Min(a.B, b.B),
 		math.Max(a.R, b.R),
@@ -47,8 +47,8 @@ func (a *BB) Merge(b *BB) *BB {
 	}
 }
 
-func (bb *BB) Expand(v *Vector) *BB {
-	return &BB{
+func (bb BB) Expand(v Vector) BB {
+	return BB{
 		math.Min(bb.L, v.X),
 		math.Min(bb.B, v.Y),
 		math.Max(bb.R, v.X),
@@ -56,19 +56,19 @@ func (bb *BB) Expand(v *Vector) *BB {
 	}
 }
 
-func (bb *BB) Center() Vector {
+func (bb BB) Center() Vector {
 	return Vector{bb.L, bb.B}.Lerp(Vector{bb.R, bb.T}, 0.5)
 }
 
-func (bb *BB) Area() float64 {
+func (bb BB) Area() float64 {
 	return (bb.R - bb.L) * (bb.T - bb.B)
 }
 
-func (a *BB) MergedArea(b *BB) float64 {
+func (a BB) MergedArea(b BB) float64 {
 	return (math.Max(a.R, b.R) - math.Min(a.L, b.L)) * (math.Max(a.T, b.T) - math.Min(a.B, b.B))
 }
 
-func (bb *BB) SegmentQuery(a, b Vector) float64 {
+func (bb BB) SegmentQuery(a, b Vector) float64 {
 	delta := b.Sub(a)
 	tmin := -INFINITY
 	tmax := INFINITY
@@ -102,15 +102,15 @@ func (bb *BB) SegmentQuery(a, b Vector) float64 {
 	}
 }
 
-func (bb *BB) IntersectsSegment(a, b Vector) bool {
+func (bb BB) IntersectsSegment(a, b Vector) bool {
 	return bb.SegmentQuery(a, b) != INFINITY
 }
 
-func (bb *BB) ClampVect(v *Vector) *Vector {
-	return &Vector{Clamp(v.X, bb.L, bb.R), Clamp(v.Y, bb.B, bb.T)}
+func (bb BB) ClampVect(v *Vector) Vector {
+	return Vector{Clamp(v.X, bb.L, bb.R), Clamp(v.Y, bb.B, bb.T)}
 }
 
-func (bb *BB) WrapVect(v *Vector) *Vector {
+func (bb BB) WrapVect(v Vector) Vector {
 	dx := math.Abs(bb.R - bb.L)
 	modx := math.Mod(v.X-bb.L, dx)
 	var x float64
@@ -129,11 +129,11 @@ func (bb *BB) WrapVect(v *Vector) *Vector {
 		y = mody + dy
 	}
 
-	return &Vector{x + bb.L, y + bb.B}
+	return Vector{x + bb.L, y + bb.B}
 }
 
-func (bb *BB) Offset(v *Vector) *BB {
-	return &BB{
+func (bb BB) Offset(v Vector) BB {
+	return BB{
 		bb.L + v.X,
 		bb.B + v.Y,
 		bb.R + v.X,
@@ -141,6 +141,6 @@ func (bb *BB) Offset(v *Vector) *BB {
 	}
 }
 
-func (a *BB) Proximity(b *BB) float64 {
+func (a BB) Proximity(b BB) float64 {
 	return math.Abs(a.L+a.R-b.L-b.R) + math.Abs(a.B+a.T-b.B-b.T)
 }

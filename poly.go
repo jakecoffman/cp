@@ -13,7 +13,7 @@ type PolyShape struct {
 	planes []*SplittingPlane
 }
 
-func (poly *PolyShape) CacheData(transform *Transform) *BB {
+func (poly *PolyShape) CacheData(transform Transform) BB {
 	count := poly.count
 	dst := poly.planes
 	src := poly.planes[count:]
@@ -38,7 +38,7 @@ func (poly *PolyShape) CacheData(transform *Transform) *BB {
 	}
 
 	radius := poly.r
-	poly.Shape.bb = &BB{l - radius, b - radius, r + radius, t + radius}
+	poly.Shape.bb = BB{l - radius, b - radius, r + radius, t + radius}
 	return poly.Shape.bb
 }
 

@@ -38,7 +38,7 @@ type Body struct {
 	w float64
 	t float64
 
-	transform *Transform
+	transform Transform
 
 	userData interface{}
 
