@@ -41,6 +41,10 @@ func SegmentSupportPoint(shape *Shape, n Vector) *SupportPoint {
 	}
 }
 
+func CircleSupportPoint(shape *Shape, n Vector) *SupportPoint {
+	return NewSupportPoint(shape.Class.(*Circle).tc, 0)
+}
+
 func PolySupportPointIndex(count uint, planes []*SplittingPlane, n Vector) uint {
 	max := -INFINITY
 	var index uint
@@ -142,7 +146,16 @@ func SegmentToSegment(a, b *Shape, info *CollisionInfo) {
 }
 
 func CircleToPoly(a, b *Shape, info *CollisionInfo) {
-	panic("CircleToPoly")
+	context := &SupportContext{a, b, CircleSupportPoint, PolySupportPoint}
+	points := GJK(context, &info.collisionId)
+
+	circle := a.Class.(*Circle)
+	poly := b.Class.(*PolyShape)
+
+	if points.d <= circle.r + poly.r {
+		info.n = points.n
+		info.PushContact(points.a.Add(info.n.Mult(circle.r)), points.b.Add(info.n.Mult(poly.r)), 0)
+	}
 }
 
 func SegmentToPoly(seg, poly *Shape, info *CollisionInfo) {

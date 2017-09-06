@@ -125,6 +125,10 @@ func (space *Space) SetGravity(gravity Vector) {
 	}
 }
 
+func (space *Space) SetCollisionSlop(slop float64) {
+	space.collisionSlop = slop
+}
+
 func (space *Space) SetStaticBody(body *Body) {
 	if space.StaticBody != nil {
 		space.StaticBody.space = nil

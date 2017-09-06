@@ -3,24 +3,24 @@ package examples
 import (
 	"math"
 
-	"log"
-
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/jakecoffman/physics"
+	"runtime"
 )
 
-func SetupGL() {
-	version := gl.GoStr(gl.GetString(gl.VERSION))
-	log.Println("OpenGL version", version)
-
+func DrawInit() {
 	vshader := CompileShader(gl.VERTEX_SHADER, vertexShader)
 	fshader := CompileShader(gl.FRAGMENT_SHADER, fragmentShader)
 
 	program = LinkProgram(vshader, fshader)
 
-	// TODO implement OS specific stuff in demo_darwin, etc
-	gl.GenVertexArraysAPPLE(1, &vao)
-	gl.BindVertexArrayAPPLE(vao)
+	if runtime.GOOS == "darwin" {
+		gl.GenVertexArraysAPPLE(1, &vao)
+		gl.BindVertexArrayAPPLE(vao)
+	} else {
+		gl.GenVertexArrays(1, &vao)
+		gl.BindVertexArray(vao)
+	}
 
 	CheckGLErrors()
 
@@ -34,22 +34,13 @@ func SetupGL() {
 	SetAttribute(program, "fill_color", 4, gl.FLOAT, 48, 16)
 	SetAttribute(program, "outline_color", 4, gl.FLOAT, 48, 32)
 
-	// TODO non-apple
-	gl.BindVertexArrayAPPLE(0)
+	if runtime.GOOS == "darwin" {
+		gl.BindVertexArrayAPPLE(0)
+	} else {
+		gl.BindVertexArray(0)
+	}
 
 	CheckGLErrors()
-
-	gl.ClearColor(0, 1, 1, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-
-	gl.Enable(gl.LINE_SMOOTH)
-	gl.Enable(gl.POINT_SMOOTH)
-
-	gl.Hint(gl.LINE_SMOOTH_HINT, gl.DONT_CARE)
-	gl.Hint(gl.POINT_SMOOTH_HINT, gl.DONT_CARE)
-
-	gl.Enable(gl.BLEND)
-	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
 
 func ColorForShape(shape *physics.Shape, data interface{}) physics.FColor {

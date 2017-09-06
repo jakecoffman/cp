@@ -3,6 +3,8 @@ package examples
 import (
 	"math"
 
+	"runtime"
+
 	"github.com/go-gl/gl/v2.1/gl"
 	. "github.com/jakecoffman/physics"
 )
@@ -227,18 +229,27 @@ func DrawBB(bb *BB, outline FColor) {
 	DrawPolygon(4, verts, 0, outline, FColor{A: 1})
 }
 
+func DrawInstructions() {
+	DrawString(Vector{-300, 220}, `Press Q to quit`)
+}
+
+func DrawInfo() {
+	// TODO
+}
+
 func FlushRenderer() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(triangleStack)*(48*3), gl.Ptr(triangleStack), gl.STREAM_DRAW_ARB)
+	gl.BufferData(gl.ARRAY_BUFFER, len(triangleStack)*(48*3), gl.Ptr(triangleStack), gl.STREAM_DRAW)
 
 	gl.UseProgram(program)
 	gl.Uniform1f(gl.GetUniformLocation(program, gl.Str("u_outline_coef\x00")), DrawPointLineScale)
 
-	// TODO
-	gl.BindVertexArrayAPPLE(vao)
-
+	if runtime.GOOS == "darwin" {
+		gl.BindVertexArrayAPPLE(vao)
+	} else {
+		gl.BindVertexArray(vao)
+	}
 	gl.DrawArrays(gl.TRIANGLES, 0, int32(len(triangleStack)*3))
-
 	CheckGLErrors()
 }
 

@@ -30,6 +30,7 @@ func Display(space *Space, tick float64, update UpdateFunc) {
 	Update(space, tick, update)
 
 	ClearRenderer()
+	ClearTextRenderer()
 
 	// builds triangles buffer
 	DrawSpace(space, NewDrawOptions(
@@ -42,6 +43,15 @@ func Display(space *Space, tick float64, update UpdateFunc) {
 
 	// gives buffer to open-gl to draw
 	FlushRenderer()
+
+	DrawInstructions()
+	DrawInfo()
+
+	gl.MatrixMode(gl.MODELVIEW)
+	gl.PushMatrix()
+	gl.LoadIdentity()
+	FlushTextRenderer()
+	gl.PopMatrix()
 }
 
 type UpdateFunc func(*Space, float64)
@@ -85,7 +95,20 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 		panic(err)
 	}
 
-	SetupGL()
+	DrawInit()
+	TextInit()
+
+	gl.ClearColor(52.0/255.0, 62.0/255.0, 72.0/255.0, 1.0)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+
+	gl.Enable(gl.LINE_SMOOTH)
+	gl.Enable(gl.POINT_SMOOTH)
+
+	gl.Hint(gl.LINE_SMOOTH_HINT, gl.DONT_CARE)
+	gl.Hint(gl.POINT_SMOOTH_HINT, gl.DONT_CARE)
+
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 
 	wi, hi := window.GetFramebufferSize()
 	w := float64(wi)

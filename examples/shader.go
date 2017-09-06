@@ -61,18 +61,18 @@ func CompileShader(typ uint32, source string) uint32 {
 }
 
 func LinkProgram(vshader, fshader uint32) uint32 {
-	program := gl.CreateProgram()
+	p := gl.CreateProgram()
 
-	gl.AttachShader(program, vshader)
-	gl.AttachShader(program, fshader)
+	gl.AttachShader(p, vshader)
+	gl.AttachShader(p, fshader)
 
-	gl.LinkProgram(program)
+	gl.LinkProgram(p)
 
-	if CheckError(program, gl.LINK_STATUS, gl.GetProgramiv, gl.GetProgramInfoLog) {
+	if CheckError(p, gl.LINK_STATUS, gl.GetProgramiv, gl.GetProgramInfoLog) {
 		panic("Error linking shader program")
 	}
 
-	return program
+	return p
 }
 
 func SetAttribute(program uint32, name string, size int32, gltype uint32, stride int32, offset int) {
