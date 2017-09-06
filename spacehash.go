@@ -9,7 +9,7 @@ type SpaceHash struct {
 	celldim  float64
 
 	table     []*SpaceHashBin
-	handleSet *HashSet
+	handleSet *HashSetHandle
 
 	pooledBins    *SpaceHashBin
 	pooledHandles chan *Handle
@@ -22,8 +22,8 @@ func NewSpaceHash(celldim float64, num int, bbfunc SpatialIndexBB, staticIndex *
 		celldim:  celldim,
 		numCells: num,
 		table:    make([]*SpaceHashBin, num),
-		handleSet: NewHashSet(func(obj, elt interface{}) bool {
-			return obj == elt.(*Handle).obj
+		handleSet: NewHashSetHandle(func(obj *Shape, elt *Handle) bool {
+			return obj == elt.obj
 		}),
 		stamp:         1,
 		pooledHandles: make(chan *Handle, POOLED_BUFFER_SIZE),
@@ -73,22 +73,22 @@ func (hash *SpaceHash) Count() int {
 }
 
 func (hash *SpaceHash) Each(f SpatialIndexIterator, data interface{}) {
-	hash.handleSet.Each(func(elt interface{}) {
-		f(elt.(*Handle).obj, data)
+	hash.handleSet.Each(func(elt *Handle) {
+		f(elt.obj, data)
 	})
 }
 
 func (hash *SpaceHash) Contains(obj interface{}, hashId HashValue) bool {
-	return hash.handleSet.Find(hashId, obj) != nil
+	return hash.handleSet.Find(hashId, obj.(*Shape)) != nil
 }
 
 func (hash *SpaceHash) Insert(obj interface{}, hashId HashValue) {
-	hand := hash.handleSet.Insert(hashId, obj, handleSetTrans, hash)
-	hash.hashHandle(hand.(*Handle), hash.bbfunc(obj))
+	hand := hash.handleSet.Insert(hashId, obj.(*Shape), handleSetTrans, hash)
+	hash.hashHandle(hand, hash.bbfunc(obj))
 }
 
 func (hash *SpaceHash) Remove(obj interface{}, hashId HashValue) {
-	hand := hash.handleSet.Remove(hashId, obj).(*Handle)
+	hand := hash.handleSet.Remove(hashId, obj.(*Shape))
 
 	if hand != nil {
 		hand.obj = nil
@@ -98,14 +98,13 @@ func (hash *SpaceHash) Remove(obj interface{}, hashId HashValue) {
 
 func (hash *SpaceHash) Reindex() {
 	hash.clearTable()
-	hash.handleSet.Each(func(elt interface{}) {
-		hand := elt.(*Handle)
+	hash.handleSet.Each(func(hand *Handle) {
 		hash.bbfunc(hand.obj)
 	})
 }
 
 func (hash *SpaceHash) ReindexObject(obj interface{}, hashId HashValue) {
-	hand := hash.handleSet.Remove(hashId, obj).(*Handle)
+	hand := hash.handleSet.Remove(hashId, obj.(*Shape))
 
 	if hand != nil {
 		hand.obj = nil
@@ -156,9 +155,8 @@ restart:
 func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	hash.clearTable()
 
-	hash.handleSet.Each(func(elt interface{}) {
+	hash.handleSet.Each(func(hand *Handle) {
 		// queryRehash_helper
-		hand := elt.(*Handle)
 
 		bb := hash.SpatialIndex.bbfunc(hand.obj)
 
@@ -351,8 +349,7 @@ func (hand *Handle) release(pooledHandles chan *Handle) {
 	}
 }
 
-func handleSetTrans(obj, elt interface{}) interface{} {
-	hash := elt.(*SpaceHash)
+func handleSetTrans(obj *Shape, hash *SpaceHash) *Handle {
 	var hand *Handle
 	select {
 	case hand = <-hash.pooledHandles:
