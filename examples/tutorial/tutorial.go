@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	gravity := &Vector{0, -100}
+	gravity := Vector{0, -100}
 
 	// Create an empty space.
 	space := NewSpace()
@@ -18,7 +18,7 @@ func main() {
 	// Add a static line segment shape for the ground.
 	// We'll make it slightly tilted so the ball will roll off.
 	// We attach it to space->staticBody to tell Chipmunk it shouldn't be movable.
-	ground := NewSegment(space.StaticBody, &Vector{-20, 5}, &Vector{20, -5}, 0)
+	ground := NewSegment(space.StaticBody, Vector{-20, 5}, Vector{20, -5}, 0)
 	ground.SetFriction(1)
 	space.AddShape(ground)
 
@@ -36,13 +36,12 @@ func main() {
 	// The cpSpaceAdd*() functions return the thing that you are adding.
 	// It's convenient to create and add an object in one line.
 	ballBody := space.AddBody(NewBody(mass, moment))
-	ballBody.SetPosition(&Vector{0, 100})
+	ballBody.SetPosition(Vector{0, 100})
 
 	// Now we create the collision shape for the ball.
 	// You can create multiple collision shapes that point to the same body.
 	// They will all be attached to the body and move around to follow it.
-	radius := (&Vector{5, 5}).Length()
-	ballShape := space.AddShape(NewBox(ballBody, 5, 5, radius))
+	ballShape := space.AddShape(NewCircle(ballBody, 5, VectorZero()))
 	ballShape.SetFriction(0.7)
 
 	// Now that it's all set up, we simulate all the objects in the space by

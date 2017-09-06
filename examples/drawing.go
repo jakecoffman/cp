@@ -45,7 +45,7 @@ func DrawCircle(pos Vector, angle, radius float64, outline, fill FColor) {
 	r := radius + 1/DrawPointLineScale
 	a := Vertex{
 		v2f{float32(pos.X - r), float32(pos.Y - r)},
-		v2f{-1, 1},
+		v2f{-1, -1},
 		fill,
 		outline,
 	}
