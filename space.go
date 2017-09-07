@@ -790,3 +790,26 @@ func (space *Space) UseSpatialHash(dim float64, count int) {
 	space.staticShapes = staticShapes
 	space.dynamicShapes = dynamicShapes
 }
+
+func (space *Space) EachBody(f func(body *Body)) {
+	space.Lock()
+	defer space.Unlock(true)
+
+	for _, body := range space.dynamicBodies {
+		f(body)
+	}
+
+	for _, body := range space.staticBodies {
+		f(body)
+	}
+
+	for _, root := range space.sleepingComponents {
+		body := root
+
+		for body != nil {
+			next := body.sleepingNext
+			f(body)
+			body = next
+		}
+	}
+}
