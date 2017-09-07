@@ -41,6 +41,7 @@ func main() {
 		seg = space.AddShape(NewSegment(space.StaticBody, sides[i], sides[i+1], 0))
 		seg.SetElasticity(1)
 		seg.SetFriction(1)
+		seg.SetFilter(examples.NotGrabbableFilter)
 	}
 
 	for i := 0; i < 50; i++ {

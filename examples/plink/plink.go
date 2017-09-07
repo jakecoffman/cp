@@ -51,7 +51,7 @@ func main() {
 
 	for i := 0; i < 300; i++ {
 		body = space.AddBody(NewBody(pentagonMass, pentagonMoment))
-		x := rand.Float64()*640 - 320 // TODO differs from chipmunk
+		x := rand.Float64()*640 - 320
 		body.SetPosition(Vector{x, 350})
 
 		shape = space.AddShape(NewPolyShape(body, verts, NewTransformIdentity(), 0))
@@ -63,6 +63,20 @@ func main() {
 }
 
 func update(space *Space, dt float64) {
+	if examples.RightDown {
+		nearest := space.PointQueryNearest(examples.Mouse, 0, examples.GrabFilter)
+		if nearest != nil {
+			body := nearest.Shape.Body()
+			if body.GetType() == BODY_STATIC {
+				body.SetType(BODY_DYNAMIC)
+				body.SetMass(pentagonMass)
+				body.SetMoment(pentagonMoment)
+			} else if body.GetType() == BODY_DYNAMIC {
+				body.SetType(BODY_STATIC)
+			}
+		}
+	}
+
 	space.EachBody(func(body *Body) {
 		pos := body.Position()
 		if pos.Y < -260 || math.Abs(pos.X) > 340 {

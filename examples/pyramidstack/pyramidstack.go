@@ -24,7 +24,6 @@ func main() {
 		{-hwidth, -hheight}, {-hwidth, hheight},
 		{hwidth, -hheight}, {hwidth, hheight},
 		{-hwidth, -hheight}, {hwidth, -hheight},
-		{-hwidth, hheight}, {hwidth, hheight},
 	}
 
 	for i := 0; i < len(sides); i += 2 {
@@ -32,6 +31,7 @@ func main() {
 		seg = space.AddShape(NewSegment(space.StaticBody, sides[i], sides[i+1], 0))
 		seg.SetElasticity(1)
 		seg.SetFriction(1)
+		seg.SetFilter(examples.NotGrabbableFilter)
 	}
 
 	var body *Body

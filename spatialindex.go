@@ -2,7 +2,7 @@ package physics
 
 type SpatialIndexBB func(obj *Shape) BB
 type SpatialIndexIterator func(obj *Shape, data interface{})
-type SpatialIndexQuery func(obj1, obj2 *Shape, collisionId uint, data interface{}) uint
+type SpatialIndexQuery func(obj1 interface{}, obj2 *Shape, collisionId uint, data interface{}) uint
 type SpatialIndexSegmentQuery func(obj1, obj2 *Shape, data interface{}) float64
 
 // implemented by BBTree
@@ -16,7 +16,7 @@ type SpatialIndexer interface {
 	Reindex()
 	ReindexObject(obj *Shape, hashId HashValue)
 	ReindexQuery(f SpatialIndexQuery, data interface{})
-	Query(obj *Shape, bb BB, f SpatialIndexQuery, data interface{})
+	Query(obj interface{}, bb BB, f SpatialIndexQuery, data interface{})
 	SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{})
 }
 

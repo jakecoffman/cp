@@ -315,6 +315,28 @@ func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
 	return constraint
 }
 
+func (space *Space) RemoveConstraint(constraint *Constraint) {
+	assert(space.ContainsConstraint(constraint), "Constraint not found")
+	assert(space.locked == 0, "Space is locked")
+
+	constraint.a.Activate()
+	constraint.b.Activate()
+	for i, c := range space.constraints {
+		if c == constraint {
+			space.constraints = append(space.constraints[:i], space.constraints[i+1:]...)
+			break
+		}
+	}
+
+	constraint.a.RemoveConstraint(constraint)
+	constraint.b.RemoveConstraint(constraint)
+	constraint.space = nil
+}
+
+func (space *Space) ContainsConstraint(constraint *Constraint) bool {
+	return constraint.space == space
+}
+
 var ShapeUpdateFunc = func(shape *Shape, _ interface{}) {
 	shape.CacheBB()
 }
@@ -332,7 +354,8 @@ func SpaceArbiterSetTrans(shapes []*Shape, space *Space) *Arbiter {
 	return arb
 }
 
-func SpaceCollideShapesFunc(a, b *Shape, collisionId uint, vspace interface{}) uint {
+func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint, vspace interface{}) uint {
+	a := obj.(*Shape)
 	space := vspace.(*Space)
 
 	// Reject any of the simple cases
@@ -812,4 +835,44 @@ func (space *Space) EachBody(f func(body *Body)) {
 			body = next
 		}
 	}
+}
+
+type SpacePointQueryFunc func(*Shape, Vector, float64, Vector, interface{})
+
+type PointQueryContext struct {
+	point Vector
+	maxDistance float64
+	filter ShapeFilter
+	f SpacePointQueryFunc
+}
+
+func (space *Space) PointQueryNearest(point Vector, maxDistance float64, filter ShapeFilter) *PointQueryInfo {
+	info := &PointQueryInfo{nil, VectorZero(), maxDistance, VectorZero()}
+	context := &PointQueryContext{point, maxDistance, filter, nil}
+
+	bb := NewBBForCircle(point, math.Max(maxDistance, 0))
+	space.dynamicShapes.class.Query(context, bb, NearestPointQueryNearest, info)
+	space.staticShapes.class.Query(context, bb, NearestPointQueryNearest, info)
+
+	return info
+}
+
+func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint, out interface{}) uint {
+	context := obj.(*PointQueryContext)
+	if !shape.Filter.Reject(context.filter) && !shape.sensor {
+		info := shape.PointQuery(context.point)
+		if info.Distance < out.(*PointQueryInfo).Distance {
+			outp := out.(*PointQueryInfo)
+			*outp = info
+		}
+	}
+
+	return collisionId
+}
+
+func (space *Space) ArrayForBodyType(bodyType int) *[]*Body {
+	if bodyType == BODY_STATIC {
+		return &space.staticBodies
+	}
+	return &space.dynamicBodies
 }

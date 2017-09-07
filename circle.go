@@ -40,14 +40,14 @@ func (circle *Circle) PointQuery(p Vector, info *PointQueryInfo) {
 	d := delta.Length()
 	r := circle.r
 
-	info.shape = circle.Shape
-	info.point = circle.tc.Add(delta.Mult(r / d))
-	info.distance = d - r
+	info.Shape = circle.Shape
+	info.Point = circle.tc.Add(delta.Mult(r / d))
+	info.Distance = d - r
 
 	if d > MAGIC_EPSILON {
-		info.gradient = delta.Mult(1 / d)
+		info.Gradient = delta.Mult(1 / d)
 	} else {
-		info.gradient = Vector{0, 1}
+		info.Gradient = Vector{0, 1}
 	}
 }
 

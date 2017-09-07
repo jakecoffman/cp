@@ -12,7 +12,12 @@ import (
 )
 
 var Mouse Vector
+var RightClick = false
+var RightDown = false
+var Keyboard Vector
+
 var mouseBody *Body
+var mouseJoint *Constraint
 
 var accumulator float64
 var lastTime float64
@@ -45,7 +50,7 @@ func Display(space *Space, tick float64, update UpdateFunc) {
 	FlushRenderer()
 
 	DrawInstructions()
-	DrawInfo()
+	DrawInfo(space)
 
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.PushMatrix()
@@ -135,6 +140,38 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 		Mouse = MouseToSpace(xpos, ypos, ww, wh)
 	})
 	Mouse = VectorZero()
+
+	window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
+		if button == glfw.MouseButton1 {
+			if action == glfw.Press {
+				// give the mouse click a little radius to make it easier to click small shapes.
+				radius := 5.0
+
+				info := space.PointQueryNearest(Mouse, radius, GrabFilter)
+
+				if info.Shape != nil && info.Shape.Body().Mass() < INFINITY {
+					var nearest Vector
+					if info.Distance > 0 {
+						nearest = info.Point
+					} else {
+						nearest = Mouse
+					}
+
+					body := info.Shape.Body()
+					mouseJoint = NewPivotJoint2(mouseBody, body, VectorZero(), body.WorldToLocal(nearest))
+					mouseJoint.SetMaxForce(50000)
+					mouseJoint.SetErrorBias(math.Pow(1.0-0.15, 60.0))
+					space.AddConstraint(mouseJoint)
+				}
+			} else if mouseJoint != nil {
+				space.RemoveConstraint(mouseJoint)
+				mouseJoint = nil
+			}
+		} else if button == glfw.MouseButton2 {
+			RightDown = action == glfw.Press
+			RightClick = RightDown
+		}
+	})
 
 	mouseBody = NewKinematicBody()
 

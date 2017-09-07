@@ -35,7 +35,7 @@ type Shape struct {
 	userData interface{}
 
 	collisionType uint
-	Filter        *ShapeFilter
+	Filter        ShapeFilter
 
 	next, prev *Shape
 
@@ -116,6 +116,11 @@ func (s *Shape) SetElasticity(e float64) {
 	s.e = e
 }
 
+func (s *Shape) SetFilter(filter ShapeFilter) {
+	s.body.Activate()
+	s.Filter = filter
+}
+
 func (s *Shape) CacheBB() BB {
 	return s.Update(s.body.transform)
 }
@@ -150,6 +155,12 @@ func (s *Shape) Point(i uint) *SupportPoint {
 	}
 }
 
+func (s *Shape) PointQuery(p Vector) PointQueryInfo {
+	info := PointQueryInfo{nil, VectorZero(), INFINITY, VectorZero()}
+	s.Class.PointQuery(p, &info)
+	return info
+}
+
 func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 	return &Shape{
 		Class:    class,
@@ -157,10 +168,10 @@ func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 		massInfo: massInfo,
 
 		surfaceV: VectorZero(),
-		Filter: &ShapeFilter{
-			group:      NO_GROUP,
-			categories: ALL_CATEGORIES,
-			mask:       ALL_CATEGORIES,
+		Filter: ShapeFilter{
+			Group:      NO_GROUP,
+			Categories: ALL_CATEGORIES,
+			Mask:       ALL_CATEGORIES,
 		},
 	}
 }

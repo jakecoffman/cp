@@ -45,7 +45,7 @@ func CircleSupportPoint(shape *Shape, n Vector) *SupportPoint {
 	return NewSupportPoint(shape.Class.(*Circle).tc, 0)
 }
 
-func PolySupportPointIndex(count uint, planes []*SplittingPlane, n Vector) uint {
+func PolySupportPointIndex(count uint, planes []SplittingPlane, n Vector) uint {
 	max := -INFINITY
 	var index uint
 	var i uint
@@ -142,7 +142,26 @@ func CircleToSegment(a, b *Shape, info *CollisionInfo) {
 }
 
 func SegmentToSegment(a, b *Shape, info *CollisionInfo) {
-	panic("SegmentToSegment")
+	seg1 := a.Class.(*Segment)
+	seg2 := b.Class.(*Segment)
+
+	context := SupportContext{a, b, SegmentSupportPoint, SegmentSupportPoint}
+	points := GJK(&context, &info.collisionId)
+
+	n := points.n
+	rot1 := seg1.body.Rotation()
+	rot2 := seg2.body.Rotation()
+
+	if points.d > (seg1.r + seg2.r) {
+		return
+	}
+
+	if (!points.a.Equal(seg1.ta) || n.Dot(seg1.a_tangent.Rotate(rot1)) <= 0) &&
+	(!points.a.Equal(seg1.tb) || n.Dot(seg1.b_tangent.Rotate(rot1)) <= 0) &&
+	(!points.b.Equal(seg2.ta) || n.Dot(seg2.a_tangent.Rotate(rot2)) >= 0) &&
+	(!points.b.Equal(seg2.tb) || n.Dot(seg2.b_tangent.Rotate(rot2)) >= 0) {
+		ContactPoints(SupportEdgeForSegment(seg1, n), SupportEdgeForSegment(seg2, n.Neg()), points, info)
+	}
 }
 
 func CircleToPoly(a, b *Shape, info *CollisionInfo) {

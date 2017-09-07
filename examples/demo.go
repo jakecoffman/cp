@@ -3,10 +3,20 @@ package examples
 import (
 	"math"
 
+	"runtime"
+
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/jakecoffman/physics"
-	"runtime"
 )
+
+var GRABBABLE_MASK_BIT uint = 1 << 31
+
+var GrabFilter physics.ShapeFilter = physics.ShapeFilter{
+	physics.NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT,
+}
+var NotGrabbableFilter physics.ShapeFilter = physics.ShapeFilter{
+	physics.NO_GROUP, ^GRABBABLE_MASK_BIT, ^GRABBABLE_MASK_BIT,
+}
 
 func DrawInit() {
 	vshader := CompileShader(gl.VERTEX_SHADER, vertexShader)

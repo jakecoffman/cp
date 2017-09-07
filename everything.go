@@ -1,6 +1,9 @@
 package physics
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 const (
 	INFINITY      = math.MaxFloat64
@@ -109,14 +112,14 @@ type ShapeMassInfo struct {
 
 type PointQueryInfo struct {
 	/// The nearest shape, NULL if no shape was within range.
-	shape *Shape
+	Shape *Shape
 	/// The closest point on the shape's surface. (in world space coordinates)
-	point Vector
+	Point Vector
 	/// The distance to the point. The distance is negative if the point is inside the shape.
-	distance float64
+	Distance float64
 	/// The gradient of the signed distance function.
 	/// The value should be similar to info.p/info.d, but accurate even for very small values of info.d.
-	gradient Vector
+	Gradient Vector
 }
 
 type SegmentQueryInfo struct {
@@ -146,31 +149,30 @@ type PinJoint struct {
 	jnAcc, bias float64
 }
 
-var NO_GROUP uint32 = 0
-var ALL_CATEGORIES uint32 = math.MaxUint32
+const (
+	NO_GROUP       = 0
+	ALL_CATEGORIES = math.MaxUint32
+)
 
 type ShapeFilter struct {
 	/// Two objects with the same non-zero group value do not collide.
 	/// This is generally used to group objects in a composite object together to disable self collisions.
-	group uint32
+	Group uint
 	/// A bitmask of user definable categories that this object belongs to.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
-	categories uint32
+	Categories uint
 	/// A bitmask of user definable category types that this object object collides with.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
-	mask uint32
+	Mask uint
 }
 
-func (a *ShapeFilter) Reject(b *ShapeFilter) bool {
+func (a ShapeFilter) Reject(b ShapeFilter) bool {
 	// Reject the collision if:
-	return (a.group != 0 && a.group == b.group) ||
+	return (a.Group != 0 && a.Group == b.Group) ||
 		// One of the category/mask combinations fails.
-		(a.categories&b.mask) == 0 ||
-		(b.categories&a.mask) == 0
+		(a.Categories&b.Mask) == 0 ||
+		(b.Categories&a.Mask) == 0
 }
-
-//var GrabFilter *ShapeFilter = &ShapeFilter{NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT}
-//var NotGrabbableFilter *ShapeFilter = &ShapeFilter{NO_GROUP, ^GRABBABLE_MASK_BIT, ^GRABBABLE_MASK_BIT}
 
 func MomentForCircle(m, r1, r2 float64, offset Vector) float64 {
 	return m * (0.5*(r1*r1+r2*r2) + offset.LengthSq())
@@ -323,4 +325,37 @@ type Mat2x2 struct {
 
 func (m *Mat2x2) Transform(v Vector) Vector {
 	return Vector{v.X*m.a + v.Y*m.b, v.X*m.c + v.Y*m.d}
+}
+
+var maxArbiters, maxPoints, maxConstraints int
+
+func DebugInfo(space *Space) string {
+	arbiters := len(space.arbiters)
+	points := 0
+
+	for i := 0; i < arbiters; i++ {
+		points += int(space.arbiters[i].count)
+	}
+
+	constraints := len(space.constraints) + points*int(space.Iterations)
+	if arbiters > maxArbiters {
+		maxArbiters = arbiters
+	}
+	if points > maxPoints {
+		maxPoints = points
+	}
+	if constraints > maxConstraints {
+		maxConstraints = constraints
+	}
+
+	var ke float64
+	for _, body := range space.dynamicBodies {
+		ke += body.m*body.v.Dot(body.v) + body.i*body.w*body.w
+	}
+
+	return fmt.Sprintf(`Arbiters: %d (%d) -
+Contact Points: %d (%d)
+Other Constraints: %d, Iterations: %d
+Constraints x Iterations: %d (%d)`, arbiters, maxArbiters,
+		points, maxPoints, len(space.constraints), space.Iterations, constraints, maxConstraints)
 }

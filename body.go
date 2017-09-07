@@ -102,11 +102,17 @@ func (body *Body) SetAngle(angle float64) {
 	body.a = angle
 	body.SetTransform(body.p, angle)
 }
+
 func (body *Body) SetMoment(moment float64) {
 	body.Activate()
 	body.i = moment
 	body.i_inv = 1 / moment
 }
+
+func (body *Body) Mass() float64 {
+	return body.m
+}
+
 func (body *Body) SetMass(mass float64) {
 	body.Activate()
 	body.m = mass
@@ -153,8 +159,48 @@ func (body *Body) SetType(typ int) {
 		body.w = 0
 	}
 
-	if body.space != nil {
-		panic("TODO implement setting types on bodies that are already in a space")
+	if body.space == nil {
+		return
+	}
+
+	// If the body is added to a space already, we'll need to update some space data structures.
+	assert(body.space.locked == 0, "Space is locked")
+
+	if oldType != BODY_STATIC {
+		body.Activate()
+	}
+
+	fromArray := body.space.ArrayForBodyType(oldType)
+	toArray := body.space.ArrayForBodyType(typ)
+	if oldType != typ {
+		slice := *fromArray
+		for i, b := range slice {
+			if b == body {
+				*fromArray = append(slice[:i], slice[i+1:]...)
+				break
+			}
+		}
+		*toArray = append(*toArray, body)
+	}
+
+	var fromIndex, toIndex *SpatialIndex
+	if oldType == BODY_STATIC {
+		fromIndex = body.space.staticShapes
+	} else {
+		fromIndex = body.space.dynamicShapes
+	}
+
+	if typ == BODY_STATIC {
+		toIndex = body.space.staticShapes
+	} else {
+		toIndex = body.space.dynamicShapes
+	}
+
+	if oldType != typ {
+		for _, shape := range body.shapeList {
+			fromIndex.class.Remove(shape, shape.hashid)
+			toIndex.class.Insert(shape, shape.hashid)
+		}
 	}
 }
 
@@ -380,4 +426,19 @@ func BodyUpdatePosition(body *Body, dt float64) {
 
 	body.v_bias = VectorZero()
 	body.w_bias = 0
+}
+
+func (body *Body) RemoveConstraint(constraint *Constraint) {
+	body.constraintList = filterConstraints(body.constraintList, body, constraint)
+}
+
+func filterConstraints(node *Constraint, body *Body, filter *Constraint) *Constraint {
+	if node == filter {
+		return node.Next(body)
+	} else if node.a == body {
+		node.next_a = filterConstraints(node.next_a, body, filter)
+	} else {
+		node.next_b = filterConstraints(node.next_b, body, filter)
+	}
+	return node
 }

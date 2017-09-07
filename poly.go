@@ -10,7 +10,7 @@ type PolyShape struct {
 	count uint
 
 	// The untransformed planes are appended at the end of the transformed planes.
-	planes []*SplittingPlane
+	planes []SplittingPlane
 }
 
 func (poly *PolyShape) CacheData(transform Transform) BB {
@@ -47,7 +47,52 @@ func (poly *PolyShape) Destroy() {
 }
 
 func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
-	panic("implement me")
+	count := poly.count
+	planes := poly.planes
+	r := poly.r
+
+	v0 := planes[count-1].v0
+	minDist := INFINITY
+	closestPoint := VectorZero()
+	closestNormal := VectorZero()
+	outside := false
+
+	var i uint
+	for i = 0; i<count; i++ {
+		v1 := planes[i].v0
+		if !outside {
+			outside = planes[i].n.Dot(p.Sub(v1)) > 0
+		}
+
+		closest := p.ClosestPointOnSegment(v0, v1)
+
+		dist := p.Distance(closest)
+		if dist < minDist {
+			minDist = dist
+			closestPoint = closest
+			closestNormal = planes[i].n
+		}
+
+		v0 = v1
+	}
+
+	var dist float64
+	if outside {
+		dist = minDist
+	} else {
+		dist = -minDist
+	}
+	g := p.Sub(closestPoint).Mult(1.0/dist)
+
+	info.Shape = poly.Shape
+	info.Point = closestPoint.Add(g.Mult(r))
+	info.Distance = dist-r
+
+	if minDist > MAGIC_EPSILON {
+		info.Gradient = g
+ 	} else {
+		info.Gradient = closestNormal
+	}
 }
 
 func (poly *PolyShape) SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo) {
@@ -68,7 +113,7 @@ func NewPolyShapeRaw(body *Body, count uint, verts []Vector, radius float64) *Sh
 	poly := &PolyShape{
 		r:      radius,
 		count:  count,
-		planes: []*SplittingPlane{},
+		planes: []SplittingPlane{},
 	}
 	poly.Shape = NewShape(poly, body, PolyShapeMassInfo(0, verts, radius))
 	poly.SetVerts(verts)
@@ -91,10 +136,10 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 func (p *PolyShape) SetVerts(verts []Vector) {
 	count := len(verts)
 	p.count = uint(count)
-	p.planes = make([]*SplittingPlane, count*2)
+	p.planes = make([]SplittingPlane, count*2)
 
 	for i := range p.planes {
-		p.planes[i] = &SplittingPlane{}
+		p.planes[i] = SplittingPlane{}
 	}
 
 	for i := 0; i < count; i++ {
@@ -120,8 +165,7 @@ func PolyShapeMassInfo(mass float64, verts []Vector, r float64) *ShapeMassInfo {
 // QuickHull seemed like a neat algorithm, and efficient-ish for large input sets.
 // My implementation performs an in place reduction using the result array as scratch space.
 func ConvexHull(count int, verts []Vector, first *int, tol float64) int {
-	var start, end int
-	LoopIndexes(verts, count, &start, &end)
+	start, end := LoopIndexes(verts, count)
 	if start == end {
 		if first != nil {
 			*first = 0
@@ -146,8 +190,26 @@ func ConvexHull(count int, verts []Vector, first *int, tol float64) int {
 	return QHullReduce(tol, verts[2:], count-2, a, b, a, verts[1:]) + 1
 }
 
-func LoopIndexes(verts []Vector, count int, start, end *int) {
+func LoopIndexes(verts []Vector, count int) (int, int) {
+	start := 0
+	end := 0
 
+	min := verts[0]
+	max := min
+
+	for i := 0; i < count; i++ {
+		v := verts[i]
+
+		if v.X < min.X || (v.X == min.X && v.Y < min.Y) {
+			min = v
+			start = i
+		} else if v.X > max.X || (v.X == max.X && v.Y > max.Y) {
+			max = v
+			end = i
+		}
+	}
+
+	return start, end
 }
 
 func QHullReduce(tol float64, verts []Vector, count int, a, pivot, b Vector, result []Vector) int {
@@ -167,6 +229,12 @@ func QHullReduce(tol float64, verts []Vector, count int, a, pivot, b Vector, res
 	index++
 
 	rightCount := QHullPartition(verts[leftCount:], count-leftCount, pivot, b, tol)
+
+	// Go doesn't let you just walk off the end of an array, so added a short circuit here
+	if rightCount-1 < 0 {
+		return index
+	}
+
 	return index + QHullReduce(tol, verts[leftCount+1:], rightCount-1, pivot, verts[leftCount], b, result[index:])
 }
 

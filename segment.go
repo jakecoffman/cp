@@ -49,19 +49,19 @@ func (seg *Segment) PointQuery(p Vector, info *PointQueryInfo) {
 	r := seg.r
 	g := delta.Mult(1/d)
 
-	info.shape = seg.Shape
+	info.Shape = seg.Shape
 	if d != 0 {
-		info.point = closest.Add(g.Mult(r))
+		info.Point = closest.Add(g.Mult(r))
 	} else {
-		info.point = closest
+		info.Point = closest
 	}
-	info.distance = d - r
+	info.Distance = d - r
 
 	// Use the segment's normal if the distance is very small.
 	if d > MAGIC_EPSILON {
-		info.gradient = g
+		info.Gradient = g
 	} else {
-		info.gradient = seg.n
+		info.Gradient = seg.n
 	}
 }
 

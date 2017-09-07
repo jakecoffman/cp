@@ -132,7 +132,7 @@ type MarkContext struct {
 	data       interface{}
 }
 
-func VoidQueryFunc(obj1, obj2 *Shape, collisionId uint, data interface{}) uint {
+func VoidQueryFunc(obj1 interface{}, obj2 *Shape, collisionId uint, data interface{}) uint {
 	return collisionId
 }
 
@@ -403,8 +403,21 @@ func (tree *BBTree) PairsClear(leaf *Node) {
 	}
 }
 
-func (tree *BBTree) Query(obj *Shape, bb BB, f SpatialIndexQuery, data interface{}) {
-	panic("implement me")
+func (tree *BBTree) Query(obj interface{}, bb BB, f SpatialIndexQuery, data interface{}) {
+	if tree.root != nil {
+		tree.root.SubtreeQuery(obj, bb, f, data)
+	}
+}
+
+func (subtree *Node) SubtreeQuery(obj interface{}, bb BB, query SpatialIndexQuery, data interface{}) {
+	if subtree.bb.Intersects(bb) {
+		if subtree.IsLeaf() {
+			query(obj, subtree.obj, 0, data)
+		} else {
+			subtree.a.SubtreeQuery(obj, bb, query, data)
+			subtree.b.SubtreeQuery(obj, bb, query, data)
+		}
+	}
 }
 
 func (tree *BBTree) SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {

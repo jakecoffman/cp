@@ -134,7 +134,7 @@ func (hash *SpaceHash) removeOrphanedHandles(binPtr **SpaceHashBin) {
 	}
 }
 
-func (hash *SpaceHash) queryHelper(binPtr **SpaceHashBin, obj *Shape, f SpatialIndexQuery, data interface{}) {
+func (hash *SpaceHash) queryHelper(binPtr **SpaceHashBin, obj interface{}, f SpatialIndexQuery, data interface{}) {
 restart:
 	for bin := *binPtr; bin != nil; bin = bin.next {
 		hand := bin.handle
@@ -190,7 +190,7 @@ func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	hash.CollideStatic(hash.staticIndex, f, data)
 }
 
-func (hash *SpaceHash) Query(obj *Shape, bb BB, f SpatialIndexQuery, data interface{}) {
+func (hash *SpaceHash) Query(obj interface{}, bb BB, f SpatialIndexQuery, data interface{}) {
 	dim := hash.celldim
 	l := math.Floor(bb.L / dim)
 	r := math.Floor(bb.R / dim)

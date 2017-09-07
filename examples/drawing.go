@@ -87,7 +87,7 @@ func DrawFatSegment(a, b Vector, radius float64, outline, fill FColor) {
 	n := b.Sub(a).ReversePerp().Normalize()
 	t := n.ReversePerp()
 
-	var half float64 = 1 / DrawPointLineScale
+	var half float64 = 1.0 / DrawPointLineScale
 	r := radius + half
 
 	if r <= half {
@@ -106,12 +106,36 @@ func DrawFatSegment(a, b Vector, radius float64, outline, fill FColor) {
 	v6 := V2f(a.Sub(nw.Add(tw)))
 	v7 := V2f(a.Add(nw.Add(tw)))
 
-	t0 := Triangle{Vertex{v0, v2f{1, -1}, fill, outline}, Vertex{v1, v2f{1, 1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
-	t1 := Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v1, v2f{1, 1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
-	t2 := Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v2, v2f{0, -1}, fill, outline}}
-	t3 := Triangle{Vertex{v3, v2f{0, 1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
-	t4 := Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v4, v2f{0, -1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
-	t5 := Triangle{Vertex{v6, v2f{-1, -1}, fill, outline}, Vertex{v7, v2f{-1, 1}, fill, outline}, Vertex{v5, v2f{0, 1}, fill, outline}}
+	t0 := Triangle{
+		Vertex{v0, v2f{1, -1}, fill, outline},
+		Vertex{v1, v2f{1, 1}, fill, outline},
+		Vertex{v2, v2f{0, -1}, fill, outline},
+	}
+	t1 := Triangle{
+		Vertex{v3, v2f{0, 1}, fill, outline},
+		Vertex{v1, v2f{1, 1}, fill, outline},
+		Vertex{v2, v2f{0, -1}, fill, outline},
+	}
+	t2 := Triangle{
+		Vertex{v3, v2f{0, 1}, fill, outline},
+		Vertex{v4, v2f{0, -1}, fill, outline},
+		Vertex{v2, v2f{0, -1}, fill, outline},
+	}
+	t3 := Triangle{
+		Vertex{v3, v2f{0, 1}, fill, outline},
+		Vertex{v4, v2f{0, -1}, fill, outline},
+		Vertex{v5, v2f{0, 1}, fill, outline},
+	}
+	t4 := Triangle{
+		Vertex{v6, v2f{-1, -1}, fill, outline},
+		Vertex{v4, v2f{0, -1}, fill, outline},
+		Vertex{v5, v2f{0, 1}, fill, outline},
+	}
+	t5 := Triangle{
+		Vertex{v6, v2f{-1, -1}, fill, outline},
+		Vertex{v7, v2f{-1, 1}, fill, outline},
+		Vertex{v5, v2f{0, 1}, fill, outline},
+	}
 
 	triangleStack = append(triangleStack, t0)
 	triangleStack = append(triangleStack, t1)
@@ -125,7 +149,7 @@ func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColo
 	type ExtrudeVerts struct {
 		offset, n Vector
 	}
-	extrude := make([]*ExtrudeVerts, count)
+	extrude := make([]ExtrudeVerts, count)
 
 	var i uint
 	for i = 0; i < count; i++ {
@@ -137,10 +161,8 @@ func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColo
 		n2 := v2.Sub(v1).ReversePerp().Normalize()
 
 		offset := n1.Add(n2).Mult(1.0 / (n1.Dot(n2) + 1.0))
-		extrude[i] = &ExtrudeVerts{offset, n2}
+		extrude[i] = ExtrudeVerts{offset, n2}
 	}
-
-	cursor := 0
 
 	inset := -math.Max(0, 1.0/DrawPointLineScale-radius)
 	for i = 0; i < count-2; i++ {
@@ -153,12 +175,11 @@ func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColo
 			Vertex{v1, v2f0(), fill, fill},
 			Vertex{v2, v2f0(), fill, fill},
 		})
-		cursor++
 	}
 
 	outset := 1.0/DrawPointLineScale + radius - inset
 	j := count - 1
-	for i = 0; i < count; i++ {
+	for i = 0; i < count; {
 		vA := verts[i]
 		vB := verts[j]
 
@@ -202,9 +223,9 @@ func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColo
 			Vertex{outer2, offset0, fill, outline},
 			Vertex{outer3, n0, fill, outline},
 		})
-		cursor += 4
 
 		j = i
+		i++
 	}
 }
 
@@ -230,11 +251,13 @@ func DrawBB(bb *BB, outline FColor) {
 }
 
 func DrawInstructions() {
-	DrawString(Vector{-300, 220}, `Press Q to quit`)
+	DrawString(Vector{-300, 220}, `Controls:
+Press Q to quit
+Use the mouse to drag objects`)
 }
 
-func DrawInfo() {
-	// TODO
+func DrawInfo(space *Space) {
+	DrawString(Vector{0, 220}, DebugInfo(space))
 }
 
 func FlushRenderer() {
