@@ -41,9 +41,11 @@ func (set *HashSet) Resize() {
 		bin := set.table[i]
 		for bin != nil {
 			next := bin.next
+
 			idx := uint(bin.hash) % newSize
 			bin.next = newTable[idx]
 			newTable[idx] = bin
+
 			bin = next
 		}
 	}
@@ -94,10 +96,10 @@ func (set *HashSet) Insert(hash HashValue, ptr interface{}, trans HashSetTrans, 
 }
 
 func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
-	idx := uint(hash)%set.size
+	idx := uint(hash) % set.size
+
 	bin := set.table[idx]
-	// In Go we can't take the address of a map entry, so this differs a bit.
-	var prevPtr **HashSetBin
+	prevPtr := &set.table[idx]
 
 	// Find the bin
 	for bin != nil && !set.eql(ptr, bin.elt) {
@@ -121,7 +123,7 @@ func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 }
 
 func (set *HashSet) Find(hash HashValue, ptr interface{}) interface{} {
-	idx := uint(hash)%set.size
+	idx := uint(hash) % set.size
 	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
@@ -146,7 +148,7 @@ func (set *HashSet) Each(f HashSetIterator) {
 
 func (set *HashSet) Filter(f HashSetFilter, data interface{}) {
 	var i uint
-	for i=0; i < set.size; i++ {
+	for i = 0; i < set.size; i++ {
 		prevPtr := &set.table[i]
 		bin := set.table[i]
 		for bin != nil {

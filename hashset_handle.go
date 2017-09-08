@@ -136,8 +136,7 @@ func (set *HashSetHandle) GetUnusedBin() *HashSetBinHandle {
 func (set *HashSetHandle) Remove(hash HashValue, ptr *Shape) *Handle {
 	idx := uint(hash) % set.size
 	bin := set.table[idx]
-	// In Go we can't take the address of a map entry, so this differs a bit.
-	var prevPtr **HashSetBinHandle
+	prevPtr := &set.table[idx]
 
 	// Find the bin
 	for bin != nil && !set.eql(ptr, bin.elt) {
