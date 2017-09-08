@@ -17,20 +17,43 @@ type HashSetArbiter struct {
 	eql          HashSetEqualArbiter
 	defaultValue Arbiter
 
-	table      map[HashValue]*HashSetBinArbiter
+	size       uint
+	table      []*HashSetBinArbiter
 	pooledBins *HashSetBinArbiter
 }
 
 func NewHashSetArbiter(eql HashSetEqualArbiter) *HashSetArbiter {
+	size := nextPrime(0)
 	return &HashSetArbiter{
 		eql:   eql,
-		table: map[HashValue]*HashSetBinArbiter{},
+		size:  size,
+		table: make([]*HashSetBinArbiter, size),
 	}
+}
+
+func (set *HashSetArbiter) Resize() {
+	newSize := nextPrime(set.size + 1)
+	newTable := make([]*HashSetBinArbiter, newSize)
+
+	var i uint
+	for i = 0; i < set.size; i++ {
+		bin := set.table[i]
+		for bin != nil {
+			next := bin.next
+			idx := uint(bin.hash) % newSize
+			bin.next = newTable[idx]
+			newTable[idx] = bin
+			bin = next
+		}
+	}
+
+	set.table = newTable
+	set.size = newSize
 }
 
 func (set *HashSetArbiter) Free() {
 	if set != nil {
-		set.table = map[HashValue]*HashSetBinArbiter{}
+		set.table = []*HashSetBinArbiter{}
 	}
 }
 
@@ -38,9 +61,11 @@ func (set *HashSetArbiter) Count() uint {
 	return set.entries
 }
 
-func (set *HashSetArbiter) Insert(hash HashValue, ptr []*Shape, trans HashSetTransArbiter, space *Space) interface{} {
+func (set *HashSetArbiter) Insert(hash HashValue, ptr []*Shape, trans HashSetTransArbiter, space *Space) *Arbiter {
+	idx := uint(hash) % set.size
+
 	// Find the bin with the matching element.
-	bin := set.table[hash]
+	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}
@@ -51,32 +76,40 @@ func (set *HashSetArbiter) Insert(hash HashValue, ptr []*Shape, trans HashSetTra
 		bin.hash = hash
 		bin.elt = trans(ptr, space)
 
-		bin.next = set.table[hash]
-		set.table[hash] = bin
+		bin.next = set.table[idx]
+		set.table[idx] = bin
 
 		set.entries++
+		if set.entries >= set.size {
+			set.Resize()
+		}
 	}
 
 	return bin.elt
 }
 
 func (set *HashSetArbiter) InsertArb(hash HashValue, ptr []*Shape, arb *Arbiter) interface{} {
+	idx := uint(hash) % set.size
+
 	// Find the bin with the matching element.
-	bin := set.table[hash]
+	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}
 
 	// Create it if necessary.
 	if bin == nil {
-		bin = &HashSetBinArbiter{}
+		bin = set.GetUnusedBin()
 		bin.hash = hash
 		bin.elt = arb
 
-		bin.next = set.table[hash]
-		set.table[hash] = bin
+		bin.next = set.table[idx]
+		set.table[idx] = bin
 
 		set.entries++
+		if set.entries >= set.size {
+			set.Resize()
+		}
 	}
 
 	return bin.elt
@@ -104,9 +137,9 @@ func (set *HashSetArbiter) GetUnusedBin() *HashSetBinArbiter {
 }
 
 func (set *HashSetArbiter) Remove(hash HashValue, ptr []*Shape) *Arbiter {
-	bin := set.table[hash]
-	// In Go we can't take the address of a map entry, so this differs a bit.
-	var prevPtr **HashSetBinArbiter
+	idx := uint(hash) % set.size
+	prevPtr := &set.table[idx]
+	bin := set.table[idx]
 
 	// Find the bin
 	for bin != nil && !set.eql(ptr, bin.elt) {
@@ -117,12 +150,7 @@ func (set *HashSetArbiter) Remove(hash HashValue, ptr []*Shape) *Arbiter {
 	// Remove the bin if it exists
 	if bin != nil {
 		// Update the previous linked list pointer
-		if prevPtr != nil {
-			*prevPtr = bin.next
-		} else {
-			delete(set.table, hash)
-		}
-
+		*prevPtr = bin.next
 		set.entries--
 
 		elt := bin.elt
@@ -135,7 +163,9 @@ func (set *HashSetArbiter) Remove(hash HashValue, ptr []*Shape) *Arbiter {
 }
 
 func (set *HashSetArbiter) Find(hash HashValue, ptr []*Shape) interface{} {
-	bin := set.table[hash]
+	idx := uint(hash) % set.size
+	bin := set.table[idx]
+
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}
@@ -158,26 +188,19 @@ func (set *HashSetArbiter) Each(f HashSetIteratorArbiter) {
 }
 
 func (set *HashSetArbiter) Filter(space *Space) {
-	var prevPtr **HashSetBinArbiter
-	var next *HashSetBinArbiter
-
-	for i, first := range set.table {
-		prevPtr = &first
-		bin := first
+	var i uint
+	for i = 0; i < set.size; i++ {
+		prevPtr := &set.table[i]
+		bin := set.table[i]
 		for bin != nil {
-			next = bin.next
+			next := bin.next
 
 			if SpaceArbiterSetFilter(bin.elt, space) {
 				prevPtr = &bin.next
 			} else {
-				if first == *prevPtr {
-					set.table[i] = nil
-				} else {
-					*prevPtr = bin.next
-				}
+				*prevPtr = next
 
 				set.entries--
-
 				set.Recycle(bin)
 			}
 

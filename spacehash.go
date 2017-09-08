@@ -40,10 +40,10 @@ func (hash *SpaceHash) hashHandle(hand *Handle, bb BB) {
 	dim := hash.celldim
 
 	// TODO: chipmunk said floor is slow, use custom floor
-	l := math.Floor(bb.L / dim)
-	r := math.Floor(bb.R / dim)
-	b := math.Floor(bb.B / dim)
-	t := math.Floor(bb.T / dim)
+	l := floor(bb.L / dim)
+	r := floor(bb.R / dim)
+	b := floor(bb.B / dim)
+	t := floor(bb.T / dim)
 
 	n := hash.numCells
 	for i := l; i <= r; i++ {
@@ -152,6 +152,14 @@ restart:
 	}
 }
 
+func floor(f float64) int {
+	i := int(f)
+	if f < 0 && float64(i) != f {
+		return i-1
+	}
+	return i
+}
+
 func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	hash.clearTable()
 
@@ -160,10 +168,10 @@ func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 
 		bb := hash.SpatialIndex.bbfunc(hand.obj)
 
-		l := math.Floor(bb.L / hash.celldim)
-		r := math.Floor(bb.R / hash.celldim)
-		b := math.Floor(bb.B / hash.celldim)
-		t := math.Floor(bb.T / hash.celldim)
+		l := floor(bb.L / hash.celldim)
+		r := floor(bb.R / hash.celldim)
+		b := floor(bb.B / hash.celldim)
+		t := floor(bb.T / hash.celldim)
 
 		for i := l; i <= r; i++ {
 			for j := b; j <= t; j++ {
@@ -192,10 +200,10 @@ func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 
 func (hash *SpaceHash) Query(obj interface{}, bb BB, f SpatialIndexQuery, data interface{}) {
 	dim := hash.celldim
-	l := math.Floor(bb.L / dim)
-	r := math.Floor(bb.R / dim)
-	b := math.Floor(bb.B / dim)
-	t := math.Floor(bb.T / dim)
+	l := floor(bb.L / dim)
+	r := floor(bb.R / dim)
+	b := floor(bb.B / dim)
+	t := floor(bb.T / dim)
 
 	n := hash.numCells
 
@@ -235,8 +243,8 @@ func (hash *SpaceHash) SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f S
 	a = a.Mult(1.0 / hash.celldim)
 	b = b.Mult(1.0 / hash.celldim)
 
-	cellX := int(math.Floor(a.X))
-	cellY := int(math.Floor(a.Y))
+	cellX := int(floor(a.X))
+	cellY := int(floor(a.Y))
 
 	t := 0.0
 

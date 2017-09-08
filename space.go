@@ -45,7 +45,7 @@ type Space struct {
 	locked int
 
 	usesWildcards     bool
-	collisionHandlers *HashSet
+	collisionHandlers *HashSetCollisionHandler
 	defaultHandler    *CollisionHandler
 
 	skipPostStep      bool
@@ -59,18 +59,6 @@ func arbiterSetEql(shapes []*Shape, arb *Arbiter) bool {
 	b := shapes[1]
 
 	return (a == arb.a && b == arb.b) || (b == arb.a && a == arb.b)
-}
-
-func handlerSetEql(ptr, elt interface{}) bool {
-	check := ptr.(*CollisionHandler)
-	pair := elt.(*CollisionHandler)
-	if check.typeA == pair.typeA && check.typeB == pair.typeB {
-		return true
-	}
-	if check.typeB == pair.typeA && check.typeA == pair.typeB {
-		return true
-	}
-	return false
 }
 
 func handlerSetTrans(handler, _ interface{}) interface{} {
@@ -100,7 +88,7 @@ func NewSpace() *Space {
 		cachedArbiters:       NewHashSetArbiter(arbiterSetEql),
 		pooledArbiters:       make(chan *Arbiter, POOLED_BUFFER_SIZE),
 		constraints:          []*Constraint{},
-		collisionHandlers:    NewHashSet(handlerSetEql),
+		collisionHandlers:    NewHashSetCollisionHandler(),
 		postStepCallbacks:    []PostStepCallback{},
 		defaultHandler:       &CollisionHandlerDoNothing,
 	}
@@ -378,8 +366,7 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint, vspace 
 	// This is where the persistent contact magic comes from.
 	shapePair := []*Shape{info.a, info.b}
 	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
-	value := space.cachedArbiters.Insert(arbHashId, shapePair, SpaceArbiterSetTrans, space)
-	arb := value.(*Arbiter)
+	arb := space.cachedArbiters.Insert(arbHashId, shapePair, SpaceArbiterSetTrans, space)
 	arb.Update(info, space)
 
 	assert(arb.body_a != arb.body_b, "EQUAL")
@@ -770,10 +757,10 @@ func (space *Space) PopContacts(count uint) {
 }
 
 func (space *Space) LookupHandler(a, b uint, defaultHandler *CollisionHandler) *CollisionHandler {
-	types := []uint{a, b}
+	types := &CollisionHandler{typeA: a, typeB: b}
 	handler := space.collisionHandlers.Find(HashPair(HashValue(a), HashValue(b)), types)
 	if handler != nil {
-		return handler.(*CollisionHandler)
+		return handler
 	}
 	return defaultHandler
 }
@@ -781,7 +768,7 @@ func (space *Space) LookupHandler(a, b uint, defaultHandler *CollisionHandler) *
 func (space *Space) NewCollisionHandler(collisionTypeA, collisionTypeB uint) *CollisionHandler {
 	hash := HashPair(HashValue(collisionTypeA), HashValue(collisionTypeB))
 	handler := &CollisionHandler{collisionTypeA, collisionTypeB, DefaultBegin, DefaultPreSolve, DefaultPostSolve, DefaultSeparate, nil}
-	return space.collisionHandlers.Insert(hash, handler, handlerSetTrans, nil).(*CollisionHandler)
+	return space.collisionHandlers.Insert(hash, handler)
 }
 
 func (space *Space) NewWildcardCollisionHandler(collisionType uint) *CollisionHandler {
@@ -789,7 +776,7 @@ func (space *Space) NewWildcardCollisionHandler(collisionType uint) *CollisionHa
 
 	hash := HashPair(HashValue(collisionType), HashValue(WILDCARD_COLLISION_TYPE))
 	handler := &CollisionHandler{collisionType, WILDCARD_COLLISION_TYPE, AlwaysCollide, AlwaysCollide, DoNothing, DoNothing, nil}
-	return space.collisionHandlers.Insert(hash, handler, handlerSetTrans, nil).(*CollisionHandler)
+	return space.collisionHandlers.Insert(hash, handler)
 }
 
 func (space *Space) UseWildcardDefaultHandler() {
@@ -840,10 +827,10 @@ func (space *Space) EachBody(f func(body *Body)) {
 type SpacePointQueryFunc func(*Shape, Vector, float64, Vector, interface{})
 
 type PointQueryContext struct {
-	point Vector
+	point       Vector
 	maxDistance float64
-	filter ShapeFilter
-	f SpacePointQueryFunc
+	filter      ShapeFilter
+	f           SpacePointQueryFunc
 }
 
 func (space *Space) PointQueryNearest(point Vector, maxDistance float64, filter ShapeFilter) *PointQueryInfo {

@@ -17,20 +17,43 @@ type HashSetHandle struct {
 	eql          HashSetEqualHandle
 	defaultValue Handle
 
-	table      map[HashValue]*HashSetBinHandle
+	size       uint
+	table      []*HashSetBinHandle
 	pooledBins *HashSetBinHandle
 }
 
 func NewHashSetHandle(eql HashSetEqualHandle) *HashSetHandle {
+	size := nextPrime(0)
 	return &HashSetHandle{
 		eql:   eql,
-		table: map[HashValue]*HashSetBinHandle{},
+		size:  size,
+		table: make([]*HashSetBinHandle, size),
 	}
+}
+
+func (set *HashSetHandle) Resize() {
+	newSize := nextPrime(set.size + 1)
+	newTable := make([]*HashSetBinHandle, newSize)
+
+	var i uint
+	for i = 0; i < set.size; i++ {
+		bin := set.table[i]
+		for bin != nil {
+			next := bin.next
+			idx := uint(bin.hash) % newSize
+			bin.next = newTable[idx]
+			newTable[idx] = bin
+			bin = next
+		}
+	}
+
+	set.table = newTable
+	set.size = newSize
 }
 
 func (set *HashSetHandle) Free() {
 	if set != nil {
-		set.table = map[HashValue]*HashSetBinHandle{}
+		set.table = []*HashSetBinHandle{}
 	}
 }
 
@@ -39,8 +62,10 @@ func (set *HashSetHandle) Count() uint {
 }
 
 func (set *HashSetHandle) Insert(hash HashValue, ptr *Shape, trans HashSetTransHandle, spaceHash *SpaceHash) *Handle {
+	idx := uint(hash) % set.size
+
 	// Find the bin with the matching element.
-	bin := set.table[hash]
+	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}
@@ -51,18 +76,23 @@ func (set *HashSetHandle) Insert(hash HashValue, ptr *Shape, trans HashSetTransH
 		bin.hash = hash
 		bin.elt = trans(ptr, spaceHash)
 
-		bin.next = set.table[hash]
-		set.table[hash] = bin
+		bin.next = set.table[idx]
+		set.table[idx] = bin
 
 		set.entries++
+		if set.entries >= set.size {
+			set.Resize()
+		}
 	}
 
 	return bin.elt
 }
 
 func (set *HashSetHandle) InsertArb(hash HashValue, ptr *Shape, arb *Handle) interface{} {
+	idx := uint(hash) % set.size
+
 	// Find the bin with the matching element.
-	bin := set.table[hash]
+	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}
@@ -73,8 +103,8 @@ func (set *HashSetHandle) InsertArb(hash HashValue, ptr *Shape, arb *Handle) int
 		bin.hash = hash
 		bin.elt = arb
 
-		bin.next = set.table[hash]
-		set.table[hash] = bin
+		bin.next = set.table[idx]
+		set.table[idx] = bin
 
 		set.entries++
 	}
@@ -104,7 +134,8 @@ func (set *HashSetHandle) GetUnusedBin() *HashSetBinHandle {
 }
 
 func (set *HashSetHandle) Remove(hash HashValue, ptr *Shape) *Handle {
-	bin := set.table[hash]
+	idx := uint(hash) % set.size
+	bin := set.table[idx]
 	// In Go we can't take the address of a map entry, so this differs a bit.
 	var prevPtr **HashSetBinHandle
 
@@ -117,12 +148,7 @@ func (set *HashSetHandle) Remove(hash HashValue, ptr *Shape) *Handle {
 	// Remove the bin if it exists
 	if bin != nil {
 		// Update the previous linked list pointer
-		if prevPtr != nil {
-			*prevPtr = bin.next
-		} else {
-			delete(set.table, hash)
-		}
-
+		*prevPtr = bin.next
 		set.entries--
 
 		elt := bin.elt
@@ -135,7 +161,8 @@ func (set *HashSetHandle) Remove(hash HashValue, ptr *Shape) *Handle {
 }
 
 func (set *HashSetHandle) Find(hash HashValue, ptr *Shape) interface{} {
-	bin := set.table[hash]
+	idx := uint(hash) % set.size
+	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}

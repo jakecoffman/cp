@@ -18,20 +18,43 @@ type HashSet struct {
 	eql          HashSetEqual
 	defaultValue interface{}
 
-	table      map[HashValue]*HashSetBin
+	size       uint
+	table      []*HashSetBin
 	pooledBins *HashSetBin
 }
 
 func NewHashSet(eql HashSetEqual) *HashSet {
+	size := nextPrime(0)
 	return &HashSet{
 		eql:   eql,
-		table: map[HashValue]*HashSetBin{},
+		size:  size,
+		table: make([]*HashSetBin, size),
 	}
+}
+
+func (set *HashSet) Resize() {
+	newSize := nextPrime(set.size + 1)
+	newTable := make([]*HashSetBin, newSize)
+
+	var i uint
+	for i = 0; i < set.size; i++ {
+		bin := set.table[i]
+		for bin != nil {
+			next := bin.next
+			idx := uint(bin.hash) % newSize
+			bin.next = newTable[idx]
+			newTable[idx] = bin
+			bin = next
+		}
+	}
+
+	set.table = newTable
+	set.size = newSize
 }
 
 func (set *HashSet) Free() {
 	if set != nil {
-		set.table = map[HashValue]*HashSetBin{}
+		set.table = []*HashSetBin{}
 	}
 }
 
@@ -40,8 +63,10 @@ func (set *HashSet) Count() uint {
 }
 
 func (set *HashSet) Insert(hash HashValue, ptr interface{}, trans HashSetTrans, data interface{}) interface{} {
+	idx := uint(hash) % set.size
+
 	// Find the bin with the matching element.
-	bin := set.table[hash]
+	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}
@@ -56,17 +81,21 @@ func (set *HashSet) Insert(hash HashValue, ptr interface{}, trans HashSetTrans, 
 			bin.elt = data
 		}
 
-		bin.next = set.table[hash]
-		set.table[hash] = bin
+		bin.next = set.table[idx]
+		set.table[idx] = bin
 
 		set.entries++
+		if set.entries >= set.size {
+			set.Resize()
+		}
 	}
 
 	return bin.elt
 }
 
 func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
-	bin := set.table[hash]
+	idx := uint(hash)%set.size
+	bin := set.table[idx]
 	// In Go we can't take the address of a map entry, so this differs a bit.
 	var prevPtr **HashSetBin
 
@@ -79,12 +108,7 @@ func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 	// Remove the bin if it exists
 	if bin != nil {
 		// Update the previous linked list pointer
-		if prevPtr != nil {
-			*prevPtr = bin.next
-		} else {
-			delete(set.table, hash)
-		}
-
+		*prevPtr = bin.next
 		set.entries--
 
 		elt := bin.elt
@@ -97,7 +121,8 @@ func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 }
 
 func (set *HashSet) Find(hash HashValue, ptr interface{}) interface{} {
-	bin := set.table[hash]
+	idx := uint(hash)%set.size
+	bin := set.table[idx]
 	for bin != nil && !set.eql(ptr, bin.elt) {
 		bin = bin.next
 	}
@@ -120,20 +145,17 @@ func (set *HashSet) Each(f HashSetIterator) {
 }
 
 func (set *HashSet) Filter(f HashSetFilter, data interface{}) {
-	for i, first := range set.table {
-		prevPtr := &first
-		bin := first
+	var i uint
+	for i=0; i < set.size; i++ {
+		prevPtr := &set.table[i]
+		bin := set.table[i]
 		for bin != nil {
 			next := bin.next
 
 			if f(bin.elt, data) {
 				prevPtr = &bin.next
 			} else {
-				if first == *prevPtr {
-					set.table[i] = nil
-				} else {
-					*prevPtr = bin.next
-				}
+				*prevPtr = next
 
 				set.entries--
 				set.Recycle(bin)
@@ -163,4 +185,45 @@ func (set *HashSet) GetUnusedBin() *HashSetBin {
 	}
 
 	return &HashSetBin{}
+}
+
+var primes = []uint{
+	5,
+	13,
+	23,
+	47,
+	97,
+	193,
+	389,
+	769,
+	1543,
+	3079,
+	6151,
+	12289,
+	24593,
+	49157,
+	98317,
+	196613,
+	393241,
+	786433,
+	1572869,
+	3145739,
+	6291469,
+	12582917,
+	25165843,
+	50331653,
+	100663319,
+	201326611,
+	402653189,
+	805306457,
+	1610612741,
+	0,
+}
+
+func nextPrime(n uint) uint {
+	var i uint = 0
+	for n > primes[i] {
+		i++
+	}
+	return primes[i]
 }
