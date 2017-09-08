@@ -98,12 +98,12 @@ func DrawFatSegment(a, b Vector, radius float64, outline, fill FColor) {
 	nw := n.Mult(r)
 	tw := t.Mult(r)
 	v0 := V2f(b.Sub(nw.Add(tw)))
-	v1 := V2f(b.Add(nw.Add(tw)))
+	v1 := V2f(b.Add(nw.Sub(tw)))
 	v2 := V2f(b.Sub(nw))
 	v3 := V2f(b.Add(nw))
 	v4 := V2f(a.Sub(nw))
 	v5 := V2f(a.Add(nw))
-	v6 := V2f(a.Sub(nw.Add(tw)))
+	v6 := V2f(a.Sub(nw.Sub(tw)))
 	v7 := V2f(a.Add(nw.Add(tw)))
 
 	t0 := Triangle{
