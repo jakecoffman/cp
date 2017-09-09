@@ -353,8 +353,7 @@ func DebugInfo(space *Space) string {
 		ke += body.m*body.v.Dot(body.v) + body.i*body.w*body.w
 	}
 
-	return fmt.Sprintf(`Arbiters: %d (%d) -
-Contact Points: %d (%d)
+	return fmt.Sprintf(`Arbiters: %d (%d) - Contact Points: %d (%d)
 Other Constraints: %d, Iterations: %d
 Constraints x Iterations: %d (%d)`, arbiters, maxArbiters,
 		points, maxPoints, len(space.constraints), space.Iterations, constraints, maxConstraints)
