@@ -137,17 +137,17 @@ type SplittingPlane struct {
 	v0, n Vector
 }
 
-type PinJoint struct {
-	constraint       *Constraint
-	anchorA, anchorB Vector
-	dist             float64
-
-	r1, r2 Vector
-	n      Vector
-	nMass  float64
-
-	jnAcc, bias float64
-}
+//type PinJoint struct {
+//	*Constraint
+//	anchorA, anchorB Vector
+//	dist             float64
+//
+//	r1, r2 Vector
+//	n      Vector
+//	nMass  float64
+//
+//	jnAcc, bias float64
+//}
 
 const (
 	NO_GROUP       = 0
@@ -164,6 +164,10 @@ type ShapeFilter struct {
 	/// A bitmask of user definable category types that this object object collides with.
 	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
 	Mask uint
+}
+
+func NewShapeFilter(group, categories, mask uint) ShapeFilter {
+	return ShapeFilter{group, categories, mask}
 }
 
 func (a ShapeFilter) Reject(b ShapeFilter) bool {

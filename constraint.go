@@ -13,7 +13,7 @@ type ConstraintPreSolveFunc func(*Constraint, *Space)
 type ConstraintPostSolveFunc func(*Constraint, *Space)
 
 type Constraint struct {
-	class Constrainer
+	Class Constrainer
 	space *Space
 
 	a, b *Body
@@ -30,7 +30,7 @@ type Constraint struct {
 
 func NewConstraint(class Constrainer, a, b *Body) *Constraint {
 	return &Constraint{
-		class: class,
+		Class: class,
 		a:     a,
 		b:     b,
 		space: nil,

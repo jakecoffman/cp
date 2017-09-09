@@ -1,5 +1,7 @@
 package physics
 
+import "fmt"
+
 //Draw flags
 const (
 	DRAW_SHAPES           = 1 << 0
@@ -19,7 +21,7 @@ type Drawer interface {
 	DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColor, data interface{})
 	DrawDot(size float64, pos Vector, fill FColor, data interface{})
 
-	Flags() int
+	Flags() uint
 	OutlineColor() FColor
 	ShapeColor(shape *Shape, data interface{}) FColor
 	ConstraintColor() FColor
@@ -58,42 +60,100 @@ func DrawShape(shape *Shape, options Drawer) {
 	}
 }
 
+var springVerts = []Vector{
+	{0.00, 0.0},
+	{0.20, 0.0},
+	{0.25, 3.0},
+	{0.30, -6.0},
+	{0.35, 6.0},
+	{0.40, -6.0},
+	{0.45, 6.0},
+	{0.50, -6.0},
+	{0.55, 6.0},
+	{0.60, -6.0},
+	{0.65, 6.0},
+	{0.70, -3.0},
+	{0.75, 6.0},
+	{0.80, 0.0},
+	{1.00, 0.0},
+}
+
 func DrawConstraint(constraint *Constraint, options Drawer) {
-	// TODO
+	data := options.Data()
+	color := options.ConstraintColor()
+
+	body_a := constraint.a
+	body_b := constraint.b
+
+	switch constraint.Class.(type) {
+	case *PivotJoint:
+		joint := constraint.Class.(*PivotJoint)
+
+		a := body_a.transform.Point(joint.anchorA)
+		b := body_b.transform.Point(joint.anchorB)
+
+		options.DrawDot(5, a, color, data)
+		options.DrawDot(5, b, color, data)
+	case *DampedSpring:
+		spring := constraint.Class.(*DampedSpring)
+		a := body_a.transform.Point(spring.AnchorA)
+		b := body_b.transform.Point(spring.AnchorB)
+
+		options.DrawDot(5, a, color, data)
+		options.DrawDot(5, b, color, data)
+
+		delta := b.Sub(a)
+		cos := delta.X
+		sin := delta.Y
+		s := 1.0 / delta.Length()
+
+		r1 := Vector{cos, -sin * s}
+		r2 := Vector{sin, cos * s}
+
+		verts := []Vector{}
+		for i := 0; i < len(springVerts); i++ {
+			v := springVerts[i]
+			verts = append(verts, Vector{v.Dot(r1) + a.X, v.Dot(r2) + a.Y})
+		}
+
+		for i := 0; i < len(springVerts)-1; i++ {
+			options.DrawSegment(verts[i], verts[i+1], color, data)
+		}
+	case *GearJoint:
+		// nothing to do here
+	default:
+		panic(fmt.Sprintf("Implement me: %#v", constraint.Class))
+	}
+
 	return
 }
 
 func DrawSpace(space *Space, options Drawer) {
-	if options.Flags() & DRAW_SHAPES == 1 {
-		space.dynamicShapes.class.Each(func(obj *Shape, data interface{}) {
-			DrawShape(obj, data.(Drawer))
-		}, options)
-		space.staticShapes.class.Each(func(obj *Shape, data interface{}) {
-			DrawShape(obj, data.(Drawer))
-		}, options)
+	space.dynamicShapes.class.Each(func(obj *Shape, data interface{}) {
+		DrawShape(obj, data.(Drawer))
+	}, options)
+	space.staticShapes.class.Each(func(obj *Shape, data interface{}) {
+		DrawShape(obj, data.(Drawer))
+	}, options)
+
+	for _, constraint := range space.constraints {
+		DrawConstraint(constraint, options)
 	}
 
-	if options.Flags() & DRAW_CONSTRAINTS == 1 {
-		for _, constraint := range space.constraints {
-			DrawConstraint(constraint, options)
-		}
-	}
+	drawSeg := options.DrawSegment
+	data := options.Data()
 
-	if options.Flags() & DRAW_COLLISION_POINTS == 1 {
-		drawSeg := options.DrawSegment
-		data := options.Data()
+	for _, arb := range space.arbiters {
+		n := arb.n
 
-		for _, arb := range space.arbiters {
-			n := arb.n
+		var j uint
+		for j = 0; j < arb.count; j++ {
+			p1 := arb.body_a.p.Add(arb.contacts[j].r1)
+			p2 := arb.body_b.p.Add(arb.contacts[j].r2)
 
-			for j := 0; j < len(space.arbiters); j++ {
-				p1 := arb.body_a.p.Add(arb.contacts[j].r1)
-				p2 := arb.body_b.p.Add(arb.contacts[j].r2)
-
-				a := p1.Add(n.Mult(-2))
-				b := p2.Add(n.Mult(2))
-				drawSeg(a, b, options.CollisionPointColor(), data)
-			}
+			a := p1.Add(n.Mult(-2))
+			b := p2.Add(n.Mult(2))
+			drawSeg(a, b, options.CollisionPointColor(), data)
 		}
 	}
 }

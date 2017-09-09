@@ -660,7 +660,7 @@ func (space *Space) Step(dt float64) {
 				constraint.preSolve(constraint, space)
 			}
 
-			constraint.class.PreStep(constraint, dt)
+			constraint.Class.PreStep(constraint, dt)
 		}
 
 		// Integrate velocities.
@@ -681,7 +681,7 @@ func (space *Space) Step(dt float64) {
 		}
 
 		for _, constraint := range space.constraints {
-			constraint.class.ApplyCachedImpulse(constraint, dt_coef)
+			constraint.Class.ApplyCachedImpulse(constraint, dt_coef)
 		}
 
 		// Run the impulse solver.
@@ -692,7 +692,7 @@ func (space *Space) Step(dt float64) {
 			}
 
 			for _, constraint := range space.constraints {
-				constraint.class.ApplyImpulse(constraint, dt)
+				constraint.Class.ApplyImpulse(constraint, dt)
 			}
 		}
 

@@ -5,12 +5,12 @@ import (
 )
 
 type DrawOptions struct {
-	flags                               int
+	flags                               uint
 	outline, constraint, collisionPoint FColor
 	data                                interface{}
 }
 
-func NewDrawOptions(flags int, outline, constraint, collisionPoint FColor, data interface{}) *DrawOptions {
+func NewDrawOptions(flags uint, outline, constraint, collisionPoint FColor, data interface{}) *DrawOptions {
 	return &DrawOptions{flags, outline, constraint, collisionPoint, data}
 }
 
@@ -34,7 +34,7 @@ func (*DrawOptions) DrawDot(size float64, pos Vector, fill FColor, data interfac
 	DrawDot(size, pos, fill)
 }
 
-func (d *DrawOptions) Flags() int {
+func (d *DrawOptions) Flags() uint {
 	return d.flags
 }
 
