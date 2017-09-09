@@ -277,6 +277,20 @@ func (body *Body) SetVelocityVector(v Vector) {
 	body.v = v
 }
 
+func (body *Body) UpdateVelocity(gravity Vector, damping, dt float64) {
+	if body.GetType() == BODY_KINEMATIC  {
+		return
+	}
+
+	assert(body.m > 0 && body.i > 0, "Body's mass and moment must be positive")
+
+	body.v = body.v.Mult(damping).Add(gravity.Add(body.f.Mult(body.m_inv)).Mult(dt))
+	body.w = body.w*damping + body.t*body.i_inv*dt
+
+	body.f = VectorZero()
+	body.t = 0
+}
+
 func (body *Body) Force() Vector {
 	return body.f
 }
@@ -442,3 +456,12 @@ func filterConstraints(node *Constraint, body *Body, filter *Constraint) *Constr
 	}
 	return node
 }
+
+func (body *Body) SetVelocityUpdateFunc(f BodyVelocityFunc) {
+	body.velocity_func = f
+}
+
+func (body *Body) SetPositionUpdateFunc(f BodyPositionFunc) {
+	body.position_func = f
+}
+
