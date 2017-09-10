@@ -149,10 +149,13 @@ type SplittingPlane struct {
 //	jnAcc, bias float64
 //}
 
-const (
-	NO_GROUP       = 0
-	ALL_CATEGORIES = math.MaxUint32
+var (
+	NO_GROUP       uint = 0
+	ALL_CATEGORIES uint = ^NO_GROUP
 )
+
+var SHAPE_FILTER_ALL = ShapeFilter{NO_GROUP, ALL_CATEGORIES, ALL_CATEGORIES}
+var SHAPE_FILTER_NONE = ShapeFilter{NO_GROUP, ^ALL_CATEGORIES, ^ALL_CATEGORIES}
 
 type ShapeFilter struct {
 	/// Two objects with the same non-zero group value do not collide.

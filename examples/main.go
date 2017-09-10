@@ -173,6 +173,35 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 		}
 	})
 
+	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		switch key {
+		case glfw.KeyUp:
+			if action == glfw.Press {
+				Keyboard.Y += 1
+			} else {
+				Keyboard.Y -= 1
+			}
+		case glfw.KeyDown:
+			if action == glfw.Press {
+				Keyboard.Y -= 1
+			} else {
+				Keyboard.Y += 1
+			}
+		case glfw.KeyLeft:
+			if action == glfw.Press {
+				Keyboard.X += 1
+			} else {
+				Keyboard.X -= 1
+			}
+		case glfw.KeyRight:
+			if action == glfw.Press {
+				Keyboard.X -= 1
+			} else {
+				Keyboard.X += 1
+			}
+		}
+	})
+
 	mouseBody = NewKinematicBody()
 
 	for !window.ShouldClose() {

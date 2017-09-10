@@ -86,6 +86,15 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 	body_b := constraint.b
 
 	switch constraint.Class.(type) {
+	case *PinJoint:
+		joint := constraint.Class.(*PinJoint)
+
+		a := body_a.transform.Point(joint.AnchorA)
+		b := body_b.transform.Point(joint.AnchorB)
+
+		options.DrawDot(5, a, color, data)
+		options.DrawDot(5, b, color, data)
+		options.DrawSegment(a, b, color, data)
 	case *PivotJoint:
 		joint := constraint.Class.(*PivotJoint)
 
@@ -120,6 +129,7 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 			options.DrawSegment(verts[i], verts[i+1], color, data)
 		}
 	case *GearJoint:
+	case *SimpleMotor:
 		// nothing to do here
 	default:
 		panic(fmt.Sprintf("Implement me: %#v", constraint.Class))
