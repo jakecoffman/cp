@@ -41,9 +41,9 @@ func Display(space *Space, tick float64, update UpdateFunc) {
 	// builds triangles buffer
 	DrawSpace(space, NewDrawOptions(
 		DRAW_SHAPES|DRAW_CONSTRAINTS|DRAW_COLLISION_POINTS,
-		FColor{R: 1, A: 1},
-		FColor{G: 1, A: 1},
-		FColor{B: 1, A: 1},
+		FColor{200.0/255.0, 210.0/255.0, 230.0/255.0, 1},
+		FColor{0, 0.75, 0, 1},
+		FColor{1, 0, 0, 1},
 		nil,
 	))
 
