@@ -239,7 +239,8 @@ restart:
 }
 
 // modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
-func (hash *SpaceHash) SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+func (hash *SpaceHash) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+	shape := obj.(*Shape)
 	a = a.Mult(1.0 / hash.celldim)
 	b = b.Mult(1.0 / hash.celldim)
 
@@ -296,7 +297,7 @@ func (hash *SpaceHash) SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f S
 
 	for t < t_exit {
 		idx := hashFunc(HashValue(cellX), HashValue(cellY), HashValue(hash.numCells))
-		t_exit = math.Min(t_exit, hash.segmentQueryHelper(&hash.table[idx], obj, f, data))
+		t_exit = math.Min(t_exit, hash.segmentQueryHelper(&hash.table[idx], shape, f, data))
 
 		if nextV < nextH {
 			cellY += yInc

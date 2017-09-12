@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	. "github.com/jakecoffman/physics"
 	"github.com/jakecoffman/physics/examples"
 )
@@ -59,5 +61,48 @@ func main() {
 func update(space *Space, dt float64) {
 	space.Step(dt)
 
-	examples.DrawString(VectorZero(), "hi")
+	// Sum the total impulse applied to the scale from all collision pairs in the contact graph.
+	// If your compiler supports blocks, your life is a little easier.
+	// You can use the "Block" versions of the functions without needing the callbacks above.
+	var impulseSum Vector
+	scaleStaticBody.EachArbiter(func(arbiter *Arbiter) {
+		impulseSum = impulseSum.Add(arbiter.TotalImpulse())
+	})
+
+	// Force is the impulse divided by the timestep.
+	force := impulseSum.Length() / dt
+
+	// Weight can be found similarly from the gravity vector.
+	g := space.Gravity()
+	weight := g.Dot(impulseSum) / (g.LengthSq() * dt)
+
+	// Highlight and count the number of shapes the ball is touching.
+	var count int
+	ballBody.EachArbiter(func(arb *Arbiter) {
+		_, other := arb.Shapes()
+		examples.DrawBB(other.BB(), FColor{1, 0, 0, 1})
+		count++
+	})
+
+	var magnitudeSum float64
+	var vectorSum Vector
+	ballBody.EachArbiter(func(arb *Arbiter) {
+		j := arb.TotalImpulse()
+		magnitudeSum += j.Length()
+		vectorSum = vectorSum.Add(j)
+	})
+
+	crushForce := (magnitudeSum - vectorSum.Length()) * dt
+	var crush string
+	if crushForce > 10 {
+		crush = "The ball is being crushed. (f: %.2f)"
+	} else {
+		crush = "The ball is not being crushed. (f %.2f"
+	}
+
+	str := `Place objects on the scale to weigh them. The ball marks the shapes it's sitting on.
+Total force: %5.2f, Total weight: %5.2f. The ball is touching %d shapes
+` + crush
+
+	examples.DrawString(Vector{-300, -200}, fmt.Sprintf(str, force, weight, count, crushForce))
 }

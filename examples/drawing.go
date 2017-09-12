@@ -240,14 +240,14 @@ func DrawDot(size float64, pos Vector, fill FColor) {
 	triangleStack = append(triangleStack, Triangle{a, c, d})
 }
 
-func DrawBB(bb *BB, outline FColor) {
+func DrawBB(bb BB, outline FColor) {
 	verts := []Vector{
 		{bb.R, bb.B},
 		{bb.R, bb.T},
 		{bb.L, bb.T},
 		{bb.L, bb.B},
 	}
-	DrawPolygon(4, verts, 0, outline, FColor{A: 1})
+	DrawPolygon(4, verts, 0, outline, FColor{})
 }
 
 func DrawInstructions() {

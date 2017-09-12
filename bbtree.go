@@ -420,8 +420,38 @@ func (subtree *Node) SubtreeQuery(obj interface{}, bb BB, query SpatialIndexQuer
 	}
 }
 
-func (tree *BBTree) SegmentQuery(obj *Shape, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
-	panic("implement me")
+func (subtree *Node) SubtreeSegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) float64 {
+	if subtree.IsLeaf() {
+		return f(obj, subtree.obj, data)
+	}
+
+	tA := subtree.a.bb.SegmentQuery(a, b)
+	tB := subtree.b.bb.SegmentQuery(a, b)
+
+	if tA < tB {
+		if tA < t_exit {
+			t_exit = math.Min(t_exit, subtree.a.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		}
+		if tB < t_exit {
+			t_exit = math.Min(t_exit, subtree.b.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		}
+	} else {
+		if tB < t_exit {
+			t_exit = math.Min(t_exit, subtree.b.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		}
+		if tA < t_exit {
+			t_exit = math.Min(t_exit, subtree.a.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		}
+	}
+
+	return t_exit
+}
+
+func (tree *BBTree) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+	root := tree.root
+	if root != nil {
+		root.SubtreeSegmentQuery(obj, a, b, t_exit, f, data)
+	}
 }
 
 func (tree *BBTree) GetBB(obj *Shape) BB {

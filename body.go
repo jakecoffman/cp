@@ -468,3 +468,17 @@ func (body *Body) SetVelocityUpdateFunc(f BodyVelocityFunc) {
 func (body *Body) SetPositionUpdateFunc(f BodyPositionFunc) {
 	body.position_func = f
 }
+
+func (body *Body) EachArbiter(f func(*Arbiter)) {
+	arb := body.arbiterList
+	for arb != nil {
+		next := arb.Next(body)
+		swapped := arb.swapped
+
+		arb.swapped = body == arb.body_b
+		f(arb)
+
+		arb.swapped = swapped
+		arb = next
+	}
+}

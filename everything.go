@@ -124,30 +124,18 @@ type PointQueryInfo struct {
 
 type SegmentQueryInfo struct {
 	/// The shape that was hit, or NULL if no collision occured.
-	shape *Shape
+	Shape *Shape
 	/// The point of impact.
-	point Vector
+	Point Vector
 	/// The normal of the surface hit.
-	normal Vector
+	Normal Vector
 	/// The normalized distance along the query segment in the range [0, 1].
-	alpha float64
+	Alpha float64
 }
 
 type SplittingPlane struct {
 	v0, n Vector
 }
-
-//type PinJoint struct {
-//	*Constraint
-//	anchorA, anchorB Vector
-//	dist             float64
-//
-//	r1, r2 Vector
-//	n      Vector
-//	nMass  float64
-//
-//	jnAcc, bias float64
-//}
 
 var (
 	NO_GROUP       uint = 0
@@ -206,7 +194,7 @@ func MomentForPoly(m float64, count int, verts []Vector, offset Vector, r float6
 
 	var sum1 float64
 	var sum2 float64
-	for i := 0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		v1 := verts[i].Add(offset)
 		v2 := verts[(i+1)%count].Add(offset)
 
@@ -223,7 +211,7 @@ func MomentForPoly(m float64, count int, verts []Vector, offset Vector, r float6
 func AreaForPoly(count int, verts []Vector, r float64) float64 {
 	var area float64
 	var perimeter float64
-	for i := 0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		v1 := verts[i]
 		v2 := verts[(i+1)%count]
 
@@ -238,7 +226,7 @@ func CentroidForPoly(count int, verts []Vector) Vector {
 	var sum float64
 	vsum := VectorZero()
 
-	for i := 0; i<count; i++{
+	for i := 0; i < count; i++ {
 		v1 := verts[i]
 		v2 := verts[(i+1)%count]
 		cross := v1.Cross(v2)

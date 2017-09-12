@@ -379,3 +379,38 @@ func DefaultSeparate(arb *Arbiter, space *Space, _ interface{}) {
 	arb.CallWildcardSeparateA(space)
 	arb.CallWildcardSeparateB(space)
 }
+
+func (arb *Arbiter) TotalImpulse() Vector {
+	var sum Vector
+
+	count := arb.Count()
+	for i:=0; i<count; i++ {
+		con := arb.contacts[i]
+		sum = sum.Add(arb.n.Rotate(Vector{con.jnAcc, con.jtAcc}))
+	}
+
+	if arb.swapped {
+		return sum
+	}
+	return sum.Neg()
+}
+
+func (arb *Arbiter) Count() int {
+	if arb.state < CP_ARBITER_STATE_CACHED {
+		return int(arb.count)
+	}
+	return 0
+}
+
+func (arb *Arbiter) Shapes() (*Shape, *Shape) {
+	if arb.swapped {
+		return arb.b, arb.a
+	} else {
+		return arb.a, arb.b
+	}
+}
+
+func (arb *Arbiter) Bodies() (*Body, *Body) {
+	shapeA, shapeB := arb.Shapes()
+	return shapeA.body, shapeB.body
+}

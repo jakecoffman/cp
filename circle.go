@@ -57,7 +57,7 @@ func (circle *Circle) SegmentQuery(a, b Vector, radius float64, info *SegmentQue
 
 func CircleSegmentQuery(shape *Shape, center Vector, r1 float64, a, b Vector, r2 float64, info *SegmentQueryInfo) {
 	da := a.Sub(center)
-	db := a.Sub(center)
+	db := b.Sub(center)
 	rsum := r1 + r2
 
 	qa := da.Dot(da) - 2*da.Dot(db) + db.Dot(db)
@@ -65,14 +65,14 @@ func CircleSegmentQuery(shape *Shape, center Vector, r1 float64, a, b Vector, r2
 	det := qb*qb - qa*(da.Dot(da)-rsum*rsum)
 
 	if det >= 0 {
-		t := -qb - math.Sqrt(det)/(qa)
+		t := (-qb - math.Sqrt(det))/qa
 		if 0 <= t && t <= 1 {
 			n := da.Lerp(db, t).Normalize()
 
-			info.shape = shape
-			info.point = a.Lerp(b, t).Sub(n.Mult(r2))
-			info.normal = n
-			info.alpha = t
+			info.Shape = shape
+			info.Point = a.Lerp(b, t).Sub(n.Mult(r2))
+			info.Normal = n
+			info.Alpha = t
 		}
 	}
 }

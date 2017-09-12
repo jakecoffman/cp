@@ -35,13 +35,10 @@ func Display(space *Space, tick float64, update UpdateFunc) {
 
 	Update(space, tick, update)
 
-	ClearRenderer()
-	ClearTextRenderer()
-
 	// builds triangles buffer
 	DrawSpace(space, NewDrawOptions(
 		DRAW_SHAPES|DRAW_CONSTRAINTS|DRAW_COLLISION_POINTS,
-		FColor{200.0/255.0, 210.0/255.0, 230.0/255.0, 1},
+		FColor{200.0 / 255.0, 210.0 / 255.0, 230.0 / 255.0, 1},
 		FColor{0, 0.75, 0, 1},
 		FColor{1, 0, 0, 1},
 		nil,
@@ -71,10 +68,19 @@ func Update(space *Space, tick float64, update UpdateFunc) {
 
 	for accumulator += dt; accumulator > tick; accumulator -= tick {
 		// Tick
+
+		// Completely reset the renderer only at the beginning of a tick.
+		// That way it can always display at least the last ticks' debug drawing.
+		ClearRenderer()
+		ClearTextRenderer()
+
 		newPoint := mouseBody.Position().Lerp(Mouse, 0.25)
 		mouseBody.SetVelocityVector(newPoint.Sub(mouseBody.Position()).Mult(60.0))
 		mouseBody.SetPosition(newPoint)
+
 		update(space, tick)
+
+		RightDown = false
 	}
 
 	lastTime = t

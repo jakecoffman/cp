@@ -93,8 +93,49 @@ func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
 	}
 }
 
-func (poly *PolyShape) SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo) {
-	panic("implement me")
+func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryInfo) {
+	planes := poly.planes
+	count := poly.count
+	r := poly.r
+	rsum := r+r2
+
+	for i:=0; i<count; i++ {
+		n := planes[i].n
+		an := a.Dot(n)
+		d := an - planes[i].v0.Dot(n) - rsum
+		if d < 0 {
+			continue
+		}
+
+		bn := b.Dot(n)
+		t := d/(an-bn)
+		if t < 0 || 1 < t {
+			continue
+		}
+
+		point := a.Lerp(b, t)
+		dt := n.Cross(point)
+		dtMin := n.Cross(planes[(i-1+count)%count].v0)
+		dtMax := n.Cross(planes[i].v0)
+
+		if dtMin <= dt && dt <= dtMax {
+			info.Shape = poly.Shape
+			info.Point = a.Lerp(b, t).Sub(n.Mult(r2))
+			info.Normal = n
+			info.Alpha = t
+		}
+	}
+
+	// Also check against the beveled vertexes
+	if rsum > 0 {
+		for i := 0; i<count; i++ {
+			circleInfo := SegmentQueryInfo{nil, b, VectorZero(), 1}
+			CircleSegmentQuery(poly.Shape, planes[i].v0, r, a, b, r2, &circleInfo)
+			if circleInfo.Alpha < info.Alpha {
+				*info = circleInfo
+			}
+		}
+	}
 }
 
 func NewPolyShape(body *Body, verts []Vector, transform Transform, radius float64) *Shape {

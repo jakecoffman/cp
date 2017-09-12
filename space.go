@@ -104,6 +104,10 @@ var ShapeVelocityFunc = func(obj interface{}) Vector {
 	return obj.(*Shape).body.v
 }
 
+func (space *Space) Gravity() Vector {
+	return space.gravity
+}
+
 func (space *Space) SetGravity(gravity Vector) {
 	space.gravity = gravity
 
@@ -859,4 +863,45 @@ func (space *Space) ArrayForBodyType(bodyType int) *[]*Body {
 		return &space.staticBodies
 	}
 	return &space.dynamicBodies
+}
+
+type SpaceSegmentQueryFunc func(shape *Shape, point, normal Vector, alpha float64, data interface{})
+
+type SegmentQueryContext struct {
+	start, end Vector
+	radius     float64
+	filter     ShapeFilter
+	f          SpaceSegmentQueryFunc
+}
+
+func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
+	context := obj.(*SegmentQueryContext)
+	out := data.(*SegmentQueryInfo)
+	var info SegmentQueryInfo
+
+	if shape.Filter.Reject(context.filter) {
+		return out.Alpha
+	}
+
+	if shape.sensor {
+		return out.Alpha
+	}
+
+	if !shape.SegmentQuery(context.start, context.end, context.radius, &info) {
+		return out.Alpha
+	}
+
+	if info.Alpha >= out.Alpha {
+		return out.Alpha
+	}
+	*out = info
+	return out.Alpha
+}
+
+func (space *Space) SegmentQueryFirst(start, end Vector, radius float64, filter ShapeFilter) SegmentQueryInfo {
+	info := SegmentQueryInfo{nil, end, VectorZero(), 1}
+	context := &SegmentQueryContext{start, end, radius, filter, nil}
+	space.staticShapes.class.SegmentQuery(context, start, end, 1, queryFirst, &info)
+	space.dynamicShapes.class.SegmentQuery(context, start, end, info.Alpha, queryFirst, &info)
+	return info
 }

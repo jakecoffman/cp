@@ -1,5 +1,7 @@
 package physics
 
+import "fmt"
+
 type Shaper interface {
 	Body() *Body
 	MassInfo() *ShapeMassInfo
@@ -40,6 +42,10 @@ type Shape struct {
 	next, prev *Shape
 
 	hashid HashValue
+}
+
+func (s Shape) String() string {
+	return fmt.Sprintf("%T", s.Class)
 }
 
 func (s *Shape) Order() int {
@@ -157,6 +163,27 @@ func (s *Shape) PointQuery(p Vector) PointQueryInfo {
 	info := PointQueryInfo{nil, VectorZero(), INFINITY, VectorZero()}
 	s.Class.PointQuery(p, &info)
 	return info
+}
+
+func (shape *Shape) SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo) bool {
+	blank := SegmentQueryInfo{nil, b, VectorZero(), 1}
+	if info != nil {
+		*info = blank
+	} else {
+		info = &blank
+	}
+
+	var nearest PointQueryInfo
+	shape.Class.PointQuery(a, &nearest)
+	if nearest.Distance <= radius {
+		info.Shape = shape
+		info.Alpha = 0
+		info.Normal = a.Sub(nearest.Point).Normalize()
+	} else {
+		shape.Class.SegmentQuery(a, b, radius, info)
+	}
+
+	return info.Shape != nil
 }
 
 func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {

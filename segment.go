@@ -65,8 +65,54 @@ func (seg *Segment) PointQuery(p Vector, info *PointQueryInfo) {
 	}
 }
 
-func (seg *Segment) SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo) {
-	panic("implement me")
+func (seg *Segment) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryInfo) {
+	n := seg.tn
+	d := seg.ta.Sub(a).Dot(n)
+	r := seg.r + r2
+
+	var flippedN Vector
+	if d > 0 {
+		flippedN = n.Neg()
+	} else {
+		flippedN = n
+	}
+	segOffset := flippedN.Mult(r).Sub(a)
+
+	// Make the endpoints relative to 'a' and move them by the thickness of the segment.
+	segA := seg.ta.Add(segOffset)
+	segB := seg.tb.Add(segOffset)
+	delta := b.Sub(a)
+
+	if delta.Cross(segA)*delta.Cross(segB) <= 0 {
+		dOffset := d
+		if d > 0 {
+			dOffset -= r
+		} else {
+			dOffset += r
+		}
+		ad := -dOffset
+		bd := delta.Dot(n) - dOffset
+
+		if ad*bd < 0 {
+			t := ad/(ad-bd)
+
+			info.Shape = seg.Shape
+			info.Point = a.Lerp(b, t).Sub(flippedN.Mult(r2))
+			info.Normal = flippedN
+			info.Alpha = t
+		} else if r != 0 {
+			info1 := SegmentQueryInfo{nil, b, VectorZero(), 1}
+			info2 := SegmentQueryInfo{nil, b, VectorZero(), 1}
+			CircleSegmentQuery(seg.Shape, seg.ta, seg.r, a, b, r2, &info1)
+			CircleSegmentQuery(seg.Shape, seg.tb, seg.r, a, b, r2, &info2)
+
+			if info1.Alpha < info2.Alpha {
+				*info = info1
+			} else {
+				*info = info2
+			}
+		}
+	}
 }
 
 func NewSegment(body *Body, a, b Vector, r float64) *Shape {
