@@ -72,8 +72,8 @@ type Contact struct {
 
 func (c *Contact) Clone() *Contact {
 	return &Contact{
-		r1:     c.r1.Clone(),
-		r2:     c.r2.Clone(),
+		r1:     c.r1,
+		r2:     c.r2,
 		nMass:  c.nMass,
 		tMass:  c.tMass,
 		bounce: c.bounce,
@@ -87,7 +87,7 @@ func (c *Contact) Clone() *Contact {
 
 type CollisionInfo struct {
 	a, b        *Shape
-	collisionId uint
+	collisionId uint32
 
 	n     Vector
 	count uint
@@ -199,16 +199,16 @@ func AreaForSegment(a, b Vector, r float64) float64 {
 	return r * (math.Pi*r + 2.0*a.Distance(b))
 }
 
-func MomentForPoly(m float64, verts []Vector, offset Vector, r float64) float64 {
-	if len(verts) == 2 {
+func MomentForPoly(m float64, count int, verts []Vector, offset Vector, r float64) float64 {
+	if count == 2 {
 		return MomentForSegment(m, verts[0], verts[1], 0)
 	}
 
 	var sum1 float64
 	var sum2 float64
-	for i := range verts {
+	for i := 0; i<count; i++ {
 		v1 := verts[i].Add(offset)
-		v2 := verts[(i+1)%len(verts)].Add(offset)
+		v2 := verts[(i+1)%count].Add(offset)
 
 		a := v2.Cross(v1)
 		b := v1.Dot(v1) + v1.Dot(v2) + v2.Dot(v2)
@@ -220,12 +220,12 @@ func MomentForPoly(m float64, verts []Vector, offset Vector, r float64) float64 
 	return (m * sum1) / (6.0 * sum2)
 }
 
-func AreaForPoly(verts []Vector, r float64) float64 {
+func AreaForPoly(count int, verts []Vector, r float64) float64 {
 	var area float64
 	var perimeter float64
-	for i := range verts {
+	for i := 0; i<count; i++ {
 		v1 := verts[i]
-		v2 := verts[(i+1)%len(verts)]
+		v2 := verts[(i+1)%count]
 
 		area += v1.Cross(v2)
 		perimeter += v1.Distance(v2)
@@ -234,17 +234,17 @@ func AreaForPoly(verts []Vector, r float64) float64 {
 	return r*(math.Pi*math.Abs(r)+perimeter) + area/2.0
 }
 
-func CentroidForPoly(verts []Vector) Vector {
+func CentroidForPoly(count int, verts []Vector) Vector {
 	var sum float64
 	vsum := VectorZero()
 
-	for i := range verts {
+	for i := 0; i<count; i++{
 		v1 := verts[i]
-		v2 := verts[(i+1)%len(verts)]
+		v2 := verts[(i+1)%count]
 		cross := v1.Cross(v2)
 
 		sum += cross
-		vsum = vsum.Add(v1.Add(v2).Mult(cross))
+		vsum = v1.Add(v2).Mult(cross).Add(vsum)
 	}
 
 	return vsum.Mult(1.0 / (3.0 * sum))
@@ -357,11 +357,15 @@ func DebugInfo(space *Space) string {
 
 	var ke float64
 	for _, body := range space.dynamicBodies {
+		if body.m == INFINITY || body.i == INFINITY {
+			continue
+		}
 		ke += body.m*body.v.Dot(body.v) + body.i*body.w*body.w
 	}
 
 	return fmt.Sprintf(`Arbiters: %d (%d) - Contact Points: %d (%d)
 Other Constraints: %d, Iterations: %d
-Constraints x Iterations: %d (%d)`, arbiters, maxArbiters,
-		points, maxPoints, len(space.constraints), space.Iterations, constraints, maxConstraints)
+Constraints x Iterations: %d (%d)
+KE: %e`, arbiters, maxArbiters,
+		points, maxPoints, len(space.constraints), space.Iterations, constraints, maxConstraints, ke)
 }

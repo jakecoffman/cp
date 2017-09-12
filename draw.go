@@ -18,7 +18,7 @@ type Drawer interface {
 	DrawCircle(pos Vector, angle, radius float64, outline, fill FColor, data interface{})
 	DrawSegment(a, b Vector, fill FColor, data interface{})
 	DrawFatSegment(a, b Vector, radius float64, outline, fill FColor, data interface{})
-	DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColor, data interface{})
+	DrawPolygon(count int, verts []Vector, radius float64, outline, fill FColor, data interface{})
 	DrawDot(size float64, pos Vector, fill FColor, data interface{})
 
 	Flags() uint
@@ -50,8 +50,7 @@ func DrawShape(shape *Shape, options Drawer) {
 		planes := poly.planes
 		verts := make([]Vector, count)
 
-		var i uint
-		for i = 0; i < count; i++ {
+		for i := 0; i < count; i++ {
 			verts[i] = planes[i].v0
 		}
 		options.DrawPolygon(count, verts, poly.r, outline, fill, data)

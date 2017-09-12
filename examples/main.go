@@ -1,9 +1,9 @@
 package examples
 
 import (
-	"runtime"
-
 	"math"
+	"math/rand"
+	"runtime"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -24,6 +24,7 @@ var lastTime float64
 
 func init() {
 	runtime.LockOSThread()
+	rand.Seed(45073)
 }
 
 func Display(space *Space, tick float64, update UpdateFunc) {

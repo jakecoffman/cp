@@ -3,11 +3,6 @@ package main
 import (
 	"math/rand"
 
-	"os"
-
-	"runtime/pprof"
-	"time"
-
 	. "github.com/jakecoffman/physics"
 	"github.com/jakecoffman/physics/examples"
 )
@@ -59,11 +54,6 @@ func main() {
 
 	bodyCount++
 
-	go func() {
-		time.Sleep(10 * time.Second)
-		pprof.StopCPUProfile()
-		os.Exit(0)
-	}()
 	examples.Main(space, 640, 480, 1.0/60.0, update)
 }
 

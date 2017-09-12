@@ -130,19 +130,19 @@ func (body *Body) IdleTime() float64 {
 	return body.sleepingIdleTime
 }
 
-func (body *Body) SetType(typ int) {
+func (body *Body) SetType(newType int) {
 	oldType := body.GetType()
-	if oldType == typ {
+	if oldType == newType {
 		return
 	}
 
-	if typ == BODY_STATIC {
+	if newType == BODY_STATIC {
 		body.sleepingIdleTime = INFINITY
 	} else {
 		body.sleepingIdleTime = 0
 	}
 
-	if typ == BODY_DYNAMIC {
+	if newType == BODY_DYNAMIC {
 		body.m = 0
 		body.i = 0
 		body.m_inv = INFINITY
@@ -159,28 +159,32 @@ func (body *Body) SetType(typ int) {
 		body.w = 0
 	}
 
+	// If the body is added to a space already, we'll need to update some space data structures.
 	if body.space == nil {
 		return
 	}
-
-	// If the body is added to a space already, we'll need to update some space data structures.
 	assert(body.space.locked == 0, "Space is locked")
 
 	if oldType != BODY_STATIC {
 		body.Activate()
 	}
 
-	fromArray := body.space.ArrayForBodyType(oldType)
-	toArray := body.space.ArrayForBodyType(typ)
-	if oldType != typ {
-		slice := *fromArray
-		for i, b := range slice {
+	if oldType == BODY_STATIC {
+		for i, b := range body.space.staticBodies {
 			if b == body {
-				*fromArray = append(slice[:i], slice[i+1:]...)
+				body.space.staticBodies = append(body.space.staticBodies[:i], body.space.staticBodies[i+1:]...)
 				break
 			}
 		}
-		*toArray = append(*toArray, body)
+		body.space.dynamicBodies = append(body.space.dynamicBodies, body)
+	} else if newType == BODY_STATIC {
+		for i, b := range body.space.dynamicBodies {
+			if b == body {
+				body.space.dynamicBodies = append(body.space.dynamicBodies[:i], body.space.dynamicBodies[i+1:]...)
+				break
+			}
+		}
+		body.space.staticBodies = append(body.space.staticBodies, body)
 	}
 
 	var fromIndex, toIndex *SpatialIndex
@@ -190,13 +194,13 @@ func (body *Body) SetType(typ int) {
 		fromIndex = body.space.dynamicShapes
 	}
 
-	if typ == BODY_STATIC {
+	if newType == BODY_STATIC {
 		toIndex = body.space.staticShapes
 	} else {
 		toIndex = body.space.dynamicShapes
 	}
 
-	if oldType != typ {
+	if oldType != newType {
 		for _, shape := range body.shapeList {
 			fromIndex.class.Remove(shape, shape.hashid)
 			toIndex.class.Insert(shape, shape.hashid)
@@ -278,7 +282,7 @@ func (body *Body) SetVelocityVector(v Vector) {
 }
 
 func (body *Body) UpdateVelocity(gravity Vector, damping, dt float64) {
-	if body.GetType() == BODY_KINEMATIC  {
+	if body.GetType() == BODY_KINEMATIC {
 		return
 	}
 
@@ -464,4 +468,3 @@ func (body *Body) SetVelocityUpdateFunc(f BodyVelocityFunc) {
 func (body *Body) SetPositionUpdateFunc(f BodyPositionFunc) {
 	body.position_func = f
 }
-

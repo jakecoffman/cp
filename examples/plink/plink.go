@@ -37,6 +37,7 @@ func main() {
 			shape = space.AddShape(NewPolyShape(space.StaticBody, tris, NewTransformTranslate(offset), 0))
 			shape.SetElasticity(1)
 			shape.SetFriction(1)
+			shape.SetFilter(examples.NotGrabbableFilter)
 		}
 	}
 
@@ -47,7 +48,7 @@ func main() {
 	}
 
 	pentagonMass = 1.0
-	pentagonMoment = MomentForPoly(1, verts, VectorZero(), 0)
+	pentagonMoment = MomentForPoly(1, numVerts, verts, VectorZero(), 0)
 
 	for i := 0; i < 300; i++ {
 		body = space.AddBody(NewBody(pentagonMass, pentagonMoment))
@@ -65,7 +66,7 @@ func main() {
 func update(space *Space, dt float64) {
 	if examples.RightDown {
 		nearest := space.PointQueryNearest(examples.Mouse, 0, examples.GrabFilter)
-		if nearest != nil {
+		if nearest.Shape != nil {
 			body := nearest.Shape.Body()
 			if body.GetType() == BODY_STATIC {
 				body.SetType(BODY_DYNAMIC)

@@ -41,6 +41,7 @@ type Triangle struct {
 var vao uint32 = 0
 var vbo uint32 = 0
 
+var pushedTriangleCount int
 var triangleStack []Triangle = []Triangle{}
 
 func DrawCircle(pos Vector, angle, radius float64, outline, fill FColor) {
@@ -145,14 +146,13 @@ func DrawFatSegment(a, b Vector, radius float64, outline, fill FColor) {
 	triangleStack = append(triangleStack, t5)
 }
 
-func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColor) {
+func DrawPolygon(count int, verts []Vector, radius float64, outline, fill FColor) {
 	type ExtrudeVerts struct {
 		offset, n Vector
 	}
 	extrude := make([]ExtrudeVerts, count)
 
-	var i uint
-	for i = 0; i < count; i++ {
+	for i := 0; i < count; i++ {
 		v0 := verts[(i-1+count)%count]
 		v1 := verts[i]
 		v2 := verts[(i+1)%count]
@@ -165,7 +165,7 @@ func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColo
 	}
 
 	inset := -math.Max(0, 1.0/DrawPointLineScale-radius)
-	for i = 0; i < count-2; i++ {
+	for i := 0; i < count-2; i++ {
 		v0 := V2f(verts[0].Add(extrude[0].offset.Mult(inset)))
 		v1 := V2f(verts[i+1].Add(extrude[i+1].offset.Mult(inset)))
 		v2 := V2f(verts[i+2].Add(extrude[i+2].offset.Mult(inset)))
@@ -179,7 +179,7 @@ func DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColo
 
 	outset := 1.0/DrawPointLineScale + radius - inset
 	j := count - 1
-	for i = 0; i < count; {
+	for i := 0; i < count; {
 		vA := verts[i]
 		vB := verts[j]
 
@@ -277,5 +277,5 @@ func FlushRenderer() {
 }
 
 func ClearRenderer() {
-	triangleStack = triangleStack[0:0]
+	triangleStack = triangleStack[:0]
 }

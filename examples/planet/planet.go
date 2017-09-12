@@ -62,7 +62,7 @@ func addBox(space *Space) {
 	radius := Vector{size, size}.Length()
 	pos := randPos(radius)
 
-	body := space.AddBody(NewBody(mass, MomentForPoly(mass, verts, VectorZero(), 0)))
+	body := space.AddBody(NewBody(mass, MomentForPoly(mass, len(verts), verts, VectorZero(), 0)))
 	body.SetVelocityUpdateFunc(planetGravityVelocity)
 	body.SetPosition(pos)
 

@@ -130,7 +130,7 @@ func (s *Shape) Update(transform Transform) BB {
 	return s.bb
 }
 
-func (s *Shape) Point(i uint) *SupportPoint {
+func (s *Shape) Point(i uint32) *SupportPoint {
 	switch s.Class.(type) {
 	case *Circle:
 		return NewSupportPoint(s.Class.(*Circle).tc, 0)
@@ -143,13 +143,11 @@ func (s *Shape) Point(i uint) *SupportPoint {
 	case *PolyShape:
 		poly := s.Class.(*PolyShape)
 		// Poly shapes may change vertex count.
-		var index uint
-		if i < poly.count {
-			index = i
-		} else {
-			index = 0
+		var index int
+		if i < uint32(poly.count) {
+			index = int(i)
 		}
-		return NewSupportPoint(poly.planes[index].v0, index)
+		return NewSupportPoint(poly.planes[index].v0, uint32(index))
 	default:
 		return NewSupportPoint(VectorZero(), 0)
 	}

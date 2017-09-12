@@ -190,6 +190,7 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 	arb.body_b = b.body
 
 	var i uint
+	// Iterate over the possible pairs to look for hash value matches.
 	for i = 0; i < info.count; i++ {
 		con := info.arr[i]
 

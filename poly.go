@@ -7,7 +7,7 @@ type PolyShape struct {
 
 	r float64
 
-	count uint
+	count int
 
 	// The untransformed planes are appended at the end of the transformed planes.
 	planes []SplittingPlane
@@ -15,7 +15,7 @@ type PolyShape struct {
 
 func (poly *PolyShape) CacheData(transform Transform) BB {
 	count := poly.count
-	dst := poly.planes
+	dst := poly.planes[0:count]
 	src := poly.planes[count:]
 
 	l := INFINITY
@@ -23,8 +23,7 @@ func (poly *PolyShape) CacheData(transform Transform) BB {
 	b := INFINITY
 	t := -INFINITY
 
-	var i uint
-	for i = 0; i < count; i++ {
+	for i := 0; i < count; i++ {
 		v := transform.Point(src[i].v0)
 		n := transform.Vect(src[i].n)
 
@@ -57,8 +56,7 @@ func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
 	closestNormal := VectorZero()
 	outside := false
 
-	var i uint
-	for i = 0; i<count; i++ {
+	for i := 0; i<count; i++ {
 		v1 := planes[i].v0
 		if !outside {
 			outside = planes[i].n.Dot(p.Sub(v1)) > 0
@@ -101,22 +99,23 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, radius float64, info *SegmentQu
 
 func NewPolyShape(body *Body, verts []Vector, transform Transform, radius float64) *Shape {
 	hullVerts := []Vector{}
+	// Transform the verts before building the hull in case of a negative scale.
 	for _, vert := range verts {
 		hullVerts = append(hullVerts, transform.Point(vert))
 	}
 
 	hullCount := ConvexHull(len(hullVerts), hullVerts, nil, 0)
-	return NewPolyShapeRaw(body, uint(hullCount), hullVerts, radius)
+	return NewPolyShapeRaw(body, hullCount, hullVerts, radius)
 }
 
-func NewPolyShapeRaw(body *Body, count uint, verts []Vector, radius float64) *Shape {
+func NewPolyShapeRaw(body *Body, count int, verts []Vector, radius float64) *Shape {
 	poly := &PolyShape{
 		r:      radius,
 		count:  count,
 		planes: []SplittingPlane{},
 	}
-	poly.Shape = NewShape(poly, body, PolyShapeMassInfo(0, verts, radius))
-	poly.SetVerts(verts)
+	poly.Shape = NewShape(poly, body, PolyShapeMassInfo(0, count, verts, radius))
+	poly.SetVerts(count, verts)
 	return poly.Shape
 }
 
@@ -133,14 +132,9 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 	return NewPolyShapeRaw(body, 4, verts, r)
 }
 
-func (p *PolyShape) SetVerts(verts []Vector) {
-	count := len(verts)
-	p.count = uint(count)
+func (p *PolyShape) SetVerts(count int, verts []Vector) {
+	p.count = count
 	p.planes = make([]SplittingPlane, count*2)
-
-	for i := range p.planes {
-		p.planes[i] = SplittingPlane{}
-	}
 
 	for i := 0; i < count; i++ {
 		a := verts[(i-1+count)%count]
@@ -152,13 +146,13 @@ func (p *PolyShape) SetVerts(verts []Vector) {
 	}
 }
 
-func PolyShapeMassInfo(mass float64, verts []Vector, r float64) *ShapeMassInfo {
-	centroid := CentroidForPoly(verts)
+func PolyShapeMassInfo(mass float64, count int, verts []Vector, r float64) *ShapeMassInfo {
+	centroid := CentroidForPoly(count, verts)
 	return &ShapeMassInfo{
 		m:    mass,
-		i:    MomentForPoly(1, verts, centroid.Neg(), r),
+		i:    MomentForPoly(1, count, verts, centroid.Neg(), r),
 		cog:  centroid,
-		area: AreaForPoly(verts, r),
+		area: AreaForPoly(count, verts, r),
 	}
 }
 
@@ -173,7 +167,7 @@ func ConvexHull(count int, verts []Vector, first *int, tol float64) int {
 		return 1
 	}
 
-	verts[0], verts[1] = verts[1], verts[0]
+	verts[0], verts[start] = verts[start], verts[0]
 	if end == 0 {
 		verts[1], verts[start] = verts[start], verts[1]
 	} else {
@@ -197,7 +191,7 @@ func LoopIndexes(verts []Vector, count int) (int, int) {
 	min := verts[0]
 	max := min
 
-	for i := 0; i < count; i++ {
+	for i := 1; i < count; i++ {
 		v := verts[i]
 
 		if v.X < min.X || (v.X == min.X && v.Y < min.Y) {
@@ -229,12 +223,6 @@ func QHullReduce(tol float64, verts []Vector, count int, a, pivot, b Vector, res
 	index++
 
 	rightCount := QHullPartition(verts[leftCount:], count-leftCount, pivot, b, tol)
-
-	// Go doesn't let you just walk off the end of an array, so added a short circuit here
-	if rightCount-1 < 0 {
-		return index
-	}
-
 	return index + QHullReduce(tol, verts[leftCount+1:], rightCount-1, pivot, verts[leftCount], b, result[index:])
 }
 

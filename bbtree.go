@@ -24,7 +24,7 @@ type Leaf struct {
 
 type Pair struct {
 	a, b        Thread
-	collisionId uint
+	collisionId uint32
 }
 
 type Thread struct {
@@ -132,7 +132,7 @@ type MarkContext struct {
 	data       interface{}
 }
 
-func VoidQueryFunc(obj1 interface{}, obj2 *Shape, collisionId uint, data interface{}) uint {
+func VoidQueryFunc(obj1 interface{}, obj2 *Shape, collisionId uint32, data interface{}) uint32 {
 	return collisionId
 }
 

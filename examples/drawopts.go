@@ -26,7 +26,7 @@ func (*DrawOptions) DrawFatSegment(a, b Vector, radius float64, outline, fill FC
 	DrawFatSegment(a, b, radius, outline, fill)
 }
 
-func (*DrawOptions) DrawPolygon(count uint, verts []Vector, radius float64, outline, fill FColor, data interface{}) {
+func (*DrawOptions) DrawPolygon(count int, verts []Vector, radius float64, outline, fill FColor, data interface{}) {
 	DrawPolygon(count, verts, radius, outline, fill)
 }
 

@@ -342,7 +342,7 @@ func SpaceArbiterSetTrans(shapes []*Shape, space *Space) *Arbiter {
 	return arb
 }
 
-func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint, vspace interface{}) uint {
+func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspace interface{}) uint32 {
 	a := obj.(*Shape)
 	space := vspace.(*Space)
 
@@ -409,18 +409,15 @@ func (space *Space) PushFreshContactBuffer() {
 	head := space.contactBuffersHead
 
 	if head == nil {
-		buffer := &ContactBuffer{}
-		buffer.InitHeader(stamp, nil)
-		space.contactBuffersHead = buffer
+		space.contactBuffersHead = NewContactBuffer(stamp, nil)
 	} else if stamp-head.next.stamp > space.collisionPersistence {
 		tail := head.next
 		space.contactBuffersHead = tail.InitHeader(stamp, tail)
 	} else {
 		// Allocate a new buffer and push it into the ring
-		buffer := &ContactBuffer{}
-		buffer.InitHeader(stamp, head)
-		space.contactBuffersHead = buffer
+		buffer := NewContactBuffer(stamp, head)
 		head.next = buffer
+		space.contactBuffersHead = buffer
 	}
 }
 
@@ -624,7 +621,7 @@ func (space *Space) Step(dt float64) {
 			arb.Unthread()
 		}
 	}
-	space.arbiters = space.arbiters[0:0]
+	space.arbiters = space.arbiters[:0]
 
 	space.Lock()
 	{
@@ -844,7 +841,7 @@ func (space *Space) PointQueryNearest(point Vector, maxDistance float64, filter 
 	return info
 }
 
-func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint, out interface{}) uint {
+func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint32, out interface{}) uint32 {
 	context := obj.(*PointQueryContext)
 	if !shape.Filter.Reject(context.filter) && !shape.sensor {
 		info := shape.PointQuery(context.point)
