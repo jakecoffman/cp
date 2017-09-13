@@ -1,9 +1,10 @@
 package main
 
 import (
+	"math"
+
 	. "github.com/jakecoffman/physics"
 	"github.com/jakecoffman/physics/examples"
-	"math"
 )
 
 var motor *SimpleMotor
@@ -43,11 +44,14 @@ func main() {
 	crank := space.AddBody(NewBody(crankMass, MomentForCircle(crankMass, crankRadius, 0, VectorZero())))
 
 	shape = space.AddShape(NewCircle(crank, crankRadius, VectorZero()))
+	shape.SetFilter(NewShapeFilter(1, ALL_CATEGORIES, ALL_CATEGORIES))
+
+	space.AddConstraint(NewPivotJoint2(chassis, crank, VectorZero(), VectorZero()))
 
 	side := 30.0
 
 	const numLegs = 2
-	for i:=0; i<numLegs; i++ {
+	for i := 0; i < numLegs; i++ {
 		makeLeg(space, side, offset, chassis, crank, ForAngle(float64(2*i+0)/numLegs*math.Pi).Mult(crankRadius))
 		makeLeg(space, side, -offset, chassis, crank, ForAngle(float64(2*i+1)/numLegs*math.Pi).Mult(crankRadius))
 	}
@@ -65,17 +69,20 @@ func makeLeg(space *Space, side, offset float64, chassis, crank *Body, anchor Ve
 
 	legMass := 1.0
 
+	// make a leg
 	a = VectorZero()
 	b = Vector{0, side}
 	upperLeg := space.AddBody(NewBody(legMass, MomentForSegment(legMass, a, b, 0)))
+	upperLeg.SetPosition(Vector{offset, 0})
 
 	shape = space.AddShape(NewSegment(upperLeg, a, b, segRadius))
 	shape.SetFilter(NewShapeFilter(1, ALL_CATEGORIES, ALL_CATEGORIES))
 
 	space.AddConstraint(NewPivotJoint2(chassis, upperLeg, Vector{offset, 0}, VectorZero()))
 
+	// lower leg
 	a = VectorZero()
-	b = Vector{0, -1*side}
+	b = Vector{0, -1 * side}
 	lowerLeg := space.AddBody(NewBody(legMass, MomentForSegment(legMass, a, b, 0)))
 	lowerLeg.SetPosition(Vector{offset, -side})
 
@@ -102,8 +109,8 @@ func makeLeg(space *Space, side, offset float64, chassis, crank *Body, anchor Ve
 }
 
 func update(space *Space, dt float64) {
-	coef := (2.0 + examples.Keyboard.Y)/3.0
-	rate := examples.Keyboard.X*10*coef
+	coef := (2.0 + examples.Keyboard.Y) / 3.0
+	rate := examples.Keyboard.X * 10 * coef
 	motor.Rate = rate
 	if rate != 0 {
 		motor.SetMaxForce(100000)
