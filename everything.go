@@ -20,27 +20,29 @@ type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{}
 type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData interface{})
 type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData interface{})
 
+type CollisionType uintptr
+
 /// Struct that holds function callback pointers to configure custom collision handling.
 /// Collision handlers have a pair of types; when a collision occurs between two shapes that have these types, the collision handler functions are triggered.
 type CollisionHandler struct {
 	/// Collision type identifier of the first shape that this handler recognizes.
 	/// In the collision handler callback, the shape with this type will be the first argument. Read only.
-	typeA uint
+	TypeA CollisionType
 	/// Collision type identifier of the second shape that this handler recognizes.
 	/// In the collision handler callback, the shape with this type will be the second argument. Read only.
-	typeB uint
+	TypeB CollisionType
 	/// This function is called when two shapes with types that match this collision handler begin colliding.
-	beginFunc CollisionBeginFunc
+	BeginFunc CollisionBeginFunc
 	/// This function is called each step when two shapes with types that match this collision handler are colliding.
 	/// It's called before the collision solver runs so that you can affect a collision's outcome.
-	preSolveFunc CollisionPreSolveFunc
+	PreSolveFunc CollisionPreSolveFunc
 	/// This function is called each step when two shapes with types that match this collision handler are colliding.
 	/// It's called after the collision solver runs so that you can read back information about the collision to trigger events in your game.
-	postSolveFunc CollisionPostSolveFunc
+	PostSolveFunc CollisionPostSolveFunc
 	/// This function is called when two shapes with types that match this collision handler stop colliding.
-	separateFunc CollisionSeparateFunc
+	SeparateFunc CollisionSeparateFunc
 	/// This is a user definable context pointer that is passed to all of the collision handler functions.
-	userData interface{}
+	UserData interface{}
 }
 
 // Arbiter states

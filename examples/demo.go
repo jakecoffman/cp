@@ -54,7 +54,7 @@ func DrawInit() {
 }
 
 func ColorForShape(shape *physics.Shape, data interface{}) physics.FColor {
-	if shape.GetSensor() {
+	if shape.Sensor() {
 		return physics.FColor{R: 1, G: 1, B: 1, A: .1}
 	}
 

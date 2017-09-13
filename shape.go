@@ -34,9 +34,9 @@ type Shape struct {
 	e, u     float64
 	surfaceV Vector
 
-	userData interface{}
+	UserData interface{}
 
-	collisionType uint
+	collisionType CollisionType
 	Filter        ShapeFilter
 
 	next, prev *Shape
@@ -61,7 +61,7 @@ func (s *Shape) Order() int {
 	}
 }
 
-func (s *Shape) GetSensor() bool {
+func (s *Shape) Sensor() bool {
 	return s.sensor
 }
 
@@ -100,6 +100,11 @@ func (s *Shape) BB() BB {
 
 func (s *Shape) SetBB(bb BB) {
 	s.bb = bb
+}
+
+func (s *Shape) SetCollisionType(collisionType CollisionType) {
+	s.body.Activate()
+	s.collisionType = collisionType
 }
 
 func (s *Shape) Friction() float64 {

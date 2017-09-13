@@ -2,7 +2,7 @@ package physics
 
 import "math"
 
-const WILDCARD_COLLISION_TYPE = math.MaxUint64
+var WILDCARD_COLLISION_TYPE CollisionType = ^CollisionType(0)
 
 type Arbiter struct {
 	e, u       float64
@@ -233,7 +233,7 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 	arb.handler = handler
 
 	// Check if the types match, but don't swap for a default handler which use the wildcard for type A.
-	swapped := typeA != handler.typeA && handler.typeA != WILDCARD_COLLISION_TYPE
+	swapped := typeA != handler.TypeA && handler.TypeA != WILDCARD_COLLISION_TYPE
 	arb.swapped = swapped
 
 	if handler != defaultHandler || space.usesWildcards {
@@ -260,51 +260,51 @@ func (arb *Arbiter) Ignore() bool {
 
 func (arb *Arbiter) CallWildcardBeginA(space *Space) bool {
 	handler := arb.handlerA
-	return handler.beginFunc(arb, space, handler.userData)
+	return handler.BeginFunc(arb, space, handler.UserData)
 }
 
 func (arb *Arbiter) CallWildcardBeginB(space *Space) bool {
 	handler := arb.handlerB
 	arb.swapped = !arb.swapped
-	retVal := handler.beginFunc(arb, space, handler.userData)
+	retVal := handler.BeginFunc(arb, space, handler.UserData)
 	arb.swapped = !arb.swapped
 	return retVal
 }
 
 func (arb *Arbiter) CallWildcardPreSolveA(space *Space) bool {
 	handler := arb.handlerA
-	return handler.preSolveFunc(arb, space, handler.userData)
+	return handler.PreSolveFunc(arb, space, handler.UserData)
 }
 
 func (arb *Arbiter) CallWildcardPreSolveB(space *Space) bool {
 	handler := arb.handlerB
 	arb.swapped = !arb.swapped
-	retval := handler.preSolveFunc(arb, space, handler.userData)
+	retval := handler.PreSolveFunc(arb, space, handler.UserData)
 	arb.swapped = !arb.swapped
 	return retval
 }
 
 func (arb *Arbiter) CallWildcardPostSolveA(space *Space) {
 	handler := arb.handlerA
-	handler.postSolveFunc(arb, space, handler.userData)
+	handler.PostSolveFunc(arb, space, handler.UserData)
 }
 
 func (arb *Arbiter) CallWildcardPostSolveB(space *Space) {
 	handler := arb.handlerB
 	arb.swapped = !arb.swapped
-	handler.postSolveFunc(arb, space, handler.userData)
+	handler.PostSolveFunc(arb, space, handler.UserData)
 	arb.swapped = !arb.swapped
 }
 
 func (arb *Arbiter) CallWildcardSeparateA(space *Space) {
 	handler := arb.handlerA
-	handler.separateFunc(arb, space, handler.userData)
+	handler.SeparateFunc(arb, space, handler.UserData)
 }
 
 func (arb *Arbiter) CallWildcardSeparateB(space *Space) {
 	handler := arb.handlerB
 	arb.swapped = !arb.swapped
-	handler.separateFunc(arb, space, handler.userData)
+	handler.SeparateFunc(arb, space, handler.UserData)
 	arb.swapped = !arb.swapped
 }
 
@@ -384,7 +384,7 @@ func (arb *Arbiter) TotalImpulse() Vector {
 	var sum Vector
 
 	count := arb.Count()
-	for i:=0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		con := arb.contacts[i]
 		sum = sum.Add(arb.n.Rotate(Vector{con.jnAcc, con.jtAcc}))
 	}
@@ -413,4 +413,12 @@ func (arb *Arbiter) Shapes() (*Shape, *Shape) {
 func (arb *Arbiter) Bodies() (*Body, *Body) {
 	shapeA, shapeB := arb.Shapes()
 	return shapeA.body, shapeB.body
+}
+
+func (arb *Arbiter) Normal() Vector {
+	if arb.swapped {
+		return arb.n.Mult(-1)
+	} else {
+		return arb.n
+	}
 }

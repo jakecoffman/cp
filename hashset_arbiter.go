@@ -225,7 +225,7 @@ func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
 	if ticks >= 1 && arb.state != CP_ARBITER_STATE_CACHED {
 		arb.state = CP_ARBITER_STATE_CACHED
 		handler := arb.handler
-		handler.separateFunc(arb, space, handler.userData)
+		handler.SeparateFunc(arb, space, handler.UserData)
 	}
 
 	if ticks >= space.collisionPersistence {

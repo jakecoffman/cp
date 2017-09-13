@@ -3,6 +3,7 @@ package physics
 import (
 	"math"
 	"unsafe"
+	"log"
 )
 
 const MAX_CONTACTS_PER_ARBITER = 2
@@ -375,14 +376,14 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 
 	assert(arb.body_a != arb.body_b, "EQUAL")
 
-	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.beginFunc(arb, space, arb.handler.userData) {
+	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.BeginFunc(arb, space, arb.handler.UserData) {
 		arb.Ignore()
 	}
 
 	// Ignore the arbiter if it has been flagged
 	if arb.state != CP_ARBITER_STATE_IGNORE &&
 		// Call preSolve
-		arb.handler.preSolveFunc(arb, space, arb.handler.userData) &&
+		arb.handler.PreSolveFunc(arb, space, arb.handler.UserData) &&
 		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
 		arb.state != CP_ARBITER_STATE_IGNORE &&
 		// Process, but don't add collisions for sensors.
@@ -706,7 +707,7 @@ func (space *Space) Step(dt float64) {
 
 		// run the post-solve callbacks
 		for _, arb := range space.arbiters {
-			arb.handler.postSolveFunc(arb, space, arb.handler)
+			arb.handler.PostSolveFunc(arb, space, arb.handler)
 		}
 	}
 	space.Unlock(true)
@@ -757,8 +758,8 @@ func (space *Space) PopContacts(count uint) {
 	space.contactBuffersHead.numContacts -= count
 }
 
-func (space *Space) LookupHandler(a, b uint, defaultHandler *CollisionHandler) *CollisionHandler {
-	types := &CollisionHandler{typeA: a, typeB: b}
+func (space *Space) LookupHandler(a, b CollisionType, defaultHandler *CollisionHandler) *CollisionHandler {
+	types := CollisionHandler{TypeA: a, TypeB: b}
 	handler := space.collisionHandlers.Find(HashPair(HashValue(a), HashValue(b)), types)
 	if handler != nil {
 		return handler
@@ -766,13 +767,13 @@ func (space *Space) LookupHandler(a, b uint, defaultHandler *CollisionHandler) *
 	return defaultHandler
 }
 
-func (space *Space) NewCollisionHandler(collisionTypeA, collisionTypeB uint) *CollisionHandler {
+func (space *Space) NewCollisionHandler(collisionTypeA, collisionTypeB CollisionType) *CollisionHandler {
 	hash := HashPair(HashValue(collisionTypeA), HashValue(collisionTypeB))
 	handler := &CollisionHandler{collisionTypeA, collisionTypeB, DefaultBegin, DefaultPreSolve, DefaultPostSolve, DefaultSeparate, nil}
 	return space.collisionHandlers.Insert(hash, handler)
 }
 
-func (space *Space) NewWildcardCollisionHandler(collisionType uint) *CollisionHandler {
+func (space *Space) NewWildcardCollisionHandler(collisionType CollisionType) *CollisionHandler {
 	space.UseWildcardDefaultHandler()
 
 	hash := HashPair(HashValue(collisionType), HashValue(WILDCARD_COLLISION_TYPE))

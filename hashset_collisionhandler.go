@@ -54,10 +54,10 @@ func (set *HashSetCollisionHandler) Count() uint {
 }
 
 func handlerSetEql(check, pair *CollisionHandler) bool {
-	if check.typeA == pair.typeA && check.typeB == pair.typeB {
+	if check.TypeA == pair.TypeA && check.TypeB == pair.TypeB {
 		return true
 	}
-	if check.typeB == pair.typeA && check.typeA == pair.typeB {
+	if check.TypeB == pair.TypeA && check.TypeA == pair.TypeB {
 		return true
 	}
 	return false
