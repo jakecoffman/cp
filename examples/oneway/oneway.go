@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	. "github.com/jakecoffman/physics"
 	"github.com/jakecoffman/physics/examples"
 )
@@ -17,8 +15,7 @@ type oneWayPlatform struct {
 
 var platformInstance oneWayPlatform
 
-func PreSolve(arb *Arbiter, space *Space, _ interface{}) bool {
-	log.Println("HERE")
+func PreSolve(arb *Arbiter, _ *Space, _ interface{}) bool {
 	a, _ := arb.Shapes()
 	platform := a.UserData.(*oneWayPlatform)
 
@@ -50,9 +47,11 @@ func main() {
 		shape.SetFilter(examples.NotGrabbableFilter)
 	}
 
+	// Add our one way segment
 	shape = space.AddShape(NewSegment(space.StaticBody, Vector{-160, -100}, Vector{160, -100}, 10))
 	shape.SetElasticity(1)
 	shape.SetFriction(1)
+	shape.SetCollisionType(COLLISION_TYPE_ONE_WAY)
 	shape.SetFilter(examples.NotGrabbableFilter)
 
 	platformInstance.n = Vector{0, 1}

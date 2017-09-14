@@ -141,7 +141,7 @@ type SplittingPlane struct {
 
 var (
 	NO_GROUP       uint = 0
-	ALL_CATEGORIES uint = ^NO_GROUP
+	ALL_CATEGORIES uint = ^uint(0)
 )
 
 var SHAPE_FILTER_ALL = ShapeFilter{NO_GROUP, ALL_CATEGORIES, ALL_CATEGORIES}
@@ -272,7 +272,7 @@ func normal_relative_velocity(a, b *Body, r1, r2, n Vector) float64 {
 	return relative_velocity(a, b, r1, r2).Dot(n)
 }
 
-func k_tensor(a, b *Body, r1, r2 Vector) *Mat2x2 {
+func k_tensor(a, b *Body, r1, r2 Vector) Mat2x2 {
 	m_sum := a.m_inv + b.m_inv
 
 	// start with Identity*m_sum
@@ -306,7 +306,7 @@ func k_tensor(a, b *Body, r1, r2 Vector) *Mat2x2 {
 	assert(det != 0.0, "Unsolvable constraint")
 
 	det_inv := 1.0 / det
-	return &Mat2x2{
+	return Mat2x2{
 		k22 * det_inv, -k12 * det_inv,
 		-k21 * det_inv, k11 * det_inv,
 	}

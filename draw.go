@@ -94,6 +94,15 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 		options.DrawDot(5, a, color, data)
 		options.DrawDot(5, b, color, data)
 		options.DrawSegment(a, b, color, data)
+	case *SlideJoint:
+		joint := constraint.Class.(*SlideJoint)
+
+		a := body_a.transform.Point(joint.AnchorA)
+		b := body_b.transform.Point(joint.AnchorB)
+
+		options.DrawDot(5, a, color, data)
+		options.DrawDot(5, b, color, data)
+		options.DrawSegment(a, b, color, data)
 	case *PivotJoint:
 		joint := constraint.Class.(*PivotJoint)
 
@@ -102,6 +111,15 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 
 		options.DrawDot(5, a, color, data)
 		options.DrawDot(5, b, color, data)
+	case *GrooveJoint:
+		joint := constraint.Class.(*GrooveJoint)
+
+		a := body_a.transform.Point(joint.GrooveA)
+		b := body_a.transform.Point(joint.GrooveB)
+		c := body_b.transform.Point(joint.AnchorB)
+
+		options.DrawDot(5, c, color, data)
+		options.DrawSegment(a, b, color, data)
 	case *DampedSpring:
 		spring := constraint.Class.(*DampedSpring)
 		a := body_a.transform.Point(spring.AnchorA)
@@ -129,6 +147,8 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 		}
 	case *GearJoint:
 	case *SimpleMotor:
+	case *DampedRotarySpring:
+	case *RotaryLimitJoint:
 		// nothing to do here
 	default:
 		panic(fmt.Sprintf("Implement me: %#v", constraint.Class))

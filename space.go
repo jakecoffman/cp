@@ -3,7 +3,6 @@ package physics
 import (
 	"math"
 	"unsafe"
-	"log"
 )
 
 const MAX_CONTACTS_PER_ARBITER = 2
@@ -759,7 +758,7 @@ func (space *Space) PopContacts(count uint) {
 }
 
 func (space *Space) LookupHandler(a, b CollisionType, defaultHandler *CollisionHandler) *CollisionHandler {
-	types := CollisionHandler{TypeA: a, TypeB: b}
+	types := &CollisionHandler{TypeA: a, TypeB: b}
 	handler := space.collisionHandlers.Find(HashPair(HashValue(a), HashValue(b)), types)
 	if handler != nil {
 		return handler

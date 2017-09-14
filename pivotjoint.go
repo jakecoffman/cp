@@ -5,7 +5,7 @@ type PivotJoint struct {
 	anchorA, anchorB Vector
 
 	r1, r2 Vector
-	k      *Mat2x2
+	k      Mat2x2
 
 	jAcc, bias Vector
 }

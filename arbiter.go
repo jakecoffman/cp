@@ -1,6 +1,8 @@
 package physics
 
-import "math"
+import (
+	"math"
+)
 
 var WILDCARD_COLLISION_TYPE CollisionType = ^CollisionType(0)
 
@@ -228,15 +230,14 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 
 	typeA := info.a.collisionType
 	typeB := info.b.collisionType
-	defaultHandler := space.defaultHandler
-	handler := space.LookupHandler(typeA, typeB, defaultHandler)
+	handler := space.LookupHandler(typeA, typeB, space.defaultHandler)
 	arb.handler = handler
 
 	// Check if the types match, but don't swap for a default handler which use the wildcard for type A.
 	swapped := typeA != handler.TypeA && handler.TypeA != WILDCARD_COLLISION_TYPE
 	arb.swapped = swapped
 
-	if handler != defaultHandler || space.usesWildcards {
+	if handler != space.defaultHandler || space.usesWildcards {
 		// The order of the main handler swaps the wildcard handlers too. Uffda.
 		if swapped {
 			arb.handlerA = space.LookupHandler(typeB, WILDCARD_COLLISION_TYPE, &CollisionHandlerDoNothing)
