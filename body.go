@@ -103,6 +103,10 @@ func (body *Body) SetAngle(angle float64) {
 	body.SetTransform(body.p, angle)
 }
 
+func (body Body) Moment() float64 {
+	return body.i
+}
+
 func (body *Body) SetMoment(moment float64) {
 	body.Activate()
 	body.i = moment
@@ -247,6 +251,10 @@ func (body *Body) AccumulateMassFromShapes() {
 	body.i_inv = 1.0 / body.i
 
 	body.SetPosition(pos)
+}
+
+func (body Body) CenterOfGravity() Vector {
+	return body.cog
 }
 
 func (body *Body) Angle() float64 {
@@ -423,6 +431,43 @@ func (body *Body) ComponentRoot() *Body {
 
 func (body *Body) WorldToLocal(point Vector) Vector {
 	return NewTransformRigidInverse(body.transform).Point(point)
+}
+
+func (body *Body) LocalToWorld(point Vector) Vector {
+	return body.transform.Point(point)
+}
+
+func (body *Body) ApplyForceAtWorldPoint(force, point Vector) {
+	body.Activate()
+	body.f = body.f.Add(force)
+
+	r := point.Sub(body.transform.Point(body.cog))
+	body.t += r.Cross(force)
+}
+
+func (body *Body) ApplyForceAtLocalPoint(force, point Vector) {
+	body.ApplyForceAtWorldPoint(body.transform.Vect(force), body.transform.Point(point))
+}
+
+func (body *Body) ApplyImpulseAtWorldPoint(impulse, point Vector) {
+	body.Activate()
+
+	r := point.Sub(body.transform.Point(body.cog))
+	apply_impulse(body, impulse, r)
+}
+
+func (body *Body) ApplyImpulseAtLocalPoint(impulse, point Vector) {
+	body.ApplyImpulseAtWorldPoint(body.transform.Vect(impulse), body.transform.Point(point))
+}
+
+func (body *Body) VelocityAtLocalPoint(point Vector) Vector {
+	r := body.transform.Vect(point.Sub(body.cog))
+	return body.v.Add(r.Perp().Mult(body.w))
+}
+
+func (body *Body) VelocityAtWorldPoint(point Vector) Vector {
+	r := point.Sub(body.transform.Point(body.cog))
+	return body.v.Add(r.Perp().Mult(body.w))
 }
 
 func BodyUpdateVelocity(body *Body, gravity Vector, damping, dt float64) {

@@ -49,7 +49,7 @@ type Space struct {
 	defaultHandler    *CollisionHandler
 
 	skipPostStep      bool
-	postStepCallbacks []PostStepCallback
+	postStepCallbacks []*PostStepCallback
 
 	StaticBody *Body
 }
@@ -59,11 +59,6 @@ func arbiterSetEql(shapes []*Shape, arb *Arbiter) bool {
 	b := shapes[1]
 
 	return (a == arb.a && b == arb.b) || (b == arb.a && a == arb.b)
-}
-
-func handlerSetTrans(handler, _ interface{}) interface{} {
-	// Chipmunk makes a copy, not sure that is possible in Go
-	return handler
 }
 
 func NewSpace() *Space {
@@ -89,7 +84,7 @@ func NewSpace() *Space {
 		pooledArbiters:       make(chan *Arbiter, POOLED_BUFFER_SIZE),
 		constraints:          []*Constraint{},
 		collisionHandlers:    NewHashSetCollisionHandler(),
-		postStepCallbacks:    []PostStepCallback{},
+		postStepCallbacks:    []*PostStepCallback{},
 		defaultHandler:       &CollisionHandlerDoNothing,
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
@@ -115,6 +110,15 @@ func (space *Space) SetGravity(gravity Vector) {
 	for _, component := range space.sleepingComponents {
 		component.Activate()
 	}
+}
+
+func (space Space) Damping() float64 {
+	return space.damping
+}
+
+func (space *Space) SetDamping(damping float64) {
+	assert(damping >= 0)
+	space.damping = damping
 }
 
 func (space *Space) SetCollisionSlop(slop float64) {
@@ -381,7 +385,7 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 
 	// Ignore the arbiter if it has been flagged
 	if arb.state != CP_ARBITER_STATE_IGNORE &&
-		// Call preSolve
+		// Call PreSolve
 		arb.handler.PreSolveFunc(arb, space, arb.handler.UserData) &&
 		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
 		arb.state != CP_ARBITER_STATE_IGNORE &&
@@ -657,8 +661,8 @@ func (space *Space) Step(dt float64) {
 		}
 
 		for _, constraint := range space.constraints {
-			if constraint.preSolve != nil {
-				constraint.preSolve(constraint, space)
+			if constraint.PreSolve != nil {
+				constraint.PreSolve(constraint, space)
 			}
 
 			constraint.Class.PreStep(constraint, dt)
@@ -699,8 +703,8 @@ func (space *Space) Step(dt float64) {
 
 		// Run the constraint post-solve callbacks
 		for _, constraint := range space.constraints {
-			if constraint.postSolve != nil {
-				constraint.postSolve(constraint, space)
+			if constraint.PostSolve != nil {
+				constraint.PostSolve(constraint, space)
 			}
 		}
 
@@ -719,9 +723,7 @@ func (space *Space) Lock() {
 func (space *Space) Unlock(runPostStep bool) {
 	space.locked--
 
-	if space.locked < 0 {
-		panic("Space lock underflow")
-	}
+	assert(space.locked >= 0, "Space lock underflow")
 
 	if space.locked != 0 {
 		return
@@ -731,7 +733,26 @@ func (space *Space) Unlock(runPostStep bool) {
 		space.Activate(space.rousedBodies[i])
 		space.rousedBodies[i] = nil
 	}
-	space.rousedBodies = space.rousedBodies[0:0]
+	space.rousedBodies = space.rousedBodies[:0]
+
+	if runPostStep && !space.skipPostStep {
+		space.skipPostStep = true
+
+		for _, callback := range space.postStepCallbacks {
+			f := callback.callback
+
+			// Mark the func as NULL in case calling it calls cpSpaceRunPostStepCallbacks() again.
+			// TODO: need more tests around this case I think.
+			callback.callback = nil
+
+			if f != nil {
+				f(space, callback.key, callback.data)
+			}
+		}
+
+		space.postStepCallbacks = space.postStepCallbacks[:0]
+		space.skipPostStep = false
+	}
 }
 
 func (space *Space) UncacheArbiter(arb *Arbiter) {
@@ -904,4 +925,37 @@ func (space *Space) SegmentQueryFirst(start, end Vector, radius float64, filter 
 	space.staticShapes.class.SegmentQuery(context, start, end, 1, queryFirst, &info)
 	space.dynamicShapes.class.SegmentQuery(context, start, end, info.Alpha, queryFirst, &info)
 	return info
+}
+
+func (space *Space) TimeStep() float64 {
+	return space.curr_dt
+}
+
+func (space *Space) PostStepCallback(key interface{}) *PostStepCallback {
+	for i := 0; i < len(space.postStepCallbacks); i++ {
+		callback := space.postStepCallbacks[i]
+		if callback != nil && callback.key == key {
+			return callback
+		}
+	}
+	return nil
+}
+
+func PostStepDoNothing(space *Space, key, data interface{}) {}
+
+func (space *Space) AddPostStepCallback(f PostStepCallbackFunc, key, data interface{}) bool {
+	if space.PostStepCallback(key) == nil {
+		callback := &PostStepCallback{
+			key:  key,
+			data: data,
+		}
+		if f != nil {
+			callback.callback = f
+		} else {
+			callback.callback = PostStepDoNothing
+		}
+		space.postStepCallbacks = append(space.postStepCallbacks, callback)
+		return true
+	}
+	return false
 }

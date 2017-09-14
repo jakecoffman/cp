@@ -106,8 +106,8 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 	case *PivotJoint:
 		joint := constraint.Class.(*PivotJoint)
 
-		a := body_a.transform.Point(joint.anchorA)
-		b := body_b.transform.Point(joint.anchorB)
+		a := body_a.transform.Point(joint.AnchorA)
+		b := body_b.transform.Point(joint.AnchorB)
 
 		options.DrawDot(5, a, color, data)
 		options.DrawDot(5, b, color, data)

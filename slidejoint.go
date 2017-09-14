@@ -1,13 +1,15 @@
 package physics
 
+import "math"
+
 type SlideJoint struct {
 	*Constraint
 
 	AnchorA, AnchorB Vector
-	Min, Max float64
+	Min, Max         float64
 
 	r1, r2, n Vector
-	nMass float64
+	nMass     float64
 
 	jnAcc, bias float64
 }
@@ -16,9 +18,9 @@ func NewSlideJoint(a, b *Body, anchorA, anchorB Vector, min, max float64) *Const
 	joint := &SlideJoint{
 		AnchorA: anchorA,
 		AnchorB: anchorB,
-		Min: min,
-		Max: max,
-		jnAcc: 0,
+		Min:     min,
+		Max:     max,
+		jnAcc:   0,
 	}
 	joint.Constraint = NewConstraint(joint, a, b)
 	return joint.Constraint
@@ -46,7 +48,7 @@ func (joint *SlideJoint) PreStep(constraint *Constraint, dt float64) {
 	}
 
 	// calculate the mass normal
-	joint.nMass= 1.0/k_scalar(a, b, joint.r1, joint.r2, joint.n)
+	joint.nMass = 1.0 / k_scalar(a, b, joint.r1, joint.r2, joint.n)
 
 	// calculate bias velocity
 	maxBias := joint.maxBias
@@ -57,7 +59,7 @@ func (joint *SlideJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef floa
 	a := joint.a
 	b := joint.b
 
-	j := joint.n.Mult(joint.jnAcc*dt_coef)
+	j := joint.n.Mult(joint.jnAcc * dt_coef)
 	apply_impulses(a, b, joint.r1, joint.r2, j)
 }
 
@@ -75,15 +77,14 @@ func (joint *SlideJoint) ApplyImpulse(constraint *Constraint, dt float64) {
 	vr := relative_velocity(a, b, r1, r2)
 	vrn := vr.Dot(n)
 
-	jn := (joint.bias - vrn)*joint.nMass
+	jn := (joint.bias - vrn) * joint.nMass
 	jnOld := joint.jnAcc
-	joint.jnAcc = Clamp(jnOld + jn, -joint.maxForce*dt, 0)
+	joint.jnAcc = Clamp(jnOld+jn, -joint.maxForce*dt, 0)
 	jn = joint.jnAcc - jnOld
 
 	apply_impulses(a, b, joint.r1, joint.r2, n.Mult(jn))
 }
 
 func (joint *SlideJoint) GetImpulse() float64 {
-	return joint.jnAcc
+	return math.Abs(joint.jnAcc)
 }
-

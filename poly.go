@@ -13,6 +13,16 @@ type PolyShape struct {
 	planes []SplittingPlane
 }
 
+func (poly PolyShape) Count() int {
+	return poly.count
+}
+
+func (poly PolyShape) Vert(i int) Vector {
+	assert(i >= 0 && i < poly.count)
+
+	return poly.planes[i+poly.count].v0
+}
+
 func (poly *PolyShape) CacheData(transform Transform) BB {
 	count := poly.count
 	dst := poly.planes[0:count]
@@ -164,6 +174,16 @@ func NewBox(body *Body, w, h, r float64) *Shape {
 	hw := w / 2.0
 	hh := h / 2.0
 	bb := &BB{-hw, -hh, hw, hh}
+	verts := []Vector{
+		{bb.R, bb.B},
+		{bb.R, bb.T},
+		{bb.L, bb.T},
+		{bb.L, bb.B},
+	}
+	return NewPolyShapeRaw(body, 4, verts, r)
+}
+
+func NewBox2(body *Body, bb BB, r float64) *Shape {
 	verts := []Vector{
 		{bb.R, bb.B},
 		{bb.R, bb.T},

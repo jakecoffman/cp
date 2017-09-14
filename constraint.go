@@ -22,8 +22,8 @@ type Constraint struct {
 	maxForce, errorBias, maxBias float64
 
 	collideBodies bool
-	preSolve      ConstraintPreSolveFunc
-	postSolve     ConstraintPostSolveFunc
+	PreSolve      ConstraintPreSolveFunc
+	PostSolve     ConstraintPostSolveFunc
 
 	userData interface{}
 }
@@ -40,8 +40,8 @@ func NewConstraint(class Constrainer, a, b *Body) *Constraint {
 		maxBias:   INFINITY,
 
 		collideBodies: true,
-		preSolve:      nil,
-		postSolve:     nil,
+		PreSolve:      nil,
+		PostSolve:     nil,
 	}
 }
 
@@ -50,16 +50,28 @@ func (c *Constraint) ActivateBodies() {
 	c.b.Activate()
 }
 
+func (c Constraint) MaxForce() float64 {
+	return c.maxForce
+}
+
 func (c *Constraint) SetMaxForce(max float64) {
 	assert(max >= 0.0, "Must be positive")
 	c.ActivateBodies()
 	c.maxForce = max
 }
 
+func (c Constraint) MaxBias() float64 {
+	return c.maxBias
+}
+
 func (c *Constraint) SetMaxBias(max float64) {
 	assert(max >= 0, "Must be positive")
 	c.ActivateBodies()
 	c.maxBias = max
+}
+
+func (c Constraint) ErrorBias() float64 {
+	return c.errorBias
 }
 
 func (c *Constraint) SetErrorBias(errorBias float64) {
@@ -74,4 +86,9 @@ func (c *Constraint) Next(body *Body) *Constraint {
 	} else {
 		return c.next_b
 	}
+}
+
+func (c *Constraint) SetCollideBodies(collideBodies bool) {
+	c.ActivateBodies()
+	c.collideBodies = collideBodies
 }

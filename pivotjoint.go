@@ -2,7 +2,7 @@ package physics
 
 type PivotJoint struct {
 	*Constraint
-	anchorA, anchorB Vector
+	AnchorA, AnchorB Vector
 
 	r1, r2 Vector
 	k      Mat2x2
@@ -31,8 +31,8 @@ func NewPivotJoint(a, b *Body, pivot Vector) *Constraint {
 
 func NewPivotJoint2(a, b *Body, anchorA, anchorB Vector) *Constraint {
 	joint := &PivotJoint{
-		anchorA: anchorA,
-		anchorB: anchorB,
+		AnchorA: anchorA,
+		AnchorB: anchorB,
 		jAcc:    VectorZero(),
 	}
 	constraint := NewConstraint(joint, a, b)
@@ -44,8 +44,8 @@ func (joint *PivotJoint) PreStep(constraint *Constraint, dt float64) {
 	a := joint.Constraint.a
 	b := joint.Constraint.b
 
-	joint.r1 = a.transform.Vect(joint.anchorA.Sub(a.cog))
-	joint.r2 = b.transform.Vect(joint.anchorB.Sub(b.cog))
+	joint.r1 = a.transform.Vect(joint.AnchorA.Sub(a.cog))
+	joint.r2 = b.transform.Vect(joint.AnchorB.Sub(b.cog))
 
 	// Calculate mass tensor
 	joint.k = k_tensor(a, b, joint.r1, joint.r2)
