@@ -92,6 +92,12 @@ func main() {
 
 	// Ratchet Joint - A rotary ratchet, like a socket wrench
 	boxOffset = Vector{160, -120}
+	body1 = addLever(space, posA, boxOffset)
+	body2 = addLever(space, posB, boxOffset)
+	space.AddConstraint(NewPivotJoint(body1, space.StaticBody, boxOffset.Add(posA)))
+	space.AddConstraint(NewPivotJoint(body2, space.StaticBody, boxOffset.Add(posB)))
+	// Ratchet every 90 degrees
+	space.AddConstraint(NewRatchetJoint(body1, body2, 0, math.Pi/2.0))
 
 	// Gear Joint - Maintain a specific angular velocity ratio
 	boxOffset = Vector{-320, 0}
@@ -200,16 +206,20 @@ func addChassis(space *Space, pos, boxOffset Vector) *Body {
 }
 
 func update(space *Space, dt float64) {
-	examples.DrawString(Vector{-320, -240}, "Pin Joints")
-	examples.DrawString(Vector{-160, -240}, "Slide Joints")
-	examples.DrawString(Vector{0, -240}, "Pivot Joints")
-	examples.DrawString(Vector{160, -240}, "Groove Joints")
-	examples.DrawString(Vector{-320, -240}, "Damped Spring")
-	examples.DrawString(Vector{-160, -120}, "Damped Rotary Spring")
-	examples.DrawString(Vector{0, -120}, "Rotary Limit Joint")
-	examples.DrawString(Vector{160, -120}, "Ratchet Joints")
-	examples.DrawString(Vector{-320, 0}, "Gear Joint")
-	examples.DrawString(Vector{-160, 0}, "Simple Motor")
-	examples.DrawString(Vector{0, 0}, "Car")
+	draw(Vector{-320, -240}, "Pin Joints")
+	draw(Vector{-160, -240}, "Slide Joints")
+	draw(Vector{0, -240}, "Pivot Joints")
+	draw(Vector{160, -240}, "Groove Joints")
+	draw(Vector{-320, -120}, "Damped Spring")
+	draw(Vector{-160, -120}, "Damped Rotary Spring")
+	draw(Vector{0, -120}, "Rotary Limit Joint")
+	draw(Vector{160, -120}, "Ratchet Joints")
+	draw(Vector{-320, 0}, "Gear Joint")
+	draw(Vector{-160, 0}, "Simple Motor")
+	draw(Vector{0, 0}, "Car")
 	space.Step(dt)
+}
+
+func draw(v Vector, words string) {
+	examples.DrawString(Vector{v.X + 10, v.Y + 105}, words)
 }

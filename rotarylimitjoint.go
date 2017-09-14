@@ -65,7 +65,7 @@ func (joint *RotaryLimitJoint) ApplyImpulse(constraint *Constraint, dt float64) 
 	j := -(joint.bias + wr)*joint.iSum
 	jOld := joint.jAcc
 	if joint.bias < 0 {
-		joint.jAcc = Clamp(jOld + j, 0, -jMax)
+		joint.jAcc = Clamp(jOld + j, 0, jMax)
 	} else {
 		joint.jAcc = Clamp(jOld + j, -jMax, 0)
 	}

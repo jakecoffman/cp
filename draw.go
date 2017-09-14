@@ -145,11 +145,12 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 		for i := 0; i < len(springVerts)-1; i++ {
 			options.DrawSegment(verts[i], verts[i+1], color, data)
 		}
+	// these aren't drawn in Chipmunk, so they aren't drawn here
 	case *GearJoint:
 	case *SimpleMotor:
 	case *DampedRotarySpring:
 	case *RotaryLimitJoint:
-		// nothing to do here
+	case *RatchetJoint:
 	default:
 		panic(fmt.Sprintf("Implement me: %#v", constraint.Class))
 	}

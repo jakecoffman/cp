@@ -18,7 +18,9 @@ func NewGrooveJoint(a, b *Body, grooveA, grooveB, anchorB Vector) *Constraint {
 	joint := &GrooveJoint{
 		GrooveA: grooveA,
 		GrooveB: grooveB,
+		GrooveN: grooveB.Sub(grooveA).Normalize().Perp(),
 		AnchorB: anchorB,
+		jAcc: VectorZero(),
 	}
 	joint.Constraint = NewConstraint(joint, a, b)
 	return joint.Constraint
@@ -47,7 +49,7 @@ func (joint *GrooveJoint) PreStep(constraint *Constraint, dt float64) {
 		joint.r1 = tb.Sub(a.p)
 	} else {
 		joint.clamp = 0
-		joint.r1 = n.Perp().Mult(-td).Sub(n.Mult(d)).Sub(a.p)
+		joint.r1 = n.Perp().Mult(-td).Add(n.Mult(d)).Sub(a.p)
 	}
 
 	joint.k = k_tensor(a, b, joint.r1, joint.r2)
