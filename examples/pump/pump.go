@@ -88,7 +88,7 @@ func main() {
 
 	motor = space.AddConstraint(NewSimpleMotor(space.StaticBody, bigGear, 3)).Class.(*SimpleMotor)
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 640, 480, 1.0/120.0, update)
 }
 
 func update(space *Space, dt float64) {
