@@ -117,6 +117,10 @@ func (s *Shape) SetFriction(u float64) {
 	s.u = u
 }
 
+func (s *Shape) SetSurfaceV(surfaceV Vector) {
+	s.surfaceV = surfaceV
+}
+
 func (s *Shape) Elasticity() float64 {
 	return s.e
 }

@@ -185,25 +185,25 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 		case glfw.KeyUp:
 			if action == glfw.Press {
 				Keyboard.Y += 1
-			} else {
+			} else if action == glfw.Release {
 				Keyboard.Y -= 1
 			}
 		case glfw.KeyDown:
 			if action == glfw.Press {
 				Keyboard.Y -= 1
-			} else {
+			} else if action == glfw.Release {
 				Keyboard.Y += 1
-			}
-		case glfw.KeyLeft:
-			if action == glfw.Press {
-				Keyboard.X += 1
-			} else {
-				Keyboard.X -= 1
 			}
 		case glfw.KeyRight:
 			if action == glfw.Press {
+				Keyboard.X += 1
+			} else if action == glfw.Release {
 				Keyboard.X -= 1
-			} else {
+			}
+		case glfw.KeyLeft:
+			if action == glfw.Press {
+				Keyboard.X -= 1
+			} else if action == glfw.Release {
 				Keyboard.X += 1
 			}
 		}

@@ -1,8 +1,8 @@
 package physics
 
 import (
-	"math"
 	"fmt"
+	"math"
 )
 
 type Vector struct {
@@ -90,7 +90,7 @@ func (v Vector) Lerp(other Vector, t float64) Vector {
 }
 
 func (v Vector) Normalize() Vector {
-	return v.Mult(1.0 / (v.Length()+math.SmallestNonzeroFloat64))
+	return v.Mult(1.0 / (v.Length() + math.SmallestNonzeroFloat64))
 }
 
 func (v Vector) SLerp(other Vector, t float64) Vector {
@@ -111,6 +111,14 @@ func Clamp(f, min, max float64) float64 {
 
 func Clamp01(f float64) float64 {
 	return Clamp(f, 0, 1)
+}
+
+func Lerp(f1, f2, t float64) float64 {
+	return f1*(1.0-t) + f2*t
+}
+
+func LerpConst(f1, f2, d float64) float64 {
+	return f1 + Clamp(f2-f1, -d, d)
 }
 
 func (v Vector) SlerpConst(other Vector, a float64) Vector {
@@ -158,8 +166,8 @@ func (a Vector) ClosestT(b Vector) float64 {
 }
 
 func (a Vector) LerpT(b Vector, t float64) Vector {
-	ht := 0.5*t
-	return a.Mult(0.5-ht).Add(b.Mult(0.5+ht))
+	ht := 0.5 * t
+	return a.Mult(0.5 - ht).Add(b.Mult(0.5 + ht))
 }
 
 func (v0 Vector) ClosestDist(v1 Vector) float64 {
@@ -168,7 +176,7 @@ func (v0 Vector) ClosestDist(v1 Vector) float64 {
 
 func (p Vector) ClosestPointOnSegment(a, b Vector) Vector {
 	delta := a.Sub(b)
-	t := Clamp01(delta.Dot(p.Sub(b))/delta.LengthSq())
+	t := Clamp01(delta.Dot(p.Sub(b)) / delta.LengthSq())
 	return b.Add(delta.Mult(t))
 }
 
