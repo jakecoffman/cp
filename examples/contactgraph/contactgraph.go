@@ -62,8 +62,6 @@ func update(space *Space, dt float64) {
 	space.Step(dt)
 
 	// Sum the total impulse applied to the scale from all collision pairs in the contact graph.
-	// If your compiler supports blocks, your life is a little easier.
-	// You can use the "Block" versions of the functions without needing the callbacks above.
 	var impulseSum Vector
 	scaleStaticBody.EachArbiter(func(arbiter *Arbiter) {
 		impulseSum = impulseSum.Add(arbiter.TotalImpulse())

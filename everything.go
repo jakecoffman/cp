@@ -72,8 +72,8 @@ type Contact struct {
 	hash HashValue
 }
 
-func (c *Contact) Clone() *Contact {
-	return &Contact{
+func (c *Contact) Clone() Contact {
+	return Contact{
 		r1:     c.r1,
 		r2:     c.r2,
 		nMass:  c.nMass,
@@ -93,13 +93,13 @@ type CollisionInfo struct {
 
 	n     Vector
 	count uint
-	arr   []*Contact
+	arr   []Contact
 }
 
 func (info *CollisionInfo) PushContact(p1, p2 Vector, hash HashValue) {
 	assert(info.count < MAX_CONTACTS_PER_ARBITER, "Internal error: Tried to push too many contacts.")
 
-	con := info.arr[info.count]
+	con := &info.arr[info.count]
 	con.r1 = p1
 	con.r2 = p2
 	con.hash = hash
@@ -125,7 +125,7 @@ type PointQueryInfo struct {
 }
 
 type SegmentQueryInfo struct {
-	/// The shape that was hit, or NULL if no collision occured.
+	/// The shape that was hit, or NULL if no collision occurred.
 	Shape *Shape
 	/// The point of impact.
 	Point Vector

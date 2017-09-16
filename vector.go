@@ -110,7 +110,7 @@ func Clamp(f, min, max float64) float64 {
 }
 
 func Clamp01(f float64) float64 {
-	return Clamp(f, 0, 1)
+	return math.Max(0, math.Min(f, 1))
 }
 
 func Lerp(f1, f2, t float64) float64 {

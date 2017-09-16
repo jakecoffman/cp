@@ -213,7 +213,7 @@ func (space *Space) Deactivate(body *Body) {
 
 			// Save contact values to a new block of memory so they won't time out
 			contacts := arb.contacts
-			arb.contacts = []*Contact{}
+			arb.contacts = []Contact{}
 			for _, c := range contacts {
 				arb.contacts = append(arb.contacts, c.Clone())
 			}
@@ -494,7 +494,7 @@ func (space *Space) PushFreshContactBuffer() {
 	}
 }
 
-func (space *Space) ContactBufferGetArray() []*Contact {
+func (space *Space) ContactBufferGetArray() []Contact {
 	if space.contactBuffersHead.numContacts+MAX_CONTACTS_PER_ARBITER > CONTACTS_BUFFER_SIZE {
 		space.PushFreshContactBuffer()
 	}

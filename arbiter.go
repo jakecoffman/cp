@@ -18,7 +18,7 @@ type Arbiter struct {
 
 	count uint
 	// a slice onto the current buffer array of contacts
-	contacts []*Contact
+	contacts []Contact
 	n        Vector
 
 	// Regular, wildcard A and wildcard B collision handlers.
@@ -125,7 +125,8 @@ func (arbiter *Arbiter) ApplyImpulse() {
 	surface_vr := arbiter.surface_vr
 	friction := arbiter.u
 
-	for _, con := range arbiter.contacts {
+	for i := range arbiter.contacts {
+		con := &arbiter.contacts[i]
 		nMass := con.nMass
 		r1 := con.r1
 		r2 := con.r2
@@ -166,7 +167,9 @@ func (arb *Arbiter) PreStep(dt, slop, bias float64) {
 	n := arb.n
 	bodyDelta := b.p.Sub(a.p)
 
-	for _, con := range arb.contacts {
+	for i := range arb.contacts {
+		con := &arb.contacts[i]
+
 		// Calculate the mass normal and mass tangent.
 		con.nMass = 1.0 / k_scalar(a, b, con.r1, con.r2, n)
 		con.tMass = 1.0 / k_scalar(a, b, con.r1, con.r2, n.Perp())
@@ -194,7 +197,7 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 	var i uint
 	// Iterate over the possible pairs to look for hash value matches.
 	for i = 0; i < info.count; i++ {
-		con := info.arr[i]
+		con := &info.arr[i]
 
 		// r1 and r2 store absolute offsets at init time.
 		// Need to convert them to relative offsets.

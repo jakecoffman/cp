@@ -497,7 +497,7 @@ var BuiltinCollisionFuncs [9]CollisionFunc = [9]CollisionFunc{
 	PolyToPoly,
 }
 
-func Collide(a, b *Shape, collisionId uint32, contacts []*Contact) *CollisionInfo {
+func Collide(a, b *Shape, collisionId uint32, contacts []Contact) *CollisionInfo {
 	info := &CollisionInfo{a, b, collisionId, VectorZero(), 0, contacts}
 
 	// Make sure the shape types are in order.
