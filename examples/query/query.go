@@ -48,7 +48,7 @@ func main() {
 		body := space.AddBody(NewBody(mass, MomentForPoly(mass, len(verts), verts, VectorZero(), 0)))
 		body.SetPosition(Vector{50, 30})
 
-		space.AddShape(NewPolyShape(body, verts, NewTransformIdentity(), 10))
+		space.AddShape(NewPolyShape(body, numVerts, verts, NewTransformIdentity(), 10))
 	}
 
 	// circle

@@ -384,9 +384,7 @@ func GJKRecurse(ctx *SupportContext, v0, v1 MinkowskiPoint, iteration int) Close
 		return v0.ClosestPoints(v1)
 	}
 
-	vzero := VectorZero()
-
-	if v1.ab.PointGreater(v0.ab, vzero) {
+	if v1.ab.PointGreater(v0.ab, Vector{}) {
 		// Origin is behind axis. Flip and try again.
 		return GJKRecurse(ctx, v1, v0, iteration)
 	}
@@ -395,13 +393,13 @@ func GJKRecurse(ctx *SupportContext, v0, v1 MinkowskiPoint, iteration int) Close
 	if -1.0 < t && t < 1.0 {
 		n = v1.ab.Sub(v0.ab).Perp()
 	} else {
-		n = v0.ab.Lerp(v1.ab, t).Neg()
+		n = v0.ab.LerpT(v1.ab, t).Neg()
 	}
 	p := ctx.Support(n)
 
 	// Draw debug
 
-	if p.ab.PointGreater(v0.ab, vzero) && v1.ab.PointGreater(p.ab, vzero) {
+	if p.ab.PointGreater(v0.ab, Vector{}) && v1.ab.PointGreater(p.ab, Vector{}) {
 		return EPA(ctx, v0, p, v1)
 	}
 
