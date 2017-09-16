@@ -148,14 +148,14 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 	}
 }
 
-func NewPolyShape(body *Body, verts []Vector, transform Transform, radius float64) *Shape {
+func NewPolyShape(body *Body, vectCount int, verts []Vector, transform Transform, radius float64) *Shape {
 	hullVerts := []Vector{}
 	// Transform the verts before building the hull in case of a negative scale.
-	for _, vert := range verts {
-		hullVerts = append(hullVerts, transform.Point(vert))
+	for i:=0; i<vectCount; i++ {
+		hullVerts = append(hullVerts, transform.Point(verts[i]))
 	}
 
-	hullCount := ConvexHull(len(hullVerts), hullVerts, nil, 0)
+	hullCount := ConvexHull(vectCount, hullVerts, nil, 0)
 	return NewPolyShapeRaw(body, hullCount, hullVerts, radius)
 }
 
@@ -204,6 +204,26 @@ func (p *PolyShape) SetVerts(count int, verts []Vector) {
 
 		p.planes[i+count].v0 = b
 		p.planes[i+count].n = n
+	}
+}
+
+func (p *PolyShape) SetVertsUnsafe(count int, verts []Vector, transform Transform) {
+	hullVerts := make([]Vector, count)
+
+	for i:=0; i<count; i++ {
+		hullVerts[i] = transform.Point(verts[i])
+	}
+
+	hullCount := ConvexHull(count, hullVerts, nil, 0)
+	p.SetVertsRaw(hullCount, hullVerts)
+}
+
+func (p *PolyShape) SetVertsRaw(count int, verts []Vector) {
+	p.SetVerts(count, verts)
+	mass := p.massInfo.m
+	p.massInfo = PolyShapeMassInfo(p.massInfo.m, count, verts, p.r)
+	if mass > 0 {
+		p.body.AccumulateMassFromShapes()
 	}
 }
 
@@ -268,22 +288,24 @@ func LoopIndexes(verts []Vector, count int) (int, int) {
 }
 
 func QHullReduce(tol float64, verts []Vector, count int, a, pivot, b Vector, result []Vector) int {
-	if count < 0 {
-		return 0
-	}
-
 	if count == 0 {
 		result[0] = pivot
 		return 1
 	}
 
 	leftCount := QHullPartition(verts, count, a, pivot, tol)
-	index := QHullReduce(tol, verts[1:], leftCount-1, a, verts[0], pivot, result)
+	var index int
+	if leftCount - 1 >= 0 {
+		index = QHullReduce(tol, verts[1:], leftCount-1, a, verts[0], pivot, result)
+	}
 
 	result[index] = pivot
 	index++
 
 	rightCount := QHullPartition(verts[leftCount:], count-leftCount, pivot, b, tol)
+	if rightCount-1 < 0 {
+		return index
+	}
 	return index + QHullReduce(tol, verts[leftCount+1:], rightCount-1, pivot, verts[leftCount], b, result[index:])
 }
 

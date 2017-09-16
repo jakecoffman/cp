@@ -329,8 +329,73 @@ func (space *Space) RemoveConstraint(constraint *Constraint) {
 	constraint.space = nil
 }
 
+func (space *Space) RemoveShape(shape *Shape) {
+	body := shape.body
+	assert(space.ContainsShape(shape))
+	assert(space.locked == 0)
+
+	isStatic := body.GetType() == BODY_STATIC
+	if isStatic {
+		body.ActivateStatic(shape)
+	} else {
+		body.Activate()
+	}
+
+	body.RemoveShape(shape)
+	space.FilterArbiters(body, shape)
+	if isStatic {
+		space.staticShapes.class.Remove(shape, shape.hashid)
+	} else {
+		space.dynamicShapes.class.Remove(shape, shape.hashid)
+	}
+	shape.space = nil
+	shape.hashid = 0
+}
+
+func (space *Space) RemoveBody(body *Body) {
+	assert(body != space.StaticBody)
+	assert(space.ContainsBody(body))
+	assert(space.locked == 0)
+
+	body.Activate()
+	if body.GetType() == BODY_STATIC {
+		for i, b := range space.staticBodies {
+			if b == body {
+				space.staticBodies = append(space.staticBodies[:i], space.staticBodies[i+1:]...)
+				break
+			}
+		}
+	} else {
+		for i, b := range space.dynamicBodies {
+			if b == body {
+				space.dynamicBodies = append(space.dynamicBodies[:i], space.dynamicBodies[i+1:]...)
+				break
+			}
+		}
+	}
+	body.space = nil
+}
+
+func (space *Space) FilterArbiters(body *Body, filter *Shape) {
+	space.Lock()
+
+	space.cachedArbiters.Filter(func(arb *Arbiter) bool {
+		return CachedArbitersFilter(arb, space, filter, body)
+	})
+
+	space.Unlock(true)
+}
+
 func (space *Space) ContainsConstraint(constraint *Constraint) bool {
 	return constraint.space == space
+}
+
+func (space *Space) ContainsShape(shape *Shape) bool {
+	return shape.space == space
+}
+
+func (space *Space) ContainsBody(body *Body) bool {
+	return body.space == space
 }
 
 var ShapeUpdateFunc = func(shape *Shape, _ interface{}) {
@@ -651,7 +716,9 @@ func (space *Space) Step(dt float64) {
 	space.Lock()
 	{
 		// Clear out old cached arbiters and call separate callbacks
-		space.cachedArbiters.Filter(space)
+		space.cachedArbiters.Filter(func(arb *Arbiter) bool {
+			return SpaceArbiterSetFilter(arb, space)
+		})
 
 		// Prestep the arbiters and constraints.
 		slop := space.collisionSlop
@@ -895,6 +962,17 @@ type SegmentQueryContext struct {
 	f          SpaceSegmentQueryFunc
 }
 
+func segmentQuery(obj interface{}, shape *Shape, data interface{}) float64 {
+	context := obj.(*SegmentQueryContext)
+	var info SegmentQueryInfo
+
+	if !shape.Filter.Reject(context.filter) && shape.SegmentQuery(context.start, context.end, context.radius, &info) {
+		context.f(shape, info.Point, info.Normal, info.Alpha, data)
+	}
+
+	return 1
+}
+
 func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
 	context := obj.(*SegmentQueryContext)
 	out := data.(*SegmentQueryInfo)
@@ -917,6 +995,16 @@ func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
 	}
 	*out = info
 	return out.Alpha
+}
+
+func (space *Space) SegmentQuery(start, end Vector, radius float64, filter ShapeFilter, f SpaceSegmentQueryFunc, data interface{}) {
+	context := SegmentQueryContext{start, end, radius, filter, f}
+	space.Lock()
+
+	space.staticShapes.class.SegmentQuery(&context, start, end, 1, segmentQuery, data)
+	space.dynamicShapes.class.SegmentQuery(&context, start, end, 1, segmentQuery, data)
+
+	space.Unlock(true)
 }
 
 func (space *Space) SegmentQueryFirst(start, end Vector, radius float64, filter ShapeFilter) SegmentQueryInfo {

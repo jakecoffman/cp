@@ -375,7 +375,20 @@ func (body *Body) Activate() {
 			other.sleepingIdleTime = 0
 		}
 	}
+}
 
+func (body *Body) ActivateStatic(filter *Shape) {
+	assert(body.GetType() == BODY_STATIC)
+
+	for arb := body.arbiterList; arb != nil; arb = arb.Next(body) {
+		if filter == nil || filter == arb.a || filter == arb.b {
+			if arb.body_a == body {
+				arb.body_b.Activate()
+			} else {
+				arb.body_a.Activate()
+			}
+		}
+	}
 }
 
 func (body *Body) IsSleeping() bool {
@@ -493,6 +506,31 @@ func BodyUpdatePosition(body *Body, dt float64) {
 
 func (body *Body) RemoveConstraint(constraint *Constraint) {
 	body.constraintList = filterConstraints(body.constraintList, body, constraint)
+}
+
+func (body *Body) RemoveShape(shape *Shape) {
+	prev := shape.prev
+	next := shape.next
+
+	if prev != nil {
+		prev.next = next
+	} else {
+		// leak-free delete from slice
+		copy(body.shapeList[0:], body.shapeList[1:])
+		body.shapeList[len(body.shapeList)-1] = nil
+		body.shapeList = body.shapeList[:len(body.shapeList)-1]
+	}
+
+	if next != nil {
+		next.prev = prev
+	}
+
+	shape.prev = nil
+	shape.next = nil
+
+	if body.GetType() == BODY_DYNAMIC && shape.massInfo.m > 0 {
+		body.AccumulateMassFromShapes()
+	}
 }
 
 func filterConstraints(node *Constraint, body *Body, filter *Constraint) *Constraint {

@@ -187,7 +187,7 @@ func (set *HashSetArbiter) Each(f HashSetIteratorArbiter) {
 	}
 }
 
-func (set *HashSetArbiter) Filter(space *Space) {
+func (set *HashSetArbiter) Filter(filter func (arb *Arbiter) bool) {
 	var i uint
 	for i = 0; i < set.size; i++ {
 		prevPtr := &set.table[i]
@@ -195,7 +195,7 @@ func (set *HashSetArbiter) Filter(space *Space) {
 		for bin != nil {
 			next := bin.next
 
-			if SpaceArbiterSetFilter(bin.elt, space) {
+			if filter(bin.elt) {
 				prevPtr = &bin.next
 			} else {
 				*prevPtr = next
@@ -231,6 +231,36 @@ func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
 	if ticks >= space.collisionPersistence {
 		arb.contacts = nil
 		arb.count = 0
+		select {
+		case space.pooledArbiters <- arb:
+		default:
+		}
+		return false
+	}
+
+	return true
+}
+
+func CachedArbitersFilter(arb *Arbiter, space *Space, shape *Shape, body *Body) bool {
+	// Match on the filter shape, or if it's NULL the filter body
+	if (body == arb.body_a && (shape == arb.a || shape == nil)) ||
+		(body == arb.body_b && (shape == arb.b || shape == nil)) {
+		// Call separate when removing shapes.
+		if shape != nil && arb.state != CP_ARBITER_STATE_CACHED {
+			// Invalidate the arbiter since one of the shapes was removed
+			arb.state = CP_ARBITER_STATE_INVALIDATED
+
+			handler := arb.handler
+			handler.SeparateFunc(arb, space, handler.UserData)
+		}
+
+		arb.Unthread()
+		for i, arbiter := range space.arbiters {
+			if arb == arbiter {
+				space.arbiters = append(space.arbiters[:i], space.arbiters[i+1:]...)
+				break
+			}
+		}
 		select {
 		case space.pooledArbiters <- arb:
 		default:

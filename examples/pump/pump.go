@@ -43,7 +43,7 @@ func main() {
 	plunger := space.AddBody(NewBody(1, INFINITY))
 	plunger.SetPosition(Vector{-160, -80})
 
-	shape = space.AddShape(NewPolyShape(plunger, verts, NewTransformIdentity(), 0))
+	shape = space.AddShape(NewPolyShape(plunger, len(verts), verts, NewTransformIdentity(), 0))
 	shape.SetElasticity(1)
 	shape.SetFriction(0.5)
 	shape.SetFilter(NewShapeFilter(NO_GROUP, 1, 1))

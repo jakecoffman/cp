@@ -234,7 +234,7 @@ func CentroidForPoly(count int, verts []Vector) Vector {
 		cross := v1.Cross(v2)
 
 		sum += cross
-		vsum = v1.Add(v2).Mult(cross).Add(vsum)
+		vsum = vsum.Add(v1.Add(v2).Mult(cross))
 	}
 
 	return vsum.Mult(1.0 / (3.0 * sum))
@@ -244,10 +244,10 @@ func MomentForBox(m, width, height float64) float64 {
 	return m * (width*width + height*height) / 12.0
 }
 
-func MomentForBox2(m float64, box *BB) float64 {
+func MomentForBox2(m float64, box BB) float64 {
 	width := box.R - box.L
 	height := box.T - box.B
-	offset := (&Vector{box.L + box.R, box.B + box.T}).Mult(0.5)
+	offset := Vector{box.L + box.R, box.B + box.T}.Mult(0.5)
 
 	// TODO: NaN when offset is 0 and m is INFINITY
 	return MomentForBox(m, width, height) + m*offset.LengthSq()

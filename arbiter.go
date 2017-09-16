@@ -10,7 +10,7 @@ type Arbiter struct {
 	e, u       float64
 	surface_vr Vector
 
-	data interface{}
+	UserData interface{}
 
 	a, b               *Shape
 	body_a, body_b     *Body
@@ -56,7 +56,7 @@ func (arbiter *Arbiter) Init(a, b *Shape) *Arbiter {
 	arbiter.stamp = 0
 	arbiter.state = CP_ARBITER_STATE_FIRST_COLLISION
 
-	arbiter.data = nil
+	arbiter.UserData = nil
 	return arbiter
 }
 
@@ -421,5 +421,74 @@ func (arb *Arbiter) Normal() Vector {
 		return arb.n.Mult(-1)
 	} else {
 		return arb.n
+	}
+}
+
+type ContactPointSet struct {
+	Count  int
+	Normal Vector
+
+	Points [MAX_CONTACTS_PER_ARBITER]struct {
+		/// The position of the contact on the surface of each shape.
+		PointA, PointB Vector
+		/// Penetration distance of the two shapes. Overlapping means it will be negative.
+		/// This value is calculated as cpvdot(cpvsub(point2, point1), normal) and is ignored by cpArbiterSetContactPointSet().
+		Distance       float64
+	}
+}
+
+func (arb *Arbiter) ContactPointSet() ContactPointSet {
+	var set ContactPointSet
+	set.Count = arb.Count()
+
+	swapped := arb.swapped
+	n := arb.n
+	if swapped {
+		set.Normal = n.Neg()
+	} else {
+		set.Normal = n
+	}
+
+	for i := 0; i < set.Count; i++ {
+		// Contact points are relative to body CoGs;
+		p1 := arb.body_a.p.Add(arb.contacts[i].r1)
+		p2 := arb.body_b.p.Add(arb.contacts[i].r2)
+
+		if swapped {
+			set.Points[i].PointA = p2
+			set.Points[i].PointB = p1
+		} else {
+			set.Points[i].PointA = p1
+			set.Points[i].PointB = p2
+		}
+
+		set.Points[i].Distance = p2.Sub(p1).Dot(n)
+	}
+
+	return set
+}
+
+func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
+	count := set.Count
+	assert(count == int(arb.count))
+
+	swapped := arb.swapped
+	if swapped {
+		arb.n = set.Normal.Neg()
+	} else {
+		arb.n = set.Normal
+	}
+
+	for i:=0; i<count; i++ {
+		p1 := set.Points[i].PointA
+		p2 := set.Points[i].PointB
+
+		if swapped {
+			arb.contacts[i].r1 = p2.Sub(arb.body_a.p)
+			arb.contacts[i].r2 = p1.Sub(arb.body_b.p)
+		} else {
+			arb.contacts[i].r1 = p1.Sub(arb.body_b.p)
+			arb.contacts[i].r2 = p2.Sub(arb.body_a.p)
+		}
 	}
 }
