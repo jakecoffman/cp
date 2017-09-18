@@ -119,5 +119,5 @@ func main() {
 
 func update(space *Space, dt float64) {
 	space.Step(dt)
-	examples.DrawString(Vector{-200, 200}, "This unicycle is completely driven and balanced by a single cpSimpleMotor.\nMove the mouse to make the unicycle follow it.")
+	examples.DrawString(Vector{-250, 100}, "This unicycle is completely driven and balanced by a single cpSimpleMotor.\nMove the mouse to make the unicycle follow it.")
 }

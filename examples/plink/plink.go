@@ -34,7 +34,7 @@ func main() {
 		for j := 0; j < 6; j++ {
 			stagger := (j % 2) * 40
 			offset := Vector{float64(i*80 - 320 + stagger), float64(j*70 - 240)}
-			shape = space.AddShape(NewPolyShape(space.StaticBody, tris, NewTransformTranslate(offset), 0))
+			shape = space.AddShape(NewPolyShape(space.StaticBody, 3, tris, NewTransformTranslate(offset), 0))
 			shape.SetElasticity(1)
 			shape.SetFriction(1)
 			shape.SetFilter(examples.NotGrabbableFilter)
@@ -55,7 +55,7 @@ func main() {
 		x := rand.Float64()*640 - 320
 		body.SetPosition(Vector{x, 350})
 
-		shape = space.AddShape(NewPolyShape(body, verts, NewTransformIdentity(), 0))
+		shape = space.AddShape(NewPolyShape(body, numVerts, verts, NewTransformIdentity(), 0))
 		shape.SetElasticity(0)
 		shape.SetFriction(0.4)
 	}

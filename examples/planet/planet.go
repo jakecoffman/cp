@@ -73,7 +73,7 @@ func addBox(space *Space) {
 	body.SetAngularVelocity(v)
 	body.SetAngle(math.Atan2(pos.Y, pos.X))
 
-	shape := space.AddShape(NewPolyShape(body, verts, NewTransformIdentity(), 0))
+	shape := space.AddShape(NewPolyShape(body, 4, verts, NewTransformIdentity(), 0))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.7)
 }
