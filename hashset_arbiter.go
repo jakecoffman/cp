@@ -187,7 +187,7 @@ func (set *HashSetArbiter) Each(f HashSetIteratorArbiter) {
 	}
 }
 
-func (set *HashSetArbiter) Filter(filter func (arb *Arbiter) bool) {
+func (set *HashSetArbiter) Filter(filter func(arb *Arbiter) bool) {
 	var i uint
 	for i = 0; i < set.size; i++ {
 		prevPtr := &set.table[i]
@@ -215,8 +215,10 @@ func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
 	// Preserve arbiters on sensors and rejected arbiters for sleeping objects.
 	// This prevents errant separate callbacks from happening.
 
-	if (arb.body_a.sleepingRoot != nil || arb.body_a.sleepingIdleTime == INFINITY) &&
-		(arb.body_b.sleepingRoot != nil || arb.body_b.sleepingIdleTime == INFINITY) {
+	a := arb.body_a
+	b := arb.body_b
+
+	if (a.GetType() == BODY_STATIC || a.IsSleeping()) && (b.GetType() == BODY_STATIC || b.IsSleeping()) {
 		return true
 	}
 

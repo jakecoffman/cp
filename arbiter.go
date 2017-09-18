@@ -436,7 +436,7 @@ type ContactPointSet struct {
 		PointA, PointB Vector
 		/// Penetration distance of the two shapes. Overlapping means it will be negative.
 		/// This value is calculated as cpvdot(cpvsub(point2, point1), normal) and is ignored by cpArbiterSetContactPointSet().
-		Distance       float64
+		Distance float64
 	}
 }
 
@@ -482,7 +482,7 @@ func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
 		arb.n = set.Normal
 	}
 
-	for i:=0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		p1 := set.Points[i].PointA
 		p2 := set.Points[i].PointB
 
@@ -490,8 +490,8 @@ func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
 			arb.contacts[i].r1 = p2.Sub(arb.body_a.p)
 			arb.contacts[i].r2 = p1.Sub(arb.body_b.p)
 		} else {
-			arb.contacts[i].r1 = p1.Sub(arb.body_b.p)
-			arb.contacts[i].r2 = p2.Sub(arb.body_a.p)
+			arb.contacts[i].r1 = p1.Sub(arb.body_a.p)
+			arb.contacts[i].r2 = p2.Sub(arb.body_b.p)
 		}
 	}
 }

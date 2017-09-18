@@ -46,7 +46,7 @@ func StickyPreSolve(arb *Arbiter, space *Space, data interface{}) bool {
 		anchorB := bodyB.WorldToLocal(contacts.Points[0].PointB)
 		joint := NewPivotJoint2(bodyA, bodyB, anchorA, anchorB)
 
-		// Give it a finite force for the stickyness.
+		// Give it a finite force for the stickiness.
 		joint.SetMaxForce(3e3)
 
 		// Schedule a post-step() callback to add the joint.
@@ -69,12 +69,12 @@ func StickyPreSolve(arb *Arbiter, space *Space, data interface{}) bool {
 	// * Track a joint for each contact point. (more complicated since you only get one data pointer).
 }
 
-func PostStepRemoveJoint(space *Space, key, data interface{}) {
+func PostStepRemoveJoint(space *Space, key, _ interface{}) {
 	space.RemoveConstraint(key.(*Constraint))
 }
 
-func StickySeparate(arb *Arbiter, space *Space, data interface{}) {
-	if data != nil {
+func StickySeparate(arb *Arbiter, space *Space, _ interface{}) {
+	if arb.UserData != nil {
 		joint := arb.UserData.(*Constraint)
 
 		// The joint won't be removed until the step is done.

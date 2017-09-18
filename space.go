@@ -442,8 +442,6 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	arb := space.cachedArbiters.Insert(arbHashId, shapePair, SpaceArbiterSetTrans, space)
 	arb.Update(info, space)
 
-	assert(arb.body_a != arb.body_b, "EQUAL")
-
 	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.BeginFunc(arb, space, arb.handler.UserData) {
 		arb.Ignore()
 	}
