@@ -1,5 +1,5 @@
 # cp
-Chipmunk2D ported to Go
+[Chipmunk2D](https://github.com/slembcke/Chipmunk2D) ported to Go
 
 ## projet status
 
