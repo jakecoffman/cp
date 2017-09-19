@@ -1,7 +1,8 @@
 # physics
 Chipmunk2D ported to Go
 
-## status
+## projet status
 
-Alpha stage -- some stuff is broken and not everything is ported
+Beta stage -- most features are implemented and the demos are very close to Chipmunk2D demos.
 
+Some of the API may still change over time.
