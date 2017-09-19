@@ -1,4 +1,4 @@
-package physics
+package cp
 
 type HashSetEqualArbiter func(ptr []*Shape, elt *Arbiter) bool
 type HashSetTransArbiter func(ptr []*Shape, space *Space) *Arbiter

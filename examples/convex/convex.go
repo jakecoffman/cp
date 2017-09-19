@@ -1,8 +1,8 @@
 package main
 
 import (
-	. "github.com/jakecoffman/physics"
-	"github.com/jakecoffman/physics/examples"
+	. "github.com/jakecoffman/cp"
+	"github.com/jakecoffman/cp/examples"
 )
 
 const DENSITY = 1.0 / 10000.0

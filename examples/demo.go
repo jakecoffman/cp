@@ -6,16 +6,16 @@ import (
 	"runtime"
 
 	"github.com/go-gl/gl/v2.1/gl"
-	"github.com/jakecoffman/physics"
+	"github.com/jakecoffman/cp"
 )
 
 var GRABBABLE_MASK_BIT uint = 1 << 31
 
-var GrabFilter physics.ShapeFilter = physics.ShapeFilter{
-	physics.NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT,
+var GrabFilter cp.ShapeFilter = cp.ShapeFilter{
+	cp.NO_GROUP, GRABBABLE_MASK_BIT, GRABBABLE_MASK_BIT,
 }
-var NotGrabbableFilter physics.ShapeFilter = physics.ShapeFilter{
-	physics.NO_GROUP, ^GRABBABLE_MASK_BIT, ^GRABBABLE_MASK_BIT,
+var NotGrabbableFilter cp.ShapeFilter = cp.ShapeFilter{
+	cp.NO_GROUP, ^GRABBABLE_MASK_BIT, ^GRABBABLE_MASK_BIT,
 }
 
 func DrawInit() {
@@ -53,19 +53,19 @@ func DrawInit() {
 	CheckGLErrors()
 }
 
-func ColorForShape(shape *physics.Shape, data interface{}) physics.FColor {
+func ColorForShape(shape *cp.Shape, data interface{}) cp.FColor {
 	if shape.Sensor() {
-		return physics.FColor{R: 1, G: 1, B: 1, A: .1}
+		return cp.FColor{R: 1, G: 1, B: 1, A: .1}
 	}
 
 	body := shape.Body()
 
 	if body.IsSleeping() {
-		return physics.FColor{R: .2, G: .2, B: .2, A: 1}
+		return cp.FColor{R: .2, G: .2, B: .2, A: 1}
 	}
 
 	if body.IdleTime() > shape.Space().SleepTimeThreshold {
-		return physics.FColor{R: .66, G: .66, B: .66, A: 1}
+		return cp.FColor{R: .66, G: .66, B: .66, A: 1}
 	}
 
 	val := shape.HashId()
@@ -85,18 +85,18 @@ func ColorForShape(shape *physics.Shape, data interface{}) physics.FColor {
 	max := float32(math.Max(math.Max(float64(r), float64(g)), float64(b)))
 	min := float32(math.Min(math.Min(float64(r), float64(g)), float64(b)))
 	var intensity float32
-	if body.GetType() == physics.BODY_STATIC {
+	if body.GetType() == cp.BODY_STATIC {
 		intensity = 0.15
 	} else {
 		intensity = 0.75
 	}
 
 	if min == max {
-		return physics.FColor{R: intensity, A: 1}
+		return cp.FColor{R: intensity, A: 1}
 	}
 
 	var coef float32 = intensity / (max - min)
-	return physics.FColor{
+	return cp.FColor{
 		R: (r - min) * coef,
 		G: (g - min) * coef,
 		B: (b - min) * coef,

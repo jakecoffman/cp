@@ -8,7 +8,7 @@ import (
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/go-gl/mathgl/mgl32"
-	. "github.com/jakecoffman/physics"
+	. "github.com/jakecoffman/cp"
 )
 
 var width = 640

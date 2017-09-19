@@ -1,7 +1,7 @@
 package examples
 
 import (
-	. "github.com/jakecoffman/physics"
+	. "github.com/jakecoffman/cp"
 )
 
 type DrawOptions struct {

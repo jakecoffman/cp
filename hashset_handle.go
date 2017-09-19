@@ -1,4 +1,4 @@
-package physics
+package cp
 
 type HashSetEqualHandle func(ptr *Shape, elt *Handle) bool
 type HashSetTransHandle func(ptr *Shape, hash *SpaceHash) *Handle

@@ -1,4 +1,4 @@
-package physics
+package cp
 
 type HashValue uintptr
 type HashSetEqual func(ptr, elt interface{}) bool

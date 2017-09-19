@@ -3,8 +3,8 @@ package main
 import (
 	"math/rand"
 
-	. "github.com/jakecoffman/physics"
-	"github.com/jakecoffman/physics/examples"
+	. "github.com/jakecoffman/cp"
+	"github.com/jakecoffman/cp/examples"
 )
 
 var KinematicBoxBox *Body

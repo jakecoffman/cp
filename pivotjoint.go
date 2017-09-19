@@ -1,4 +1,4 @@
-package physics
+package cp
 
 type PivotJoint struct {
 	*Constraint

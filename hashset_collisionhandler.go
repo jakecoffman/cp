@@ -1,4 +1,4 @@
-package physics
+package cp
 
 type HashSetEqualCollisionHandler func(ptr, elt interface{}) bool
 type HashSetTransCollisionHandler func(ptr, data interface{}) interface{}

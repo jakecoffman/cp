@@ -1,4 +1,4 @@
-package physics
+package cp
 
 type Segment struct {
 	*Shape

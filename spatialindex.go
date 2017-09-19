@@ -1,4 +1,4 @@
-package physics
+package cp
 
 type SpatialIndexBB func(obj *Shape) BB
 type SpatialIndexIterator func(obj *Shape, data interface{})
