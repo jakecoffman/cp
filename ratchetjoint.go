@@ -25,7 +25,7 @@ func NewRatchetJoint(a, b *Body, phase, ratchet float64) *Constraint {
 	return joint.Constraint
 }
 
-func (joint *RatchetJoint) PreStep(constraint *Constraint, dt float64) {
+func (joint *RatchetJoint) PreStep(dt float64) {
 	a := joint.a
 	b := joint.b
 
@@ -53,7 +53,7 @@ func (joint *RatchetJoint) PreStep(constraint *Constraint, dt float64) {
 	}
 }
 
-func (joint *RatchetJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *RatchetJoint) ApplyCachedImpulse(dt_coef float64) {
 	a := joint.a
 	b := joint.b
 
@@ -62,7 +62,7 @@ func (joint *RatchetJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef fl
 	b.w += j*b.i_inv
 }
 
-func (joint *RatchetJoint) ApplyImpulse(constraint *Constraint, dt float64) {
+func (joint *RatchetJoint) ApplyImpulse(dt float64) {
 	if joint.bias == 0 {
 		return
 	}

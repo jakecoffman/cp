@@ -3,9 +3,9 @@ package physics
 import "math"
 
 type Constrainer interface {
-	PreStep(constraint *Constraint, dt float64)
-	ApplyCachedImpulse(constraint *Constraint, dt_coef float64)
-	ApplyImpulse(constraint *Constraint, dt float64)
+	PreStep(dt float64)
+	ApplyCachedImpulse(dt_coef float64)
+	ApplyImpulse(dt float64)
 	GetImpulse() float64
 }
 

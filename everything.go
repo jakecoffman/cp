@@ -92,7 +92,7 @@ type CollisionInfo struct {
 	collisionId uint32
 
 	n     Vector
-	count uint
+	count int
 	arr   []Contact
 }
 
@@ -226,7 +226,7 @@ func AreaForPoly(count int, verts []Vector, r float64) float64 {
 
 func CentroidForPoly(count int, verts []Vector) Vector {
 	var sum float64
-	vsum := VectorZero()
+	vsum := Vector{}
 
 	for i := 0; i < count; i++ {
 		v1 := verts[i]
@@ -253,7 +253,7 @@ func MomentForBox2(m float64, box BB) float64 {
 	return MomentForBox(m, width, height) + m*offset.LengthSq()
 }
 
-func assert(truth bool, msg ...string) {
+func assert(truth bool, msg ...interface{}) {
 	if !truth {
 		panic(fmt.Sprint("Assertion failed: ", msg))
 	}

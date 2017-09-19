@@ -48,14 +48,14 @@ func main() {
 	}
 
 	radius := 15.0
-	ballBody = space.AddBody(NewBody(10, MomentForCircle(10, 0, radius, VectorZero())))
+	ballBody = space.AddBody(NewBody(10, MomentForCircle(10, 0, radius, Vector{})))
 	ballBody.SetPosition(Vector{120, -240 + radius + 5})
 
-	shape = space.AddShape(NewCircle(ballBody, radius, VectorZero()))
+	shape = space.AddShape(NewCircle(ballBody, radius, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.9)
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {
@@ -95,7 +95,7 @@ func update(space *Space, dt float64) {
 	if crushForce > 10 {
 		crush = "The ball is being crushed. (f: %.2f)"
 	} else {
-		crush = "The ball is not being crushed. (f %.2f"
+		crush = "The ball is not being crushed. (f %.2f)"
 	}
 
 	str := `Place objects on the scale to weigh them. The ball marks the shapes it's sitting on.

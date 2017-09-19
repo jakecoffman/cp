@@ -13,7 +13,7 @@ var queryStart Vector
 func main() {
 	space := NewSpace()
 
-	queryStart = VectorZero()
+	queryStart = Vector{}
 	space.Iterations = 5
 
 	// fat segment
@@ -45,7 +45,7 @@ func main() {
 			verts = append(verts, Vector{30 * math.Cos(angle), 30 * math.Sin(angle)})
 		}
 
-		body := space.AddBody(NewBody(mass, MomentForPoly(mass, len(verts), verts, VectorZero(), 0)))
+		body := space.AddBody(NewBody(mass, MomentForPoly(mass, len(verts), verts, Vector{}, 0)))
 		body.SetPosition(Vector{50, 30})
 
 		space.AddShape(NewPolyShape(body, numVerts, verts, NewTransformIdentity(), 10))
@@ -56,13 +56,13 @@ func main() {
 		mass := 1.0
 		r := 20.0
 
-		body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, r, VectorZero())))
+		body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, r, Vector{})))
 		body.SetPosition(Vector{100, 100})
 
-		space.AddShape(NewCircle(body, r, VectorZero()))
+		space.AddShape(NewCircle(body, r, Vector{}))
 	}
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

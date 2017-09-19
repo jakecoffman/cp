@@ -67,11 +67,11 @@ var bodyCur int = 0
 func NewBody(mass, moment float64) *Body {
 	body := &Body{
 		id:            bodyCur,
-		cog:           VectorZero(),
-		p:             VectorZero(),
-		v:             VectorZero(),
-		f:             VectorZero(),
-		v_bias:        VectorZero(),
+		cog:           Vector{},
+		p:             Vector{},
+		v:             Vector{},
+		f:             Vector{},
+		v_bias:        Vector{},
 		transform:     NewTransformIdentity(),
 		velocity_func: BodyUpdateVelocity,
 		position_func: BodyUpdatePosition,
@@ -159,7 +159,7 @@ func (body *Body) SetType(newType int) {
 		body.m_inv = 0
 		body.i_inv = 0
 
-		body.v = VectorZero()
+		body.v = Vector{}
 		body.w = 0
 	}
 
@@ -230,7 +230,7 @@ func (body *Body) AccumulateMassFromShapes() {
 
 	body.m = 0
 	body.i = 0
-	body.cog = VectorZero()
+	body.cog = Vector{}
 
 	// cache position, realign at the end
 	pos := body.Position()
@@ -266,7 +266,7 @@ func (body *Body) Rotation() Vector {
 }
 
 func (body *Body) Position() Vector {
-	return body.transform.Point(VectorZero())
+	return body.transform.Point(Vector{})
 }
 
 func (body *Body) SetPosition(position Vector) {
@@ -299,7 +299,7 @@ func (body *Body) UpdateVelocity(gravity Vector, damping, dt float64) {
 	body.v = body.v.Mult(damping).Add(gravity.Add(body.f.Mult(body.m_inv)).Mult(dt))
 	body.w = body.w*damping + body.t*body.i_inv*dt
 
-	body.f = VectorZero()
+	body.f = Vector{}
 	body.t = 0
 }
 
@@ -491,7 +491,7 @@ func BodyUpdateVelocity(body *Body, gravity Vector, damping, dt float64) {
 	body.v = body.v.Mult(damping).Add(gravity.Add(body.f.Mult(body.m_inv)).Mult(dt))
 	body.w = body.w*damping + body.t*body.i_inv*dt
 
-	body.f = VectorZero()
+	body.f = Vector{}
 	body.t = 0
 }
 
@@ -500,7 +500,7 @@ func BodyUpdatePosition(body *Body, dt float64) {
 	body.a = body.a + (body.w+body.w_bias)*dt
 	body.SetTransform(body.p, body.a)
 
-	body.v_bias = VectorZero()
+	body.v_bias = Vector{}
 	body.w_bias = 0
 }
 
@@ -509,25 +509,16 @@ func (body *Body) RemoveConstraint(constraint *Constraint) {
 }
 
 func (body *Body) RemoveShape(shape *Shape) {
-	prev := shape.prev
-	next := shape.next
-
-	if prev != nil {
-		prev.next = next
-	} else {
-		// leak-free delete from slice
-		copy(body.shapeList[0:], body.shapeList[1:])
-		body.shapeList[len(body.shapeList)-1] = nil
-		body.shapeList = body.shapeList[:len(body.shapeList)-1]
+	for i, s := range body.shapeList {
+		if s == shape {
+			// leak-free delete from slice
+			last := len(body.shapeList) - 1
+			body.shapeList[i] = body.shapeList[last]
+			body.shapeList[last] = nil
+			body.shapeList = body.shapeList[:last]
+			break
+		}
 	}
-
-	if next != nil {
-		next.prev = prev
-	}
-
-	shape.prev = nil
-	shape.next = nil
-
 	if body.GetType() == BODY_DYNAMIC && shape.massInfo.m > 0 {
 		body.AccumulateMassFromShapes()
 	}

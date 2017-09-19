@@ -33,7 +33,7 @@ func main() {
 	dollyBody.SetPosition(Vector{0, 100})
 	space.AddShape(NewBox(dollyBody, 30, 30, 0))
 	// Add a groove joint for it to move back and forth on.
-	space.AddConstraint(NewGrooveJoint(space.StaticBody, dollyBody, Vector{-250, 100}, Vector{250, 100}, VectorZero()))
+	space.AddConstraint(NewGrooveJoint(space.StaticBody, dollyBody, Vector{-250, 100}, Vector{250, 100}, Vector{}))
 
 	// Add a pivot joint to act as a servo motor controlling it's position
 	// By updating the anchor points of the pivot joint, you can move the dolly.
@@ -49,12 +49,12 @@ func main() {
 	hookBody.SetPosition(Vector{0, 50})
 
 	// This will be used to figure out when the hook touches a box.
-	shape = space.AddShape(NewCircle(hookBody, 10, VectorZero()))
+	shape = space.AddShape(NewCircle(hookBody, 10, Vector{}))
 	shape.SetSensor(true)
 	shape.SetCollisionType(COLLISION_HOOK)
 
 	// By updating the max length of the joint you can make it pull up the load.
-	winchServo = space.AddConstraint(NewSlideJoint(dollyBody, hookBody, VectorZero(), VectorZero(), 0, INFINITY)).Class.(*SlideJoint)
+	winchServo = space.AddConstraint(NewSlideJoint(dollyBody, hookBody, Vector{}, Vector{}, 0, INFINITY)).Class.(*SlideJoint)
 	winchServo.SetMaxForce(30000)
 	winchServo.SetMaxBias(60)
 
@@ -67,7 +67,7 @@ func main() {
 	handler := space.NewCollisionHandler(COLLISION_HOOK, COLLISION_CRATE)
 	handler.BeginFunc = hookCrate
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

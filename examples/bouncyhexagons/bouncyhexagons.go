@@ -35,14 +35,14 @@ func main() {
 	for i := 0; i < 500; i++ {
 		mass := radius * radius
 		body := space.AddBody(NewBody(mass, MomentForPoly(mass, 6, hexagon, Vector{}, 0)))
-		body.SetPosition(randUnitCircle().Mult(130).Add(VectorZero()))
+		body.SetPosition(randUnitCircle().Mult(130).Add(Vector{}))
 		body.SetVelocityVector(randUnitCircle().Mult(50))
 
 		shape := space.AddShape(NewPolyShape(body, 6, hexagon, NewTransformIdentity(), bevel))
 		shape.SetElasticity(1)
 	}
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

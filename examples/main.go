@@ -11,6 +11,9 @@ import (
 	. "github.com/jakecoffman/physics"
 )
 
+var width = 640
+var height = 480
+
 var Mouse Vector
 var RightClick = false
 var RightDown = false
@@ -27,15 +30,7 @@ func init() {
 	rand.Seed(45073)
 }
 
-func Display(space *Space, tick float64, update UpdateFunc) {
-	gl.MatrixMode(gl.MODELVIEW)
-	gl.LoadIdentity()
-	gl.Translatef(0.0, 0.0, 0.0)
-	gl.Scalef(1, 1, 1)
-
-	Update(space, tick, update)
-
-	// builds triangles buffer
+func DefaultDraw(space *Space) {
 	DrawSpace(space, NewDrawOptions(
 		DRAW_SHAPES|DRAW_CONSTRAINTS|DRAW_COLLISION_POINTS,
 		FColor{200.0 / 255.0, 210.0 / 255.0, 230.0 / 255.0, 1},
@@ -43,6 +38,17 @@ func Display(space *Space, tick float64, update UpdateFunc) {
 		FColor{1, 0, 0, 1},
 		nil,
 	))
+}
+
+func Display(space *Space, tick float64, update UpdateFunc, draw DrawFunc) {
+	gl.MatrixMode(gl.MODELVIEW)
+	gl.LoadIdentity()
+	gl.Translatef(0.0, 0.0, 0.0)
+	gl.Scalef(1, 1, 1)
+
+	Update(space, tick, update)
+
+	draw(space)
 
 	// gives buffer to open-gl to draw
 	FlushRenderer()
@@ -58,6 +64,7 @@ func Display(space *Space, tick float64, update UpdateFunc) {
 }
 
 type UpdateFunc func(*Space, float64)
+type DrawFunc func(*Space)
 
 func Update(space *Space, tick float64, update UpdateFunc) {
 	t := glfw.GetTime()
@@ -86,7 +93,7 @@ func Update(space *Space, tick float64, update UpdateFunc) {
 	lastTime = t
 }
 
-func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
+func Main(space *Space, tick float64, update UpdateFunc, draw DrawFunc) {
 	if err := glfw.Init(); err != nil {
 		panic(err)
 	}
@@ -146,7 +153,7 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 		ww, wh := w.GetSize()
 		Mouse = MouseToSpace(xpos, ypos, ww, wh)
 	})
-	Mouse = VectorZero()
+	Mouse = Vector{}
 
 	window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
 		if button == glfw.MouseButton1 {
@@ -165,7 +172,7 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 					}
 
 					body := info.Shape.Body()
-					mouseJoint = NewPivotJoint2(mouseBody, body, VectorZero(), body.WorldToLocal(nearest))
+					mouseJoint = NewPivotJoint2(mouseBody, body, Vector{}, body.WorldToLocal(nearest))
 					mouseJoint.SetMaxForce(50000)
 					mouseJoint.SetErrorBias(math.Pow(1.0-0.15, 60.0))
 					space.AddConstraint(mouseJoint)
@@ -212,7 +219,7 @@ func Main(space *Space, width, height int, tick float64, update UpdateFunc) {
 	mouseBody = NewKinematicBody()
 
 	for !window.ShouldClose() {
-		Display(space, tick, update)
+		Display(space, tick, update, draw)
 		window.SwapBuffers()
 		glfw.PollEvents()
 		gl.Clear(gl.COLOR_BUFFER_BIT)

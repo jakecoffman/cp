@@ -48,13 +48,13 @@ func main() {
 	body.SetPosition(Vector{-1000, -10})
 	body.SetVelocity(400, 0)
 
-	shape = space.AddShape(NewCircle(body, 8, VectorZero()))
+	shape = space.AddShape(NewCircle(body, 8, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0)
 
 	bodyCount++
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, draw)
 }
 
 func getPixel(x, y uint) int {
@@ -67,15 +67,17 @@ func update(space *Space, dt float64) {
 	space.Step(dt)
 }
 
-func drawDot(body *Body, _ interface{}) {
-	examples.DrawDot(3.0, body.Position(), FColor{200.0 / 255.0, 210.0 / 255.0, 230.0 / 255.0, 1.0})
+func draw(space *Space) {
+	space.EachBody(func (body *Body) {
+		examples.DrawDot(3.0, body.Position(), FColor{200.0 / 255.0, 210.0 / 255.0, 230.0 / 255.0, 1.0})
+	})
 }
 
 func makeBall(x, y float64) *Shape {
 	body := NewBody(1.0, INFINITY)
 	body.SetPosition(Vector{x, y})
 
-	shape := NewCircle(body, 0.95, VectorZero())
+	shape := NewCircle(body, 0.95, Vector{})
 	shape.SetElasticity(0)
 	shape.SetFriction(0)
 

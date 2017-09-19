@@ -58,11 +58,11 @@ func main() {
 	shape.UserData = &platformInstance
 
 	radius := 15.0
-	body = space.AddBody(NewBody(1, MomentForCircle(10, 0, radius, VectorZero())))
+	body = space.AddBody(NewBody(1, MomentForCircle(10, 0, radius, Vector{})))
 	body.SetPosition(Vector{0, -200})
 	body.SetVelocity(0, 170)
 
-	shape = space.AddShape(NewCircle(body, radius, VectorZero()))
+	shape = space.AddShape(NewCircle(body, radius, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.9)
 	shape.SetCollisionType(2)
@@ -70,7 +70,7 @@ func main() {
 	handler := space.NewWildcardCollisionHandler(COLLISION_TYPE_ONE_WAY)
 	handler.PreSolveFunc = PreSolve
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

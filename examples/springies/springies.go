@@ -80,12 +80,12 @@ func main() {
 	space.AddConstraint(newSpring(body10, body14, Vector{40, -40}, Vector{-40, 0}, 0, stiff, damp))
 	space.AddConstraint(newSpring(body10, body14, Vector{40, -40}, Vector{-40, 0}, 0, stiff, damp))
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func springForce(spring *DampedSpring, dist float64) float64 {
 	clamp := 20.0
-	return Clamp(spring.RestLength-dist, -clamp, clamp)*spring.Stiffness
+	return Clamp(spring.RestLength-dist, -clamp, clamp) * spring.Stiffness
 }
 
 func newSpring(a, b *Body, anchorA, anchorB Vector, restLength, stiff, damp float64) *Constraint {
@@ -96,9 +96,9 @@ func newSpring(a, b *Body, anchorA, anchorB Vector, restLength, stiff, damp floa
 }
 
 func addBar(space *Space, a, b Vector, group uint) *Body {
-	center := a.Add(b).Mult(1.0/2.0)
+	center := a.Add(b).Mult(1.0 / 2.0)
 	length := b.Sub(a).Length()
-	mass := length/160.0
+	mass := length / 160.0
 
 	body := space.AddBody(NewBody(mass, mass*length*length/12.0))
 	body.SetPosition(center)

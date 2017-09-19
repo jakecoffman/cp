@@ -83,15 +83,15 @@ func main() {
 	}
 
 	radius := 15.0
-	body := space.AddBody(NewBody(10, MomentForCircle(10, 0, radius, VectorZero())))
+	body := space.AddBody(NewBody(10, MomentForCircle(10, 0, radius, Vector{})))
 	body.SetPosition(Vector{0, -240 + radius + 5})
 	body.SetVelocity(0, 300)
 
-	shape := space.AddShape(NewCircle(body, radius, VectorZero()))
+	shape := space.AddShape(NewCircle(body, radius, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.9)
 
-	examples.Main(space, 640, 480, 1.0/180.0, update)
+	examples.Main(space, 1.0/180.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

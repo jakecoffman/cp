@@ -46,7 +46,7 @@ func main() {
 
 	for i := 0; i < 50; i++ {
 		body := addBox(space, 20, 1)
-		pivot := space.AddConstraint(NewPivotJoint2(space.StaticBody, body, VectorZero(), VectorZero()))
+		pivot := space.AddConstraint(NewPivotJoint2(space.StaticBody, body, Vector{}, Vector{}))
 		pivot.SetMaxBias(0)       // disable joint correction
 		pivot.SetMaxForce(1000.0) // emulate linear friction
 
@@ -59,7 +59,7 @@ func main() {
 	tankControlBody = space.AddBody(NewKinematicBody())
 	tankBody = addBox(space, 30, 10)
 
-	pivot := space.AddConstraint(NewPivotJoint2(tankControlBody, tankBody, VectorZero(), VectorZero()))
+	pivot := space.AddConstraint(NewPivotJoint2(tankControlBody, tankBody, Vector{}, Vector{}))
 	pivot.SetMaxBias(0)
 	pivot.SetMaxForce(10000)
 
@@ -68,7 +68,7 @@ func main() {
 	gear.SetMaxBias(1.2)
 	gear.SetMaxForce(50000)
 
-	examples.Main(space, width, height, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func addBox(space *Space, size, mass float64) *Body {
@@ -90,7 +90,7 @@ func update(space *Space, dt float64) {
 
 	// drive the tank towards the mouse
 	if examples.Mouse.Near(tankBody.Position(), 30.0) {
-		tankControlBody.SetVelocityVector(VectorZero()) // stop
+		tankControlBody.SetVelocityVector(Vector{}) // stop
 	} else {
 		var direction float64
 		if mouseDelta.Dot(tankBody.Rotation()) > 0.0 {

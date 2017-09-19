@@ -61,7 +61,7 @@ func main() {
 		}
 	}
 
-	examples.Main(space, 640, 480, 1.0/180.0, update)
+	examples.Main(space, 1.0/180.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

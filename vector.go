@@ -13,10 +13,6 @@ func (v Vector) String() string {
 	return fmt.Sprintf("%f,%f", v.X, v.Y)
 }
 
-func VectorZero() Vector {
-	return Vector{0, 0}
-}
-
 func (v Vector) Equal(other Vector) bool {
 	return v.X == other.X && v.Y == other.Y
 }

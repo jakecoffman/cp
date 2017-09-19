@@ -118,27 +118,27 @@ func main() {
 	space.AddConstraint(NewSimpleMotor(body1, body2, math.Pi))
 
 	// Make a car with some nice soft suspension
-	boxOffset = VectorZero()
+	boxOffset = Vector{}
 	wheel1 := addWheel(space, posA, boxOffset)
 	wheel2 := addWheel(space, posB, boxOffset)
 	chassis := addChassis(space, Vector{80, 100}, boxOffset)
 
-	space.AddConstraint(NewGrooveJoint(chassis, wheel1, Vector{-30, -10}, Vector{-30, -40}, VectorZero()))
-	space.AddConstraint(NewGrooveJoint(chassis, wheel2, Vector{30, -10}, Vector{30, -40}, VectorZero()))
+	space.AddConstraint(NewGrooveJoint(chassis, wheel1, Vector{-30, -10}, Vector{-30, -40}, Vector{}))
+	space.AddConstraint(NewGrooveJoint(chassis, wheel2, Vector{30, -10}, Vector{30, -40}, Vector{}))
 
-	space.AddConstraint(NewDampedSpring(chassis, wheel1, Vector{-30, 0}, VectorZero(), 50, 20, 10))
-	space.AddConstraint(NewDampedSpring(chassis, wheel2, Vector{30, 0}, VectorZero(), 50, 20, 10))
+	space.AddConstraint(NewDampedSpring(chassis, wheel1, Vector{-30, 0}, Vector{}, 50, 20, 10))
+	space.AddConstraint(NewDampedSpring(chassis, wheel2, Vector{30, 0}, Vector{}, 50, 20, 10))
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func addBall(space *Space, pos, boxOffset Vector) *Body {
 	radius := 15.0
 	mass := 1.0
-	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, VectorZero())))
+	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, Vector{})))
 	body.SetPosition(pos.Add(boxOffset))
 
-	shape := space.AddShape(NewCircle(body, radius, VectorZero()))
+	shape := space.AddShape(NewCircle(body, radius, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.7)
 	return body
@@ -178,10 +178,10 @@ func addBar(space *Space, pos, boxOffset Vector) *Body {
 func addWheel(space *Space, pos, boxOffset Vector) *Body {
 	radius := 15.0
 	mass := 1.0
-	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, VectorZero())))
+	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, Vector{})))
 	body.SetPosition(pos.Add(boxOffset))
 
-	shape := space.AddShape(NewCircle(body, radius, VectorZero()))
+	shape := space.AddShape(NewCircle(body, radius, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.7)
 	shape.SetFilter(NewShapeFilter(1, ALL_CATEGORIES, ALL_CATEGORIES))

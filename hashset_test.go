@@ -2,6 +2,7 @@ package physics
 
 import (
 	"testing"
+	"unsafe"
 )
 
 type thing struct {
@@ -61,5 +62,28 @@ func TestHashSet(t *testing.T) {
 
 	if hash.Count() != 0 {
 		t.Errorf("Count not updated")
+	}
+}
+
+func TestHashValue(t *testing.T) {
+	a := NewCircle(NewBody(1, MomentForCircle(1, 0, 1, Vector{})), 1, Vector{})
+	b := NewCircle(NewBody(2, MomentForCircle(2, 0, 2, Vector{})), 2, Vector{})
+	z := NewCircle(NewBody(2, MomentForCircle(2, 0, 2, Vector{})), 2, Vector{})
+
+	arbHashId := HashPair(HashValue(unsafe.Pointer(a)), HashValue(unsafe.Pointer(b)))
+
+	c := a
+	d := b
+
+	arbHashId2 := HashPair(HashValue(unsafe.Pointer(c)), HashValue(unsafe.Pointer(d)))
+
+	if arbHashId != arbHashId2 {
+		t.Errorf("FAIL")
+	}
+
+	arbHashId3 := HashPair(HashValue(unsafe.Pointer(c)), HashValue(unsafe.Pointer(z)))
+
+	if arbHashId2 == arbHashId3 {
+		t.Errorf("Should not be equal")
 	}
 }

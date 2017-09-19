@@ -26,7 +26,7 @@ func NewSlideJoint(a, b *Body, anchorA, anchorB Vector, min, max float64) *Const
 	return joint.Constraint
 }
 
-func (joint *SlideJoint) PreStep(constraint *Constraint, dt float64) {
+func (joint *SlideJoint) PreStep(dt float64) {
 	a := joint.a
 	b := joint.b
 
@@ -43,7 +43,7 @@ func (joint *SlideJoint) PreStep(constraint *Constraint, dt float64) {
 		pdist = joint.Min - dist
 		joint.n = delta.Normalize().Neg()
 	} else {
-		joint.n = VectorZero()
+		joint.n = Vector{}
 		joint.jnAcc = 0
 	}
 
@@ -55,7 +55,7 @@ func (joint *SlideJoint) PreStep(constraint *Constraint, dt float64) {
 	joint.bias = Clamp(-bias_coef(joint.errorBias, dt)*pdist/dt, -maxBias, maxBias)
 }
 
-func (joint *SlideJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *SlideJoint) ApplyCachedImpulse(dt_coef float64) {
 	a := joint.a
 	b := joint.b
 
@@ -63,8 +63,8 @@ func (joint *SlideJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef floa
 	apply_impulses(a, b, joint.r1, joint.r2, j)
 }
 
-func (joint *SlideJoint) ApplyImpulse(constraint *Constraint, dt float64) {
-	if joint.n.Equal(VectorZero()) {
+func (joint *SlideJoint) ApplyImpulse(dt float64) {
+	if joint.n.Equal(Vector{}) {
 		return
 	}
 

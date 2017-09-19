@@ -48,7 +48,7 @@ func main() {
 	}
 
 	pentagonMass = 1.0
-	pentagonMoment = MomentForPoly(1, numVerts, verts, VectorZero(), 0)
+	pentagonMoment = MomentForPoly(1, numVerts, verts, Vector{}, 0)
 
 	for i := 0; i < 300; i++ {
 		body = space.AddBody(NewBody(pentagonMass, pentagonMoment))
@@ -60,7 +60,7 @@ func main() {
 		shape.SetFriction(0.4)
 	}
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

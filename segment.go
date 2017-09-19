@@ -47,7 +47,7 @@ func (seg *Segment) PointQuery(p Vector, info *PointQueryInfo) {
 	delta := p.Sub(closest)
 	d := delta.Length()
 	r := seg.r
-	g := delta.Mult(1/d)
+	g := delta.Mult(1 / d)
 
 	info.Shape = seg.Shape
 	if d != 0 {
@@ -94,23 +94,23 @@ func (seg *Segment) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryInfo
 		bd := delta.Dot(n) - dOffset
 
 		if ad*bd < 0 {
-			t := ad/(ad-bd)
+			t := ad / (ad - bd)
 
 			info.Shape = seg.Shape
 			info.Point = a.Lerp(b, t).Sub(flippedN.Mult(r2))
 			info.Normal = flippedN
 			info.Alpha = t
-		} else if r != 0 {
-			info1 := SegmentQueryInfo{nil, b, VectorZero(), 1}
-			info2 := SegmentQueryInfo{nil, b, VectorZero(), 1}
-			CircleSegmentQuery(seg.Shape, seg.ta, seg.r, a, b, r2, &info1)
-			CircleSegmentQuery(seg.Shape, seg.tb, seg.r, a, b, r2, &info2)
+		}
+	} else if r != 0 {
+		info1 := SegmentQueryInfo{nil, b, Vector{}, 1}
+		info2 := SegmentQueryInfo{nil, b, Vector{}, 1}
+		CircleSegmentQuery(seg.Shape, seg.ta, seg.r, a, b, r2, &info1)
+		CircleSegmentQuery(seg.Shape, seg.tb, seg.r, a, b, r2, &info2)
 
-			if info1.Alpha < info2.Alpha {
-				*info = info1
-			} else {
-				*info = info2
-			}
+		if info1.Alpha < info2.Alpha {
+			*info = info1
+		} else {
+			*info = info2
 		}
 	}
 }
@@ -122,8 +122,8 @@ func NewSegment(body *Body, a, b Vector, r float64) *Shape {
 		n: b.Sub(a).Normalize().ReversePerp(),
 
 		r:         r,
-		a_tangent: VectorZero(),
-		b_tangent: VectorZero(),
+		a_tangent: Vector{},
+		b_tangent: Vector{},
 	}
 	segment.Shape = NewShape(segment, body, NewSegmentMassInfo(0, a, b, r))
 	return segment.Shape

@@ -27,7 +27,7 @@ func NewDampedRotarySpring(a, b *Body, restAngle, stiffness, damping float64) *C
 	return joint.Constraint
 }
 
-func (spring *DampedRotarySpring) PreStep(constraint *Constraint, dt float64) {
+func (spring *DampedRotarySpring) PreStep(dt float64) {
 	a := spring.a
 	b := spring.b
 
@@ -44,11 +44,11 @@ func (spring *DampedRotarySpring) PreStep(constraint *Constraint, dt float64) {
 	b.w += jSpring*b.i_inv
 }
 
-func (joint *DampedRotarySpring) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *DampedRotarySpring) ApplyCachedImpulse(dt_coef float64) {
 	// nothing to do here
 }
 
-func (spring *DampedRotarySpring) ApplyImpulse(constraint *Constraint, dt float64) {
+func (spring *DampedRotarySpring) ApplyImpulse(dt float64) {
 	a := spring.a
 	b := spring.b
 

@@ -62,8 +62,8 @@ func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
 
 	v0 := planes[count-1].v0
 	minDist := INFINITY
-	closestPoint := VectorZero()
-	closestNormal := VectorZero()
+	closestPoint := Vector{}
+	closestNormal := Vector{}
 	outside := false
 
 	for i := 0; i<count; i++ {
@@ -139,7 +139,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 	// Also check against the beveled vertexes
 	if rsum > 0 {
 		for i := 0; i<count; i++ {
-			circleInfo := SegmentQueryInfo{nil, b, VectorZero(), 1}
+			circleInfo := SegmentQueryInfo{nil, b, Vector{}, 1}
 			CircleSegmentQuery(poly.Shape, planes[i].v0, r, a, b, r2, &circleInfo)
 			if circleInfo.Alpha < info.Alpha {
 				*info = circleInfo

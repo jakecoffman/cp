@@ -1,9 +1,10 @@
 package main
 
 import (
+	"math"
+
 	. "github.com/jakecoffman/physics"
 	"github.com/jakecoffman/physics/examples"
-	"math"
 )
 
 var balanceBody *Body
@@ -22,18 +23,18 @@ func motorPreSolve(motor *Constraint, space *Space) {
 	examples.DrawSegment(Vector{targetX, -10000}, Vector{targetX, 1000}, FColor{1, 0, 0, 1})
 
 	maxV := 500.0
-	targetV := Clamp(biasCoef(0.5, dt/1.2)*(targetX - balanceBody.Position().X)/dt, -maxV, maxV)
+	targetV := Clamp(biasCoef(0.5, dt/1.2)*(targetX-balanceBody.Position().X)/dt, -maxV, maxV)
 	errorV := targetV - balanceBody.Velocity().X
-	targetSin := 3.0e-3*biasCoef(0.1, dt)*errorV/dt
+	targetSin := 3.0e-3 * biasCoef(0.1, dt) * errorV / dt
 
 	maxSin := math.Sin(0.6)
-	balanceSin = Clamp(balanceSin - 6.0e-5*biasCoef(0.2, dt)*errorV/dt, -maxSin, maxSin)
-	targetA := math.Asin(Clamp(-targetSin + balanceSin, -maxSin, maxSin))
+	balanceSin = Clamp(balanceSin-6.0e-5*biasCoef(0.2, dt)*errorV/dt, -maxSin, maxSin)
+	targetA := math.Asin(Clamp(-targetSin+balanceSin, -maxSin, maxSin))
 	angularDiff := math.Asin(balanceBody.Rotation().Cross(ForAngle(targetA)))
-	targetW := biasCoef(0.1, dt/0.4)*angularDiff/dt
+	targetW := biasCoef(0.1, dt/0.4) * angularDiff / dt
 
 	maxRate := 50.0
-	rate := Clamp(wheelBody.AngularVelocity() + balanceBody.AngularVelocity() - targetW, -maxRate, maxRate)
+	rate := Clamp(wheelBody.AngularVelocity()+balanceBody.AngularVelocity()-targetW, -maxRate, maxRate)
 	motor.Class.(*SimpleMotor).Rate = Clamp(rate, -maxRate, maxRate)
 }
 
@@ -65,7 +66,7 @@ func main() {
 
 		moment := MomentForCircle(mass, 0, radius, Vector{})
 		wheelBody = space.AddBody(NewBody(mass, moment))
-		wheelBody.SetPosition(Vector{0, -160+radius})
+		wheelBody.SetPosition(Vector{0, -160 + radius})
 
 		shape := space.AddShape(NewCircle(wheelBody, radius, Vector{}))
 		shape.SetFriction(0.7)
@@ -75,7 +76,7 @@ func main() {
 	{
 		cogOffset := 30.0
 
-		bb1 := BB{-5, -cogOffset, 5, cogOffset*1.2-cogOffset}
+		bb1 := BB{-5, -cogOffset, 5, cogOffset*1.2 - cogOffset}
 		bb2 := BB{-25, bb1.T, 25, bb1.T + 10}
 
 		mass := 3.0
@@ -114,7 +115,7 @@ func main() {
 		shape.SetFriction(0.7)
 	}
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

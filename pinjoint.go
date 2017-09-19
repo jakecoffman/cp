@@ -39,7 +39,7 @@ func NewPinJoint(a, b *Body, anchorA, anchorB Vector) *Constraint {
 	return joint.Constraint
 }
 
-func (joint *PinJoint) PreStep(constraint *Constraint, dt float64) {
+func (joint *PinJoint) PreStep(dt float64) {
 	a := joint.a
 	b := joint.b
 
@@ -60,12 +60,12 @@ func (joint *PinJoint) PreStep(constraint *Constraint, dt float64) {
 	joint.bias = Clamp(-bias_coef(joint.errorBias, dt)*(dist - joint.Dist)/dt, -maxBias, maxBias)
 }
 
-func (joint *PinJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *PinJoint) ApplyCachedImpulse(dt_coef float64) {
 	j := joint.n.Mult(joint.jnAcc*dt_coef)
 	apply_impulses(joint.a, joint.b, joint.r1, joint.r2, j)
 }
 
-func (joint *PinJoint) ApplyImpulse(constraint *Constraint, dt float64) {
+func (joint *PinJoint) ApplyImpulse(dt float64) {
 	a := joint.a
 	b := joint.b
 	n := joint.n

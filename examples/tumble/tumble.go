@@ -63,7 +63,7 @@ func main() {
 		}
 	}
 
-	examples.Main(space, 640, 480, 1.0/180.0, update)
+	examples.Main(space, 1.0/180.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {
@@ -92,10 +92,10 @@ func addSegment(space *Space, pos Vector, mass, width, height float64) {
 }
 
 func addCircle(space *Space, pos Vector, mass, radius float64) {
-	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, VectorZero())))
+	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, Vector{})))
 	body.SetPosition(pos)
 
-	shape := space.AddShape(NewCircle(body, radius, VectorZero()))
+	shape := space.AddShape(NewCircle(body, radius, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.7)
 }

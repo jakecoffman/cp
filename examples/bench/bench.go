@@ -32,10 +32,10 @@ var simpleTerrainVerts = []Vector{
 
 func addCircle(space *Space, index int, radius float64) {
 	mass := radius * radius / 25.0
-	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, VectorZero())))
+	body := space.AddBody(NewBody(mass, MomentForCircle(mass, 0, radius, Vector{})))
 	body.SetPosition(randUnitCircle().Mult(180))
 
-	shape := space.AddShape(NewCircle(body, radius, VectorZero()))
+	shape := space.AddShape(NewCircle(body, radius, Vector{}))
 	shape.SetElasticity(0)
 	shape.SetFriction(0.9)
 }
@@ -69,5 +69,5 @@ func simpleTerrainCircles_1000() *Space {
 }
 
 func main() {
-	examples.Main(simpleTerrainCircles_1000(), 620, 480, 1.0/60.0, update)
+	examples.Main(simpleTerrainCircles_1000(), 1.0/60.0, update, examples.DefaultDraw)
 }

@@ -41,12 +41,12 @@ func main() {
 
 	crankMass := 1.0
 	crankRadius := 13.0
-	crank := space.AddBody(NewBody(crankMass, MomentForCircle(crankMass, crankRadius, 0, VectorZero())))
+	crank := space.AddBody(NewBody(crankMass, MomentForCircle(crankMass, crankRadius, 0, Vector{})))
 
-	shape = space.AddShape(NewCircle(crank, crankRadius, VectorZero()))
+	shape = space.AddShape(NewCircle(crank, crankRadius, Vector{}))
 	shape.SetFilter(NewShapeFilter(1, ALL_CATEGORIES, ALL_CATEGORIES))
 
-	space.AddConstraint(NewPivotJoint2(chassis, crank, VectorZero(), VectorZero()))
+	space.AddConstraint(NewPivotJoint2(chassis, crank, Vector{}, Vector{}))
 
 	side := 30.0
 
@@ -58,7 +58,7 @@ func main() {
 
 	motor = space.AddConstraint(NewSimpleMotor(chassis, crank, 6)).Class.(*SimpleMotor)
 
-	examples.Main(space, 640, 480, 1/180.0, update)
+	examples.Main(space, 1/180.0, update, examples.DefaultDraw)
 }
 
 const segRadius = 3.0
@@ -70,7 +70,7 @@ func makeLeg(space *Space, side, offset float64, chassis, crank *Body, anchor Ve
 	legMass := 1.0
 
 	// make a leg
-	a = VectorZero()
+	a = Vector{}
 	b = Vector{0, side}
 	upperLeg := space.AddBody(NewBody(legMass, MomentForSegment(legMass, a, b, 0)))
 	upperLeg.SetPosition(Vector{offset, 0})
@@ -78,10 +78,10 @@ func makeLeg(space *Space, side, offset float64, chassis, crank *Body, anchor Ve
 	shape = space.AddShape(NewSegment(upperLeg, a, b, segRadius))
 	shape.SetFilter(NewShapeFilter(1, ALL_CATEGORIES, ALL_CATEGORIES))
 
-	space.AddConstraint(NewPivotJoint2(chassis, upperLeg, Vector{offset, 0}, VectorZero()))
+	space.AddConstraint(NewPivotJoint2(chassis, upperLeg, Vector{offset, 0}, Vector{}))
 
 	// lower leg
-	a = VectorZero()
+	a = Vector{}
 	b = Vector{0, -1 * side}
 	lowerLeg := space.AddBody(NewBody(legMass, MomentForSegment(legMass, a, b, 0)))
 	lowerLeg.SetPosition(Vector{offset, -side})
@@ -94,7 +94,7 @@ func makeLeg(space *Space, side, offset float64, chassis, crank *Body, anchor Ve
 	shape.SetElasticity(0)
 	shape.SetFriction(1)
 
-	space.AddConstraint(NewPinJoint(chassis, lowerLeg, Vector{offset, 0}, VectorZero()))
+	space.AddConstraint(NewPinJoint(chassis, lowerLeg, Vector{offset, 0}, Vector{}))
 
 	space.AddConstraint(NewGearJoint(upperLeg, lowerLeg, 0, 1))
 
@@ -104,7 +104,7 @@ func makeLeg(space *Space, side, offset float64, chassis, crank *Body, anchor Ve
 	constraint = space.AddConstraint(NewPinJoint(crank, upperLeg, anchor, Vector{0, side}))
 	constraint.Class.(*PinJoint).Dist = diag
 
-	constraint = space.AddConstraint(NewPinJoint(crank, lowerLeg, anchor, VectorZero()))
+	constraint = space.AddConstraint(NewPinJoint(crank, lowerLeg, anchor, Vector{}))
 	constraint.Class.(*PinJoint).Dist = diag
 }
 

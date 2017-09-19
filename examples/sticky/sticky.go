@@ -127,7 +127,7 @@ func main() {
 	handler.PreSolveFunc = StickyPreSolve
 	handler.SeparateFunc = StickySeparate
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func update(space *Space, dt float64) {

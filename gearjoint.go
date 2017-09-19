@@ -24,7 +24,7 @@ func NewGearJoint(a, b *Body, phase, ratio float64) *Constraint {
 	return constraint
 }
 
-func (joint *GearJoint) PreStep(constraint *Constraint, dt float64) {
+func (joint *GearJoint) PreStep(dt float64) {
 	a := joint.a
 	b := joint.b
 
@@ -36,7 +36,7 @@ func (joint *GearJoint) PreStep(constraint *Constraint, dt float64) {
 	joint.bias = Clamp(-bias_coef(joint.errorBias, dt)*(b.a*joint.ratio-a.a-joint.phase)/dt, -maxBias, maxBias)
 }
 
-func (joint *GearJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *GearJoint) ApplyCachedImpulse(dt_coef float64) {
 	a := joint.a
 	b := joint.b
 
@@ -45,7 +45,7 @@ func (joint *GearJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float
 	b.w += j * b.i_inv
 }
 
-func (joint *GearJoint) ApplyImpulse(constraint *Constraint, dt float64) {
+func (joint *GearJoint) ApplyImpulse(dt float64) {
 	a := joint.a
 	b := joint.b
 

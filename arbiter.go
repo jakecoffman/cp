@@ -1,8 +1,6 @@
 package physics
 
-import (
-	"math"
-)
+import "math"
 
 var WILDCARD_COLLISION_TYPE CollisionType = ^CollisionType(0)
 
@@ -16,7 +14,7 @@ type Arbiter struct {
 	body_a, body_b     *Body
 	thread_a, thread_b ArbiterThread
 
-	count uint
+	count int
 	// a slice onto the current buffer array of contacts
 	contacts []Contact
 	n        Vector
@@ -38,7 +36,7 @@ func (arbiter *Arbiter) Init(a, b *Shape) *Arbiter {
 
 	arbiter.e = 0
 	arbiter.u = 0
-	arbiter.surface_vr = VectorZero()
+	arbiter.surface_vr = Vector{}
 
 	arbiter.count = 0
 	arbiter.contacts = nil
@@ -112,7 +110,8 @@ func (arbiter *Arbiter) ApplyCachedImpulse(dt_coef float64) {
 		return
 	}
 
-	for _, contact := range arbiter.contacts {
+	for i := 0; i < arbiter.count; i++ {
+		contact := arbiter.contacts[i]
 		j := arbiter.n.Rotate(Vector{contact.jnAcc, contact.jtAcc})
 		apply_impulses(arbiter.body_a, arbiter.body_b, contact.r1, contact.r2, j.Mult(dt_coef))
 	}
@@ -125,7 +124,7 @@ func (arbiter *Arbiter) ApplyImpulse() {
 	surface_vr := arbiter.surface_vr
 	friction := arbiter.u
 
-	for i := range arbiter.contacts {
+	for i := 0; i < arbiter.count; i++ {
 		con := &arbiter.contacts[i]
 		nMass := con.nMass
 		r1 := con.r1
@@ -167,7 +166,7 @@ func (arb *Arbiter) PreStep(dt, slop, bias float64) {
 	n := arb.n
 	bodyDelta := b.p.Sub(a.p)
 
-	for i := range arb.contacts {
+	for i := 0; i < arb.count; i++ {
 		con := &arb.contacts[i]
 
 		// Calculate the mass normal and mass tangent.
@@ -194,9 +193,8 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 	arb.b = b
 	arb.body_b = b.body
 
-	var i uint
 	// Iterate over the possible pairs to look for hash value matches.
-	for i = 0; i < info.count; i++ {
+	for i := 0; i < info.count; i++ {
 		con := &info.arr[i]
 
 		// r1 and r2 store absolute offsets at init time.
@@ -208,8 +206,7 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 		con.jnAcc = 0
 		con.jtAcc = 0
 
-		var j uint
-		for j = 0; j < arb.count; j++ {
+		for j := 0; j < arb.count; j++ {
 			old := arb.contacts[j]
 
 			// This could trigger false positives, but is fairly unlikely nor serious if it does.

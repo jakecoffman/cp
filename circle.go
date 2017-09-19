@@ -20,7 +20,7 @@ func NewCircle(body *Body, radius float64, offset Vector) *Shape {
 func CircleShapeMassInfo(mass, radius float64, center Vector) *ShapeMassInfo {
 	return &ShapeMassInfo{
 		m:    mass,
-		i:    MomentForCircle(1, 0, radius, VectorZero()),
+		i:    MomentForCircle(1, 0, radius, Vector{}),
 		cog:  center,
 		area: AreaForCircle(0, radius),
 	}

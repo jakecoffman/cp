@@ -34,7 +34,7 @@ func NewDampedSpring(a, b *Body, anchorA, anchorB Vector, restLength, stiffness,
 	return spring.Constraint
 }
 
-func (spring *DampedSpring) PreStep(constraint *Constraint, dt float64) {
+func (spring *DampedSpring) PreStep(dt float64) {
 	a := spring.a
 	b := spring.b
 
@@ -61,11 +61,11 @@ func (spring *DampedSpring) PreStep(constraint *Constraint, dt float64) {
 	apply_impulses(a, b, spring.r1, spring.r2, spring.n.Mult(spring.jAcc))
 }
 
-func (spring *DampedSpring) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (spring *DampedSpring) ApplyCachedImpulse(dt_coef float64) {
 	// nothing to do here
 }
 
-func (spring *DampedSpring) ApplyImpulse(constraint *Constraint, dt float64) {
+func (spring *DampedSpring) ApplyImpulse(dt float64) {
 	a := spring.a
 	b := spring.b
 

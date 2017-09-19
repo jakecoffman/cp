@@ -39,8 +39,6 @@ type Shape struct {
 	collisionType CollisionType
 	Filter        ShapeFilter
 
-	next, prev *Shape
-
 	hashid HashValue
 }
 
@@ -164,18 +162,18 @@ func (s *Shape) Point(i uint32) *SupportPoint {
 		}
 		return NewSupportPoint(poly.planes[index].v0, uint32(index))
 	default:
-		return NewSupportPoint(VectorZero(), 0)
+		return NewSupportPoint(Vector{}, 0)
 	}
 }
 
 func (s *Shape) PointQuery(p Vector) PointQueryInfo {
-	info := PointQueryInfo{nil, VectorZero(), INFINITY, VectorZero()}
+	info := PointQueryInfo{nil, Vector{}, INFINITY, Vector{}}
 	s.Class.PointQuery(p, &info)
 	return info
 }
 
 func (shape *Shape) SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo) bool {
-	blank := SegmentQueryInfo{nil, b, VectorZero(), 1}
+	blank := SegmentQueryInfo{nil, b, Vector{}, 1}
 	if info != nil {
 		*info = blank
 	} else {
@@ -201,7 +199,7 @@ func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 		body:     body,
 		massInfo: massInfo,
 
-		surfaceV: VectorZero(),
+		surfaceV: Vector{},
 		Filter: ShapeFilter{
 			Group:      NO_GROUP,
 			Categories: ALL_CATEGORIES,

@@ -64,14 +64,14 @@ func arbiterSetEql(shapes []*Shape, arb *Arbiter) bool {
 func NewSpace() *Space {
 	space := &Space{
 		Iterations:           10,
-		gravity:              VectorZero(),
+		gravity:              Vector{},
 		damping:              1.0,
 		collisionSlop:        0.1,
 		collisionBias:        math.Pow(0.9, 60),
 		collisionPersistence: 3,
 		locked:               0,
 		stamp:                0,
-		shapeIDCounter:       0,
+		shapeIDCounter:       1,
 		staticShapes:         NewBBTree(ShapeGetBB, nil),
 		dynamicBodies:        []*Body{},
 		staticBodies:         []*Body{},
@@ -166,9 +166,7 @@ func (space *Space) Activate(body *Body) {
 
 			// Restore contact values back to the space's contact buffer memory
 			arbiter.contacts = space.ContactBufferGetArray()[:numContacts]
-			for i, contact := range contacts {
-				arbiter.contacts[i] = contact
-			}
+			copy(arbiter.contacts, contacts)
 			space.PushContacts(numContacts)
 
 			// reinsert the arbiter into the arbiter cache
@@ -210,13 +208,11 @@ func (space *Space) Deactivate(body *Body) {
 		bodyA := arb.body_a
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
 			space.UncacheArbiter(arb)
-
 			// Save contact values to a new block of memory so they won't time out
-			contacts := arb.contacts
-			arb.contacts = []Contact{}
-			for _, c := range contacts {
-				arb.contacts = append(arb.contacts, c.Clone())
-			}
+			contacts := make([]Contact, arb.count, arb.count)
+			copy(contacts, arb.contacts[:arb.count])
+			arb.contacts = contacts
+
 		}
 	}
 
@@ -531,11 +527,6 @@ func QueryRejectConstraints(a, b *Body) bool {
 func (space *Space) ProcessComponents(dt float64) {
 	sleep := space.SleepTimeThreshold != INFINITY
 
-	for _, body := range space.dynamicBodies {
-		assert(body.sleepingNext == nil, "Dangling pointer in contact graph (next)")
-		assert(body.sleepingRoot == nil, "Dangling pointer in contact graph (root)")
-	}
-
 	// calculate the kinetic energy of all the bodies
 	if sleep {
 		dv := space.idleSpeedThreshold
@@ -594,6 +585,7 @@ func (space *Space) ProcessComponents(dt float64) {
 			}
 		}
 
+		// Generate components and deactivate sleeping ones
 		for i := 0; i < len(space.dynamicBodies); {
 			body := space.dynamicBodies[i]
 
@@ -643,7 +635,6 @@ func FloodFillComponent(root *Body, body *Body) {
 	// body.sleeping.root
 	other_root := body.ComponentRoot()
 	if other_root == nil {
-		// body.sleeping.root = root
 		root.ComponentAdd(body)
 
 		for arb := body.arbiterList; arb != nil; arb = ArbiterNext(arb, body) {
@@ -730,7 +721,7 @@ func (space *Space) Step(dt float64) {
 				constraint.PreSolve(constraint, space)
 			}
 
-			constraint.Class.PreStep(constraint, dt)
+			constraint.Class.PreStep(dt)
 		}
 
 		// Integrate velocities.
@@ -751,7 +742,7 @@ func (space *Space) Step(dt float64) {
 		}
 
 		for _, constraint := range space.constraints {
-			constraint.Class.ApplyCachedImpulse(constraint, dt_coef)
+			constraint.Class.ApplyCachedImpulse(dt_coef)
 		}
 
 		// Run the impulse solver.
@@ -762,7 +753,7 @@ func (space *Space) Step(dt float64) {
 			}
 
 			for _, constraint := range space.constraints {
-				constraint.Class.ApplyImpulse(constraint, dt)
+				constraint.Class.ApplyImpulse(dt)
 			}
 		}
 
@@ -828,18 +819,23 @@ func (space *Space) UncacheArbiter(arb *Arbiter) {
 	space.cachedArbiters.Remove(arbHashId, shapePair)
 	for i, a := range space.arbiters {
 		if a == arb {
-			space.arbiters = append(space.arbiters[0:i], space.arbiters[i+1:]...)
-			break
+			// leak-free delete from slice
+			last := len(space.arbiters) - 1
+			space.arbiters[i] = space.arbiters[last]
+			space.arbiters[last] = nil
+			space.arbiters = space.arbiters[:last]
+			return
 		}
 	}
+	panic("Arbiter not found")
 }
 
-func (space *Space) PushContacts(count uint) {
+func (space *Space) PushContacts(count int) {
 	assert(count <= MAX_CONTACTS_PER_ARBITER, "Contact buffer overflow")
 	space.contactBuffersHead.numContacts += count
 }
 
-func (space *Space) PopContacts(count uint) {
+func (space *Space) PopContacts(count int) {
 	space.contactBuffersHead.numContacts -= count
 }
 
@@ -921,7 +917,7 @@ type PointQueryContext struct {
 }
 
 func (space *Space) PointQueryNearest(point Vector, maxDistance float64, filter ShapeFilter) *PointQueryInfo {
-	info := &PointQueryInfo{nil, VectorZero(), maxDistance, VectorZero()}
+	info := &PointQueryInfo{nil, Vector{}, maxDistance, Vector{}}
 	context := &PointQueryContext{point, maxDistance, filter, nil}
 
 	bb := NewBBForCircle(point, math.Max(maxDistance, 0))
@@ -976,22 +972,13 @@ func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
 	out := data.(*SegmentQueryInfo)
 	var info SegmentQueryInfo
 
-	if shape.Filter.Reject(context.filter) {
-		return out.Alpha
+	if !shape.Filter.Reject(context.filter) &&
+		!shape.sensor &&
+		shape.SegmentQuery(context.start, context.end, context.radius, &info) &&
+		info.Alpha < out.Alpha {
+		*out = info
 	}
 
-	if shape.sensor {
-		return out.Alpha
-	}
-
-	if !shape.SegmentQuery(context.start, context.end, context.radius, &info) {
-		return out.Alpha
-	}
-
-	if info.Alpha >= out.Alpha {
-		return out.Alpha
-	}
-	*out = info
 	return out.Alpha
 }
 
@@ -1006,7 +993,7 @@ func (space *Space) SegmentQuery(start, end Vector, radius float64, filter Shape
 }
 
 func (space *Space) SegmentQueryFirst(start, end Vector, radius float64, filter ShapeFilter) SegmentQueryInfo {
-	info := SegmentQueryInfo{nil, end, VectorZero(), 1}
+	info := SegmentQueryInfo{nil, end, Vector{}, 1}
 	context := &SegmentQueryContext{start, end, radius, filter, nil}
 	space.staticShapes.class.SegmentQuery(context, start, end, 1, queryFirst, &info)
 	space.dynamicShapes.class.SegmentQuery(context, start, end, info.Alpha, queryFirst, &info)

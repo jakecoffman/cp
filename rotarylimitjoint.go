@@ -19,7 +19,7 @@ func NewRotaryLimitJoint(a, b *Body, min, max float64) *Constraint {
 	return joint.Constraint
 }
 
-func (joint *RotaryLimitJoint) PreStep(constraint *Constraint, dt float64) {
+func (joint *RotaryLimitJoint) PreStep(dt float64) {
 	a := joint.a
 	b := joint.b
 
@@ -41,7 +41,7 @@ func (joint *RotaryLimitJoint) PreStep(constraint *Constraint, dt float64) {
 	}
 }
 
-func (joint *RotaryLimitJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *RotaryLimitJoint) ApplyCachedImpulse(dt_coef float64) {
 	a := joint.a
 	b := joint.b
 
@@ -50,7 +50,7 @@ func (joint *RotaryLimitJoint) ApplyCachedImpulse(constraint *Constraint, dt_coe
 	b.w += j*b.i_inv
 }
 
-func (joint *RotaryLimitJoint) ApplyImpulse(constraint *Constraint, dt float64) {
+func (joint *RotaryLimitJoint) ApplyImpulse(dt float64) {
 	if joint.bias == 0 {
 		return
 	}

@@ -4,7 +4,7 @@ type ContactBuffer struct {
 	// header
 	stamp       uint
 	next        *ContactBuffer
-	numContacts uint
+	numContacts int
 
 	// buffer itself
 	contacts [CONTACTS_BUFFER_SIZE]Contact

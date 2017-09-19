@@ -23,12 +23,12 @@ func main() {
 		addBox(space)
 	}
 
-	shape := space.AddShape(NewCircle(planetBody, 70, VectorZero()))
+	shape := space.AddShape(NewCircle(planetBody, 70, Vector{}))
 	shape.SetElasticity(1)
 	shape.SetFriction(1)
 	shape.SetFilter(examples.NotGrabbableFilter)
 
-	examples.Main(space, 640, 480, 1.0/60.0, update)
+	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
 }
 
 func planetGravityVelocity(body *Body, gravity Vector, damping, dt float64) {
@@ -62,7 +62,7 @@ func addBox(space *Space) {
 	radius := Vector{size, size}.Length()
 	pos := randPos(radius)
 
-	body := space.AddBody(NewBody(mass, MomentForPoly(mass, len(verts), verts, VectorZero(), 0)))
+	body := space.AddBody(NewBody(mass, MomentForPoly(mass, len(verts), verts, Vector{}, 0)))
 	body.SetVelocityUpdateFunc(planetGravityVelocity)
 	body.SetPosition(pos)
 

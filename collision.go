@@ -187,10 +187,10 @@ func SegmentToPoly(seg, poly *Shape, info *CollisionInfo) {
 	polyshape := poly.Class.(*PolyShape)
 
 	// If the closest points are nearer than the sum of the radii...
-	if points.d-segment.r-polyshape.r <= 0 &&
-		// Reject endcap collisions if tangents are provided.
-		(!points.a.Equal(segment.ta) || n.Dot(segment.a_tangent.Rotate(rot)) <= 0) &&
-		(!points.a.Equal(segment.tb) || n.Dot(segment.b_tangent.Rotate(rot)) <= 0) {
+	if points.d-segment.r-polyshape.r <= 0 && (
+	// Reject endcap collisions if tangents are provided.
+	(!points.a.Equal(segment.ta) || n.Dot(segment.a_tangent.Rotate(rot)) <= 0) &&
+		(!points.a.Equal(segment.tb) || n.Dot(segment.b_tangent.Rotate(rot)) <= 0)) {
 		ContactPoints(SupportEdgeForSegment(segment, n), SupportEdgeForPoly(polyshape, n.Neg()), points, info)
 	}
 }
@@ -314,7 +314,7 @@ func SupportEdgeForPoly(poly *PolyShape, n Vector) *Edge {
 func ContactPoints(e1, e2 *Edge, points ClosestPoints, info *CollisionInfo) {
 	mindist := e1.r + e2.r
 
-	if !(points.d <= mindist) {
+	if points.d > mindist {
 		return
 	}
 
@@ -355,7 +355,7 @@ func ContactPoints(e1, e2 *Edge, points ClosestPoints, info *CollisionInfo) {
 const HASH_COEF = 3344921057
 
 func HashPair(a, b HashValue) HashValue {
-	return a * HASH_COEF & b * HASH_COEF
+	return a*HASH_COEF ^ b*HASH_COEF
 }
 
 // Find the closest points between two shapes using the GJK algorithm.
@@ -498,7 +498,7 @@ var BuiltinCollisionFuncs [9]CollisionFunc = [9]CollisionFunc{
 }
 
 func Collide(a, b *Shape, collisionId uint32, contacts []Contact) *CollisionInfo {
-	info := &CollisionInfo{a, b, collisionId, VectorZero(), 0, contacts}
+	info := &CollisionInfo{a, b, collisionId, Vector{}, 0, contacts}
 
 	// Make sure the shape types are in order.
 	if a.Order() > b.Order() {

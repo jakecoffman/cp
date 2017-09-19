@@ -33,14 +33,14 @@ func NewPivotJoint2(a, b *Body, anchorA, anchorB Vector) *Constraint {
 	joint := &PivotJoint{
 		AnchorA: anchorA,
 		AnchorB: anchorB,
-		jAcc:    VectorZero(),
+		jAcc:    Vector{},
 	}
 	constraint := NewConstraint(joint, a, b)
 	joint.Constraint = constraint
 	return constraint
 }
 
-func (joint *PivotJoint) PreStep(constraint *Constraint, dt float64) {
+func (joint *PivotJoint) PreStep(dt float64) {
 	a := joint.Constraint.a
 	b := joint.Constraint.b
 
@@ -55,11 +55,11 @@ func (joint *PivotJoint) PreStep(constraint *Constraint, dt float64) {
 	joint.bias = delta.Mult(-bias_coef(joint.Constraint.errorBias, dt) / dt).Clamp(joint.Constraint.maxBias)
 }
 
-func (joint *PivotJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *PivotJoint) ApplyCachedImpulse(dt_coef float64) {
 	apply_impulses(joint.a, joint.b, joint.r1, joint.r2, joint.jAcc.Mult(dt_coef))
 }
 
-func (joint *PivotJoint) ApplyImpulse(constraint *Constraint, dt float64) {
+func (joint *PivotJoint) ApplyImpulse(dt float64) {
 	a := joint.Constraint.a
 	b := joint.Constraint.b
 

@@ -20,13 +20,13 @@ func NewGrooveJoint(a, b *Body, grooveA, grooveB, anchorB Vector) *Constraint {
 		GrooveB: grooveB,
 		GrooveN: grooveB.Sub(grooveA).Normalize().Perp(),
 		AnchorB: anchorB,
-		jAcc: VectorZero(),
+		jAcc: Vector{},
 	}
 	joint.Constraint = NewConstraint(joint, a, b)
 	return joint.Constraint
 }
 
-func (joint *GrooveJoint) PreStep(constraint *Constraint, dt float64) {
+func (joint *GrooveJoint) PreStep(dt float64) {
 	a := joint.a
 	b := joint.b
 
@@ -58,7 +58,7 @@ func (joint *GrooveJoint) PreStep(constraint *Constraint, dt float64) {
 	joint.bias = delta.Mult(-bias_coef(joint.errorBias, dt) / dt).Clamp(joint.maxBias)
 }
 
-func (joint *GrooveJoint) ApplyCachedImpulse(constraint *Constraint, dt_coef float64) {
+func (joint *GrooveJoint) ApplyCachedImpulse(dt_coef float64) {
 	a := joint.a
 	b := joint.b
 
@@ -76,7 +76,7 @@ func (joint *GrooveJoint) grooveConstrain(j Vector, dt float64) Vector {
 	return jClamp.Clamp(joint.maxForce * dt)
 }
 
-func (joint *GrooveJoint) ApplyImpulse(constraint *Constraint, dt float64) {
+func (joint *GrooveJoint) ApplyImpulse(dt float64) {
 	a := joint.a
 	b := joint.b
 
