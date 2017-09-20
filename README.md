@@ -7,7 +7,16 @@ Beta stage -- most features are implemented and the demos are very close to Chip
 
 Some of the API may still change over time.
 
-## features:
+## run the examples
+
+```
+go get github.com/jakecoffman/cp
+cd $GOPATH/src/github.com/jakecoffman/cp/examples
+go get -d ./...
+go run logosmash/logosmash.go
+```
+
+## features
 
 - Designed specifically for 2D video games.
 - Circle, convex polygon, and beveled line segment collision primitives.
