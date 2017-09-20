@@ -1,7 +1,7 @@
 # cp
 [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) ported to Go
 
-## projet status
+## project status
 
 Beta stage -- most features are implemented and the demos are very close to Chipmunk2D demos.
 
@@ -15,6 +15,10 @@ cd $GOPATH/src/github.com/jakecoffman/cp/examples
 go get -d ./...
 go run logosmash/logosmash.go
 ```
+
+## documentation
+
+The official chipmunk docs are a really good place to start: https://chipmunk-physics.net/release/ChipmunkLatest-Docs/
 
 ## features
 
