@@ -556,3 +556,18 @@ func (body *Body) EachArbiter(f func(*Arbiter)) {
 		arb = next
 	}
 }
+
+func (body *Body) EachShape(f func(*Shape)) {
+	for i := 0; i < len(body.shapeList); i++ {
+		f(body.shapeList[i])
+	}
+}
+
+func (body *Body) EachConstraint(f func(*Constraint)) {
+	constraint := body.constraintList
+	for constraint != nil {
+		next := constraint.Next(body)
+		f(constraint)
+		constraint = next
+	}
+}

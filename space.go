@@ -394,7 +394,7 @@ func (space *Space) ContainsBody(body *Body) bool {
 	return body.space == space
 }
 
-var ShapeUpdateFunc = func(shape *Shape, _ interface{}) {
+var ShapeUpdateFunc = func(shape *Shape) {
 	shape.CacheBB()
 }
 
@@ -694,7 +694,7 @@ func (space *Space) Step(dt float64) {
 
 		// Find colliding pairs.
 		space.PushFreshContactBuffer()
-		space.dynamicShapes.class.Each(ShapeUpdateFunc, nil)
+		space.dynamicShapes.class.Each(ShapeUpdateFunc)
 		space.dynamicShapes.class.ReindexQuery(SpaceCollideShapesFunc, space)
 	}
 	space.Unlock(false)
@@ -873,12 +873,12 @@ func (space *Space) UseSpatialHash(dim float64, count int) {
 	staticShapes := NewSpaceHash(dim, count, ShapeGetBB, nil)
 	dynamicShapes := NewSpaceHash(dim, count, ShapeGetBB, staticShapes)
 
-	space.staticShapes.class.Each(func(shape *Shape, _ interface{}) {
+	space.staticShapes.class.Each(func(shape *Shape) {
 		staticShapes.class.Insert(shape, shape.hashid)
-	}, nil)
-	space.dynamicShapes.class.Each(func(shape *Shape, _ interface{}) {
+	})
+	space.dynamicShapes.class.Each(func(shape *Shape) {
 		dynamicShapes.class.Insert(shape, shape.hashid)
-	}, nil)
+	})
 
 	space.staticShapes = staticShapes
 	space.dynamicShapes = dynamicShapes
@@ -905,6 +905,29 @@ func (space *Space) EachBody(f func(body *Body)) {
 			body = next
 		}
 	}
+}
+
+func (space *Space) EachShape(f func(*Shape)) {
+	space.Lock()
+
+	space.dynamicShapes.class.Each(func(shape *Shape) {
+		f(shape)
+	})
+	space.staticShapes.class.Each(func(shape *Shape) {
+		f(shape)
+	})
+
+	space.Unlock(true)
+}
+
+func (space *Space) EachConstraint(f func(*Constraint)) {
+	space.Lock()
+
+	for i:=0; i<len(space.constraints); i++ {
+		f(space.constraints[i])
+	}
+
+	space.Unlock(true)
 }
 
 type SpacePointQueryFunc func(*Shape, Vector, float64, Vector, interface{})

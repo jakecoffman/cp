@@ -159,12 +159,12 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 }
 
 func DrawSpace(space *Space, options Drawer) {
-	space.dynamicShapes.class.Each(func(obj *Shape, data interface{}) {
-		DrawShape(obj, data.(Drawer))
-	}, options)
-	space.staticShapes.class.Each(func(obj *Shape, data interface{}) {
-		DrawShape(obj, data.(Drawer))
-	}, options)
+	space.dynamicShapes.class.Each(func(obj *Shape) {
+		DrawShape(obj, options)
+	})
+	space.staticShapes.class.Each(func(obj *Shape) {
+		DrawShape(obj, options)
+	})
 
 	for _, constraint := range space.constraints {
 		DrawConstraint(constraint, options)

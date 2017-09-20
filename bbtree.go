@@ -93,10 +93,10 @@ func (tree *BBTree) Count() int {
 	return int(tree.leaves.Count())
 }
 
-func (tree *BBTree) Each(f SpatialIndexIterator, data interface{}) {
+func (tree *BBTree) Each(f SpatialIndexIterator) {
 	tree.leaves.Each(func(elt interface{}) {
 		node := elt.(*Node)
-		f(node.obj, data)
+		f(node.obj)
 	})
 }
 

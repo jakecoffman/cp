@@ -72,9 +72,9 @@ func (hash *SpaceHash) Count() int {
 	return int(hash.handleSet.Count())
 }
 
-func (hash *SpaceHash) Each(f SpatialIndexIterator, data interface{}) {
+func (hash *SpaceHash) Each(f SpatialIndexIterator) {
 	hash.handleSet.Each(func(elt *Handle) {
-		f(elt.obj, data)
+		f(elt.obj)
 	})
 }
 

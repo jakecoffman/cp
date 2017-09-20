@@ -1,7 +1,7 @@
 package cp
 
 type SpatialIndexBB func(obj *Shape) BB
-type SpatialIndexIterator func(obj *Shape, data interface{})
+type SpatialIndexIterator func(obj *Shape)
 type SpatialIndexQuery func(obj1 interface{}, obj2 *Shape, collisionId uint32, data interface{}) uint32
 type SpatialIndexSegmentQuery func(obj1 interface{}, obj2 *Shape, data interface{}) float64
 
@@ -9,7 +9,7 @@ type SpatialIndexSegmentQuery func(obj1 interface{}, obj2 *Shape, data interface
 type SpatialIndexer interface {
 	Destroy()
 	Count() int
-	Each(f SpatialIndexIterator, data interface{})
+	Each(f SpatialIndexIterator)
 	Contains(obj *Shape, hashId HashValue) bool
 	Insert(obj *Shape, hashId HashValue)
 	Remove(obj *Shape, hashId HashValue)
@@ -58,21 +58,10 @@ func (index *SpatialIndex) GetRootIfTree() *Node {
 	return index.class.(*BBTree).root
 }
 
-type DynamicToStaticContext struct {
-	bbfunc      SpatialIndexBB
-	staticIndex *SpatialIndex
-	queryFunc   SpatialIndexQuery
-	data        interface{}
-}
-
-var DyanamicToStaticIter = func(obj *Shape, context interface{}) {
-	dtsc := context.(*DynamicToStaticContext)
-	dtsc.staticIndex.class.Query(obj, dtsc.bbfunc(obj), dtsc.queryFunc, dtsc.data)
-}
-
 func (dynamicIndex *SpatialIndex) CollideStatic(staticIndex *SpatialIndex, f SpatialIndexQuery, data interface{}) {
 	if staticIndex != nil && staticIndex.class.Count() > 0 {
-		context := &DynamicToStaticContext{dynamicIndex.bbfunc, staticIndex, f, data}
-		dynamicIndex.class.Each(DyanamicToStaticIter, context)
+		dynamicIndex.class.Each(func(obj *Shape) {
+			staticIndex.class.Query(obj, dynamicIndex.bbfunc(obj), f, data)
+		})
 	}
 }
