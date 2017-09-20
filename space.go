@@ -112,7 +112,7 @@ func (space *Space) SetGravity(gravity Vector) {
 	}
 }
 
-func (space Space) Damping() float64 {
+func (space *Space) Damping() float64 {
 	return space.damping
 }
 
