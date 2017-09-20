@@ -40,7 +40,7 @@ type Body struct {
 
 	transform Transform
 
-	userData interface{}
+	UserData interface{}
 
 	// "pseudo-velocities" used for eliminating overlap.
 	// Erin Catto has some papers that talk about what these are.
