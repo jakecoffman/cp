@@ -1040,7 +1040,7 @@ func (space *Space) PostStepCallback(key interface{}) *PostStepCallback {
 func PostStepDoNothing(space *Space, key, data interface{}) {}
 
 func (space *Space) AddPostStepCallback(f PostStepCallbackFunc, key, data interface{}) bool {
-	if space.PostStepCallback(key) == nil {
+	if key == nil || space.PostStepCallback(key) == nil {
 		callback := &PostStepCallback{
 			key:  key,
 			data: data,
