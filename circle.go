@@ -35,6 +35,24 @@ func (*Circle) Destroy() {
 	panic("implement me")
 }
 
+func (circle *Circle) Radius() float64 {
+	return circle.r
+}
+
+func (circle *Circle) SetRadius(r float64) {
+	circle.r = r
+
+	mass := circle.massInfo.m
+	circle.massInfo = CircleShapeMassInfo(mass, circle.r, circle.c)
+	if mass > 0 {
+		circle.body.AccumulateMassFromShapes()
+	}
+}
+
+func (circle *Circle) TransformC() Vector {
+	return circle.tc
+}
+
 func (circle *Circle) PointQuery(p Vector, info *PointQueryInfo) {
 	delta := p.Sub(circle.tc)
 	d := delta.Length()

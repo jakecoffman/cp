@@ -3,7 +3,7 @@ package cp
 type Segment struct {
 	*Shape
 
-	A, B, n    Vector
+	a, b, n    Vector
 	ta, tb, tn Vector
 	r          float64
 
@@ -11,8 +11,8 @@ type Segment struct {
 }
 
 func (seg *Segment) CacheData(transform Transform) BB {
-	seg.ta = transform.Point(seg.A)
-	seg.tb = transform.Point(seg.B)
+	seg.ta = transform.Point(seg.a)
+	seg.tb = transform.Point(seg.b)
 	seg.tn = transform.Vect(seg.n)
 
 	var l, r, b, t float64
@@ -39,6 +39,52 @@ func (seg *Segment) CacheData(transform Transform) BB {
 
 func (seg *Segment) Destroy() {
 	panic("implement me")
+}
+
+func (seg *Segment) SetRadius(r float64) {
+	seg.r = r
+
+	mass := seg.massInfo.m
+	seg.massInfo = NewSegmentMassInfo(seg.massInfo.m, seg.a, seg.b, seg.r)
+	if mass > 0 {
+		seg.body.AccumulateMassFromShapes()
+	}
+}
+
+func (seg *Segment) Radius() float64 {
+	return seg.r
+}
+
+func (seg *Segment) TransformA() Vector {
+	return seg.ta
+}
+
+func (seg *Segment) TransformB() Vector {
+	return seg.tb
+}
+
+func (seg *Segment) SetEndpoints(a, b Vector) {
+	seg.a = a
+	seg.b = b
+	seg.n = b.Sub(a).Normalize().Perp()
+
+	mass := seg.massInfo.m
+	seg.massInfo = NewSegmentMassInfo(seg.massInfo.m, seg.a, seg.b, seg.r)
+	if mass > 0 {
+		seg.body.AccumulateMassFromShapes()
+	}
+}
+
+func (seg *Segment) Normal() Vector {
+	return seg.n
+}
+
+func (seg *Segment) A() Vector {
+	return seg.a
+}
+
+func (seg *Segment) B() Vector {
+	return seg.b
 }
 
 func (seg *Segment) PointQuery(p Vector, info *PointQueryInfo) {
@@ -117,8 +163,8 @@ func (seg *Segment) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryInfo
 
 func NewSegment(body *Body, a, b Vector, r float64) *Shape {
 	segment := &Segment{
-		A: a,
-		B: b,
+		a: a,
+		b: b,
 		n: b.Sub(a).Normalize().ReversePerp(),
 
 		r:         r,

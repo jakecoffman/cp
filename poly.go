@@ -23,6 +23,18 @@ func (poly PolyShape) Vert(i int) Vector {
 	return poly.planes[i+poly.count].v0
 }
 
+func (poly PolyShape) TransformVert(i int) Vector {
+	return poly.planes[i].v0
+}
+
+func (poly PolyShape) Radius() float64 {
+	return poly.r
+}
+
+func (poly PolyShape) SetRadius(r float64) {
+	poly.r = r
+}
+
 func (poly *PolyShape) CacheData(transform Transform) BB {
 	count := poly.count
 	dst := poly.planes[0:count]
