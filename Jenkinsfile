@@ -2,6 +2,11 @@ pipeline {
     agent any
 
     stages {
+        stage('Dependencies') {
+            steps {
+                sh 'go get ./...'
+            }
+        }
         stage('Build') {
             steps {
                 sh 'go build ./...'
