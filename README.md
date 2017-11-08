@@ -1,4 +1,6 @@
 # cp
+[![GoDoc](https://godoc.org/github.com/jakecoffman/cp?status.svg)](http://godoc.org/github.com/jakecoffman/cp)
+
 [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) ported to Go
 
 ## project status
