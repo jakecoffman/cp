@@ -444,14 +444,14 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 
 	// Ignore the arbiter if it has been flagged
 	if arb.state != CP_ARBITER_STATE_IGNORE &&
-		// Call PreSolve
+	// Call PreSolve
 		arb.handler.PreSolveFunc(arb, space, arb.handler.UserData) &&
-		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
+	// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
 		arb.state != CP_ARBITER_STATE_IGNORE &&
-		// Process, but don't add collisions for sensors.
+	// Process, but don't add collisions for sensors.
 		!(a.sensor || b.sensor) &&
-		// Don't process collisions between two infinite mass bodies.
-		// This includes collisions between two kinematic bodies, or a kinematic body and a static body.
+	// Don't process collisions between two infinite mass bodies.
+	// This includes collisions between two kinematic bodies, or a kinematic body and a static body.
 		!(a.body.m == INFINITY && b.body.m == INFINITY) {
 		space.arbiters = append(space.arbiters, arb)
 	} else {
@@ -923,7 +923,7 @@ func (space *Space) EachShape(f func(*Shape)) {
 func (space *Space) EachConstraint(f func(*Constraint)) {
 	space.Lock()
 
-	for i:=0; i<len(space.constraints); i++ {
+	for i := 0; i < len(space.constraints); i++ {
 		f(space.constraints[i])
 	}
 
@@ -961,6 +961,32 @@ func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint32,
 	}
 
 	return collisionId
+}
+
+type SpaceBBQueryFunc func(shape *Shape, data interface{})
+
+type BBQueryContext struct {
+	bb BB
+	filter ShapeFilter
+	f      SpaceBBQueryFunc
+}
+
+func (space *Space) bbQuery(obj interface{}, shape *Shape, collisionId uint32, data interface{}) uint32 {
+	context := obj.(*BBQueryContext)
+	if !shape.Filter.Reject(context.filter) && shape.BB().Intersects(context.bb) {
+		context.f(shape, data)
+	}
+	return collisionId
+}
+
+func (space *Space) BBQuery(bb BB, filter ShapeFilter, f SpaceBBQueryFunc, data interface{}) {
+	context := BBQueryContext{bb, filter, f}
+	space.Lock()
+
+	space.staticShapes.class.Query(&context, bb, space.bbQuery, data)
+	space.dynamicShapes.class.Query(&context, bb, space.bbQuery, data)
+
+	space.Unlock(true)
 }
 
 func (space *Space) ArrayForBodyType(bodyType int) *[]*Body {
