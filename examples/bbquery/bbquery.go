@@ -3,7 +3,6 @@ package main
 import (
 	. "github.com/jakecoffman/cp"
 	"github.com/jakecoffman/cp/examples"
-	"math"
 	"math/rand"
 	"fmt"
 )
@@ -15,11 +14,12 @@ var (
 
 	hwidth  = width / 2
 	hheight = height / 2
+
+	dragging bool
 )
 
 func main() {
 	space := NewSpace()
-	queryStart = Vector{}
 
 	for i := 0; i < 50; i++ {
 		addBox(space, 20, 1)
@@ -40,14 +40,19 @@ func addBox(space *Space, size, mass float64) *Body {
 func update(space *Space, dt float64) {
 	space.Step(dt)
 
-	if examples.RightClick {
+	if !examples.RightClick {
+		dragging = false
+		examples.DrawString(Vector{-300, -200}, "Right click and drag to select boxes")
+		return
+	}
+
+	if !dragging {
 		queryStart = examples.Mouse
 	}
 
-	min := queryStart
-	max := examples.Mouse
+	dragging = true
 
-	bb := NewBBForExtents(Vector{X: math.Min(min.X, max.X) + math.Abs(min.X-max.X), Y: math.Min(min.Y, max.Y) + math.Abs(min.Y-max.Y)}, math.Abs(min.X-max.X)/2, math.Abs(min.Y-max.Y)/2)
+	bb := NewBBForCircle(queryStart, examples.Mouse.Sub(queryStart).Length())
 	examples.DrawBB(bb, FColor{0, 1, 0, 1})
 
 	str := "Query: Center(%f, %f) Count(%d)"
