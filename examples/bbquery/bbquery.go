@@ -25,7 +25,21 @@ func main() {
 		addBox(space, 20, 1)
 	}
 
-	examples.Main(space, 1.0/60.0, update, examples.DefaultDraw)
+	examples.Main(space, 1.0/60.0, update, func(space *Space) {
+		examples.DefaultDraw(space)
+
+		bb := NewBBForCircle(queryStart, examples.Mouse.Sub(queryStart).Length())
+		examples.DrawBB(bb, FColor{0, 1, 0, 1})
+
+		str := "Query: Center(%f, %f) Count(%d)"
+		var count uint64 = 0
+		space.BBQuery(bb, SHAPE_FILTER_ALL, func(shape *Shape, data interface{}) {
+			count++
+			examples.DrawBB(shape.BB(), FColor{1, 0, 0, 1})
+		}, nil)
+
+		examples.DrawString(Vector{-300, -150}, fmt.Sprintf(str, bb.Center().X, bb.Center().Y, count))
+	})
 }
 
 func addBox(space *Space, size, mass float64) *Body {
@@ -51,16 +65,4 @@ func update(space *Space, dt float64) {
 	}
 
 	dragging = true
-
-	bb := NewBBForCircle(queryStart, examples.Mouse.Sub(queryStart).Length())
-	examples.DrawBB(bb, FColor{0, 1, 0, 1})
-
-	str := "Query: Center(%f, %f) Count(%d)"
-	var count uint64 = 0
-	space.BBQuery(bb, SHAPE_FILTER_ALL, func(shape *Shape, data interface{}) {
-		count++
-		examples.DrawBB(shape.BB(), FColor{1, 0, 0, 1})
-	}, nil)
-
-	examples.DrawString(Vector{-300, -200}, fmt.Sprintf(str, bb.Center().X, bb.Center().Y, count))
 }
