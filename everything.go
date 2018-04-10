@@ -253,12 +253,6 @@ func MomentForBox2(m float64, box BB) float64 {
 	return MomentForBox(m, width, height) + m*offset.LengthSq()
 }
 
-func assert(truth bool, msg ...interface{}) {
-	if !truth {
-		panic(fmt.Sprint("Assertion failed: ", msg))
-	}
-}
-
 func k_scalar_body(body *Body, r, n Vector) float64 {
 	rcn := r.Cross(n)
 	return body.m_inv + body.i_inv*rcn*rcn
