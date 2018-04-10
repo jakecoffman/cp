@@ -2,6 +2,7 @@ package cp
 
 import (
 	"fmt"
+	"math"
 )
 
 /// Rigid body velocity update function type.
@@ -322,7 +323,7 @@ func (body *Body) SetAngularVelocity(angularVelocity float64) {
 }
 
 func (body *Body) SetTransform(p Vector, a float64) {
-	rot := ForAngle(a)
+	rot := Vector{math.Cos(a), math.Sin(a)}
 	c := body.cog
 
 	body.transform = NewTransformTranspose(

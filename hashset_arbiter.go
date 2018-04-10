@@ -1,7 +1,7 @@
 package cp
 
-type HashSetEqualArbiter func(ptr []*Shape, elt *Arbiter) bool
-type HashSetTransArbiter func(ptr []*Shape, space *Space) *Arbiter
+type HashSetEqualArbiter func(ptr ShapePair, elt *Arbiter) bool
+type HashSetTransArbiter func(ptr ShapePair, space *Space) *Arbiter
 type HashSetIteratorArbiter func(elt *Arbiter)
 type HashSetFilterArbiter func(arb *Arbiter, space *Space) bool
 
@@ -61,7 +61,7 @@ func (set *HashSetArbiter) Count() uint {
 	return set.entries
 }
 
-func (set *HashSetArbiter) Insert(hash HashValue, ptr []*Shape, trans HashSetTransArbiter, space *Space) *Arbiter {
+func (set *HashSetArbiter) Insert(hash HashValue, ptr ShapePair, trans HashSetTransArbiter, space *Space) *Arbiter {
 	idx := uint(hash) % set.size
 
 	// Find the bin with the matching element.
@@ -88,7 +88,7 @@ func (set *HashSetArbiter) Insert(hash HashValue, ptr []*Shape, trans HashSetTra
 	return bin.elt
 }
 
-func (set *HashSetArbiter) InsertArb(hash HashValue, ptr []*Shape, arb *Arbiter) interface{} {
+func (set *HashSetArbiter) InsertArb(hash HashValue, ptr ShapePair, arb *Arbiter) interface{} {
 	idx := uint(hash) % set.size
 
 	// Find the bin with the matching element.
@@ -136,7 +136,7 @@ func (set *HashSetArbiter) GetUnusedBin() *HashSetBinArbiter {
 	return &HashSetBinArbiter{}
 }
 
-func (set *HashSetArbiter) Remove(hash HashValue, ptr []*Shape) *Arbiter {
+func (set *HashSetArbiter) Remove(hash HashValue, ptr ShapePair) *Arbiter {
 	idx := uint(hash) % set.size
 	prevPtr := &set.table[idx]
 	bin := set.table[idx]
@@ -162,7 +162,7 @@ func (set *HashSetArbiter) Remove(hash HashValue, ptr []*Shape) *Arbiter {
 	return nil
 }
 
-func (set *HashSetArbiter) Find(hash HashValue, ptr []*Shape) interface{} {
+func (set *HashSetArbiter) Find(hash HashValue, ptr ShapePair) interface{} {
 	idx := uint(hash) % set.size
 	bin := set.table[idx]
 

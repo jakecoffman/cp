@@ -143,7 +143,7 @@ func (s *Shape) Update(transform Transform) BB {
 	return s.bb
 }
 
-func (s *Shape) Point(i uint32) *SupportPoint {
+func (s *Shape) Point(i uint32) SupportPoint {
 	switch s.Class.(type) {
 	case *Circle:
 		return NewSupportPoint(s.Class.(*Circle).tc, 0)

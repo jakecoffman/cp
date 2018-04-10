@@ -54,9 +54,9 @@ type Space struct {
 	StaticBody *Body
 }
 
-func arbiterSetEql(shapes []*Shape, arb *Arbiter) bool {
-	a := shapes[0]
-	b := shapes[1]
+func arbiterSetEql(shapes ShapePair, arb *Arbiter) bool {
+	a := shapes.a
+	b := shapes.b
 
 	return (a == arb.a && b == arb.b) || (b == arb.a && a == arb.b)
 }
@@ -172,7 +172,7 @@ func (space *Space) Activate(body *Body) {
 			// reinsert the arbiter into the arbiter cache
 			a := arbiter.a
 			b := arbiter.b
-			shapePair := []*Shape{a, b}
+			shapePair := ShapePair{a, b}
 			arbHashId := HashPair(HashValue(unsafe.Pointer(a)), HashValue(unsafe.Pointer(b)))
 			space.cachedArbiters.InsertArb(arbHashId, shapePair, arbiter)
 
@@ -398,7 +398,7 @@ var ShapeUpdateFunc = func(shape *Shape) {
 	shape.CacheBB()
 }
 
-func SpaceArbiterSetTrans(shapes []*Shape, space *Space) *Arbiter {
+func SpaceArbiterSetTrans(shapes ShapePair, space *Space) *Arbiter {
 	var arb *Arbiter
 
 	select {
@@ -407,8 +407,14 @@ func SpaceArbiterSetTrans(shapes []*Shape, space *Space) *Arbiter {
 	default:
 		arb = &Arbiter{}
 	}
-	arb.Init(shapes[0], shapes[1])
+	arb.Init(shapes.a, shapes.b)
 	return arb
+}
+
+var info = &CollisionInfo{}
+
+type ShapePair struct {
+	a, b *Shape
 }
 
 func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspace interface{}) uint32 {
@@ -421,7 +427,11 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	}
 
 	// Narrow-phase collision detection.
-	info := Collide(a, b, collisionId, space.ContactBufferGetArray())
+	info.collisionId = collisionId
+	info.arr = space.ContactBufferGetArray()
+	info.count = 0
+	info.n = Vector{}
+	info.Collide(a, b)
 
 	if info.count == 0 {
 		// shapes are not colliding
@@ -433,7 +443,7 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 
 	// Get an arbiter from space->arbiterSet for the two shapes.
 	// This is where the persistent contact magic comes from.
-	shapePair := []*Shape{info.a, info.b}
+	shapePair := ShapePair{info.a, info.b}
 	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
 	arb := space.cachedArbiters.Insert(arbHashId, shapePair, SpaceArbiterSetTrans, space)
 	arb.Update(info, space)
@@ -494,7 +504,7 @@ func (space *Space) ContactBufferGetArray() []Contact {
 	}
 
 	head := space.contactBuffersHead
-	return head.contacts[head.numContacts:]
+	return head.contacts[head.numContacts:head.numContacts+MAX_CONTACTS_PER_ARBITER]
 }
 
 func QueryReject(a, b *Shape) bool {
@@ -814,7 +824,7 @@ func (space *Space) Unlock(runPostStep bool) {
 func (space *Space) UncacheArbiter(arb *Arbiter) {
 	a := arb.a
 	b := arb.b
-	shapePair := []*Shape{a, b}
+	shapePair := ShapePair{a, b}
 	arbHashId := HashPair(HashValue(unsafe.Pointer(a)), HashValue(unsafe.Pointer(b)))
 	space.cachedArbiters.Remove(arbHashId, shapePair)
 	for i, a := range space.arbiters {

@@ -310,32 +310,40 @@ func (arb *Arbiter) CallWildcardSeparateB(space *Space) {
 }
 
 func apply_impulses(a, b *Body, r1, r2, j Vector) {
-	apply_impulse(a, j.Neg(), r1)
-	apply_impulse(b, j, r2)
-}
+	b.v.X += j.X * b.m_inv
+	b.v.Y += j.Y * b.m_inv
+	b.w += b.i_inv * (r2.X*j.Y - r2.Y*j.X)
 
-func apply_bias_impulses(a, b *Body, r1, r2, j Vector) {
-	apply_bias_impulse(a, j.Neg(), r1)
-	apply_bias_impulse(b, j, r2)
-}
-
-func apply_bias_impulse(body *Body, j, r Vector) {
-	body.v_bias = body.v_bias.Add(j.Mult(body.m_inv))
-	body.w_bias += body.i_inv * r.Cross(j)
+	j.X = -j.X
+	j.Y = -j.Y
+	a.v.X += j.X * a.m_inv
+	a.v.Y += j.Y * a.m_inv
+	a.w += a.i_inv * (r1.X*j.Y - r1.Y*j.X)
 }
 
 func apply_impulse(body *Body, j, r Vector) {
-	body.v = body.v.Add(j.Mult(body.m_inv))
+	body.v.X += j.X * body.m_inv
+	body.v.Y += j.Y * body.m_inv
 	body.w += body.i_inv * r.Cross(j)
 }
 
-func relative_velocity(a, b *Body, r1, r2 Vector) Vector {
-	v1_sum := a.v.Add(r1.Perp().Mult(a.w))
-	v2_sum := b.v.Add(r2.Perp().Mult(b.w))
-	return v2_sum.Sub(v1_sum)
+func apply_bias_impulses(a, b *Body, r1, r2, j Vector) {
+	b.v_bias.X += j.X * b.m_inv
+	b.v_bias.Y += j.Y * b.m_inv
+	b.w_bias += b.i_inv * (r2.X*j.Y - r2.Y*j.X)
+
+	j.X = -j.X
+	j.Y = -j.Y
+	a.v_bias.X += j.X * a.m_inv
+	a.v_bias.Y += j.Y * a.m_inv
+	a.w_bias += a.i_inv * (r1.X*j.Y - r1.Y*j.X)
 }
 
-var CollisionHandlerDoNothing CollisionHandler = CollisionHandler{
+func relative_velocity(a, b *Body, r1, r2 Vector) Vector {
+	return r2.Perp().Mult(b.w).Add(b.v).Sub(r1.Perp().Mult(a.w).Add(a.v))
+}
+
+var CollisionHandlerDoNothing = CollisionHandler{
 	WILDCARD_COLLISION_TYPE,
 	WILDCARD_COLLISION_TYPE,
 	AlwaysCollide,
@@ -345,7 +353,7 @@ var CollisionHandlerDoNothing CollisionHandler = CollisionHandler{
 	nil,
 }
 
-var CollisionHandlerDefault CollisionHandler = CollisionHandler{
+var CollisionHandlerDefault = CollisionHandler{
 	WILDCARD_COLLISION_TYPE,
 	WILDCARD_COLLISION_TYPE,
 	DefaultBegin,

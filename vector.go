@@ -102,7 +102,11 @@ func (v Vector) SLerp(other Vector, t float64) Vector {
 }
 
 func Clamp(f, min, max float64) float64 {
-	return math.Min(math.Max(f, min), max)
+	if f > min {
+		return math.Min(f, max)
+	} else {
+		return math.Min(min, max)
+	}
 }
 
 func Clamp01(f float64) float64 {
