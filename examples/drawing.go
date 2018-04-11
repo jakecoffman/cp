@@ -7,12 +7,10 @@ import (
 
 	"github.com/go-gl/gl/v2.1/gl"
 	. "github.com/jakecoffman/cp"
+	"fmt"
 )
 
-const (
-	DrawPointLineScale = 1
-	DrawOutlineWidth   = 1
-)
+const DrawPointLineScale = 1
 
 var program uint32
 
@@ -41,8 +39,7 @@ type Triangle struct {
 var vao uint32 = 0
 var vbo uint32 = 0
 
-var pushedTriangleCount int
-var triangleStack []Triangle = []Triangle{}
+var triangleStack []Triangle
 
 func DrawCircle(pos Vector, angle, radius float64, outline, fill FColor) {
 	r := radius + 1/DrawPointLineScale
@@ -88,7 +85,7 @@ func DrawFatSegment(a, b Vector, radius float64, outline, fill FColor) {
 	n := b.Sub(a).ReversePerp().Normalize()
 	t := n.ReversePerp()
 
-	var half float64 = 1.0 / DrawPointLineScale
+	const half = 1.0 / DrawPointLineScale
 	r := radius + half
 
 	if r <= half {
@@ -251,9 +248,9 @@ func DrawBB(bb BB, outline FColor) {
 }
 
 func DrawInstructions() {
-	DrawString(Vector{-300, 220}, `Controls:
-Press Q to quit
-Use the mouse to drag objects`)
+	DrawString(Vector{-300, 220}, fmt.Sprintf(`Press Q to quit, V to toggle Vsync
+Use the mouse to drag objects
+FPS: %d`, fps))
 }
 
 func DrawInfo(space *Space) {

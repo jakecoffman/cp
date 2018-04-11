@@ -23,7 +23,8 @@ var mouseBody *Body
 var mouseJoint *Constraint
 
 var accumulator float64
-var lastTime float64
+var lastTime, lastFps float64
+var frames, fps int
 
 func init() {
 	runtime.LockOSThread()
@@ -72,6 +73,13 @@ func Update(space *Space, tick float64, update UpdateFunc) {
 	if dt > 0.2 {
 		dt = 0.2
 	}
+	lastTime = t
+	frames++
+	if t - lastFps >= 1 {
+		fps = frames
+		frames = 0
+		lastFps += 1
+	}
 
 	for accumulator += dt; accumulator > tick; accumulator -= tick {
 		// Tick
@@ -89,8 +97,6 @@ func Update(space *Space, tick float64, update UpdateFunc) {
 
 		RightDown = false
 	}
-
-	lastTime = t
 }
 
 func Main(space *Space, tick float64, update UpdateFunc, draw DrawFunc) {
@@ -187,6 +193,8 @@ func Main(space *Space, tick float64, update UpdateFunc, draw DrawFunc) {
 		}
 	})
 
+	vsync := true
+
 	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 		switch key {
 		case glfw.KeyUp:
@@ -213,6 +221,16 @@ func Main(space *Space, tick float64, update UpdateFunc, draw DrawFunc) {
 			} else if action == glfw.Release {
 				Keyboard.X += 1
 			}
+		case glfw.KeyV:
+			if action != glfw.Release {
+				return
+			}
+			if vsync {
+				glfw.SwapInterval(0)
+			} else {
+				glfw.SwapInterval(1)
+			}
+			vsync = !vsync
 		}
 	})
 
