@@ -411,8 +411,6 @@ func SpaceArbiterSetTrans(shapes ShapePair, space *Space) *Arbiter {
 	return arb
 }
 
-var info = &CollisionInfo{}
-
 type ShapePair struct {
 	a, b *Shape
 }
@@ -427,10 +425,10 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	}
 
 	// Narrow-phase collision detection.
-	info.collisionId = collisionId
-	info.arr = space.ContactBufferGetArray()
-	info.count = 0
-	info.n = Vector{}
+	info := CollisionInfo{
+		collisionId: collisionId,
+		arr: space.ContactBufferGetArray(),
+	}
 	info.Collide(a, b)
 
 	if info.count == 0 {
@@ -446,7 +444,7 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	shapePair := ShapePair{info.a, info.b}
 	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
 	arb := space.cachedArbiters.Insert(arbHashId, shapePair, SpaceArbiterSetTrans, space)
-	arb.Update(info, space)
+	arb.Update(&info, space)
 
 	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.BeginFunc(arb, space, arb.handler.UserData) {
 		arb.Ignore()
