@@ -5,24 +5,23 @@
 
 ## project status
 
-Beta stage -- most features are implemented and the demos are very close to Chipmunk2D demos.
+Stable -- most features are implemented and the demos are very close to Chipmunk2D demos.
 
-Some of the API may still change over time.
+## examples
 
-## run the examples
+https://github.com/jakecoffman/cp-examples contains the port of all of the Chipmunk2D demos.
 
-```
-go get github.com/jakecoffman/cp
-cd $GOPATH/src/github.com/jakecoffman/cp/examples
-go get -d ./...
-go run logosmash/logosmash.go
-```
+https://github.com/hajimehoshi/ebiten/blob/master/examples/chipmunk/main.go is an example using Ebiten
+
+https://github.com/gen2brain/raylib-go/blob/master/examples/physics/chipmunk/main.go is an example with raylib's Go port
 
 ## documentation
 
 The official chipmunk docs are a really good place to start: https://chipmunk-physics.net/release/ChipmunkLatest-Docs/
 
 ## features
+
+Same features as Chipmunk2D:
 
 - Designed specifically for 2D video games.
 - Circle, convex polygon, and beveled line segment collision primitives.
