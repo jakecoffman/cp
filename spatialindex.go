@@ -7,7 +7,6 @@ type SpatialIndexSegmentQuery func(obj1 interface{}, obj2 *Shape, data interface
 
 // implemented by BBTree
 type SpatialIndexer interface {
-	Destroy()
 	Count() int
 	Each(f SpatialIndexIterator)
 	Contains(obj *Shape, hashId HashValue) bool

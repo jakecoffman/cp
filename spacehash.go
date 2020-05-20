@@ -64,10 +64,6 @@ func (hash *SpaceHash) hashHandle(hand *Handle, bb BB) {
 	}
 }
 
-func (hash *SpaceHash) Destroy() {
-	panic("implement me")
-}
-
 func (hash *SpaceHash) Count() int {
 	return int(hash.handleSet.Count())
 }
@@ -155,7 +151,7 @@ restart:
 func floor(f float64) int {
 	i := int(f)
 	if f < 0 && float64(i) != f {
-		return i-1
+		return i - 1
 	}
 	return i
 }
