@@ -85,10 +85,6 @@ func NewBBTree(bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
 	return bbtree.spatialIndex
 }
 
-func (tree *BBTree) Destroy() {
-	panic("implement me")
-}
-
 func (tree *BBTree) Count() int {
 	return int(tree.leaves.Count())
 }
@@ -518,7 +514,9 @@ func (tree *BBTree) NodeFromPool() *Node {
 		tree.RecycleNode(&Node{})
 	}
 
-	return &Node{}
+	return &Node{
+		parent: tree.pooledNodes,
+	}
 }
 
 func (tree *BBTree) RecycleNode(node *Node) {
