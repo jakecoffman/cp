@@ -63,10 +63,6 @@ func (poly *PolyShape) CacheData(transform Transform) BB {
 	return poly.Shape.bb
 }
 
-func (poly *PolyShape) Destroy() {
-	panic("implement me")
-}
-
 func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
 	count := poly.count
 	planes := poly.planes
@@ -78,7 +74,7 @@ func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
 	closestNormal := Vector{}
 	outside := false
 
-	for i := 0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		v1 := planes[i].v0
 		if !outside {
 			outside = planes[i].n.Dot(p.Sub(v1)) > 0
@@ -102,15 +98,15 @@ func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
 	} else {
 		dist = -minDist
 	}
-	g := p.Sub(closestPoint).Mult(1.0/dist)
+	g := p.Sub(closestPoint).Mult(1.0 / dist)
 
 	info.Shape = poly.Shape
 	info.Point = closestPoint.Add(g.Mult(r))
-	info.Distance = dist-r
+	info.Distance = dist - r
 
 	if minDist > MAGIC_EPSILON {
 		info.Gradient = g
- 	} else {
+	} else {
 		info.Gradient = closestNormal
 	}
 }
@@ -119,9 +115,9 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 	planes := poly.planes
 	count := poly.count
 	r := poly.r
-	rsum := r+r2
+	rsum := r + r2
 
-	for i:=0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		n := planes[i].n
 		an := a.Dot(n)
 		d := an - planes[i].v0.Dot(n) - rsum
@@ -130,7 +126,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 		}
 
 		bn := b.Dot(n)
-		t := d/(an-bn)
+		t := d / (an - bn)
 		if t < 0 || 1 < t {
 			continue
 		}
@@ -150,7 +146,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 
 	// Also check against the beveled vertexes
 	if rsum > 0 {
-		for i := 0; i<count; i++ {
+		for i := 0; i < count; i++ {
 			circleInfo := SegmentQueryInfo{nil, b, Vector{}, 1}
 			CircleSegmentQuery(poly.Shape, planes[i].v0, r, a, b, r2, &circleInfo)
 			if circleInfo.Alpha < info.Alpha {
@@ -163,7 +159,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 func NewPolyShape(body *Body, vectCount int, verts []Vector, transform Transform, radius float64) *Shape {
 	hullVerts := []Vector{}
 	// Transform the verts before building the hull in case of a negative scale.
-	for i:=0; i<vectCount; i++ {
+	for i := 0; i < vectCount; i++ {
 		hullVerts = append(hullVerts, transform.Point(verts[i]))
 	}
 
@@ -222,7 +218,7 @@ func (p *PolyShape) SetVerts(count int, verts []Vector) {
 func (p *PolyShape) SetVertsUnsafe(count int, verts []Vector, transform Transform) {
 	hullVerts := make([]Vector, count)
 
-	for i:=0; i<count; i++ {
+	for i := 0; i < count; i++ {
 		hullVerts[i] = transform.Point(verts[i])
 	}
 
@@ -307,7 +303,7 @@ func QHullReduce(tol float64, verts []Vector, count int, a, pivot, b Vector, res
 
 	leftCount := QHullPartition(verts, count, a, pivot, tol)
 	var index int
-	if leftCount - 1 >= 0 {
+	if leftCount-1 >= 0 {
 		index = QHullReduce(tol, verts[1:], leftCount-1, a, verts[0], pivot, result)
 	}
 

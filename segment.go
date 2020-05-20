@@ -37,10 +37,6 @@ func (seg *Segment) CacheData(transform Transform) BB {
 	return BB{l - rad, b - rad, r + rad, t + rad}
 }
 
-func (seg *Segment) Destroy() {
-	panic("implement me")
-}
-
 func (seg *Segment) SetRadius(r float64) {
 	seg.r = r
 

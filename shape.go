@@ -14,7 +14,6 @@ type Shaper interface {
 
 type ShapeClass interface {
 	CacheData(transform Transform) BB
-	Destroy()
 	PointQuery(p Vector, info *PointQueryInfo)
 	SegmentQuery(a, b Vector, radius float64, info *SegmentQueryInfo)
 }

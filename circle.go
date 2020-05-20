@@ -31,10 +31,6 @@ func (circle *Circle) CacheData(transform Transform) BB {
 	return NewBBForCircle(circle.tc, circle.r)
 }
 
-func (*Circle) Destroy() {
-	panic("implement me")
-}
-
 func (circle *Circle) Radius() float64 {
 	return circle.r
 }
@@ -83,7 +79,7 @@ func CircleSegmentQuery(shape *Shape, center Vector, r1 float64, a, b Vector, r2
 	det := qb*qb - qa*(da.Dot(da)-rsum*rsum)
 
 	if det >= 0 {
-		t := (-qb - math.Sqrt(det))/qa
+		t := (-qb - math.Sqrt(det)) / qa
 		if 0 <= t && t <= 1 {
 			n := da.Lerp(db, t).Normalize()
 
