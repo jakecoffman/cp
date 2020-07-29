@@ -313,6 +313,15 @@ func (body *Body) SetForce(force Vector) {
 	body.f = force
 }
 
+func (body *Body) Torque() float64 {
+	return body.t
+}
+
+func (body *Body) SetTorque(torque float64) {
+	body.Activate()
+	body.t = torque
+}
+
 func (body *Body) AngularVelocity() float64 {
 	return body.w
 }
