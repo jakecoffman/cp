@@ -79,6 +79,37 @@ func (s *Shape) MassInfo() *ShapeMassInfo {
 	return s.massInfo
 }
 
+func (s *Shape) Mass() float64 {
+	return s.massInfo.m
+}
+
+func (s *Shape) SetMass(mass float64) {
+	s.body.Activate()
+
+	s.massInfo.m = mass
+	s.body.AccumulateMassFromShapes()
+}
+
+func (s *Shape) Density() float64 {
+	return s.massInfo.m / s.massInfo.area
+}
+
+func (s *Shape) SetDensity(density float64) {
+	s.SetMass(density * s.massInfo.area)
+}
+
+func (s *Shape) Moment() float64 {
+	return s.massInfo.m * s.massInfo.i
+}
+
+func (s *Shape) Area() float64 {
+	return s.massInfo.area
+}
+
+func (s *Shape) CenterOfGravity() Vector {
+	return s.massInfo.cog
+}
+
 func (s *Shape) HashId() HashValue {
 	return s.hashid
 }
