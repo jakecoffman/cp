@@ -1,5 +1,6 @@
 # cp
 [![GoDoc](https://godoc.org/github.com/jakecoffman/cp?status.svg)](http://godoc.org/github.com/jakecoffman/cp)
+[![Sourcegraph](https://sourcegraph.com/github.com/jakecoffman/cp/-/badge.svg)](https://sourcegraph.com/github.com/jakecoffman/cp?badge)
 
 [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) ported to Go
 
