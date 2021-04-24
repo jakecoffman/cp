@@ -29,11 +29,11 @@ func (pl *PolyLine) Enqueue(v Vector) *PolyLine {
 }
 
 func (pl *PolyLine) IsClosed() bool {
-	return (len(pl.Verts) > 1 && pl.Verts[0].Equal(pl.Verts[len(pl.Verts)-1]))
+	return len(pl.Verts) > 1 && pl.Verts[0].Equal(pl.Verts[len(pl.Verts)-1])
 }
 
 func (pl *PolyLine) IsShort(count, start, end int, min float64) bool {
-	length := float64(0.0)
+	var length float64
 	for i := start; i != end; Next(i, count) {
 		length += pl.Verts[i].Distance(pl.Verts[Next(i, count)])
 		if length > min {
@@ -81,7 +81,7 @@ func DouglasPeucker(verts []Vector, reduced *PolyLine, length, start, end int, m
 	}
 
 	// Find the maximal vertex to split and recurse on
-	max := float64(0.0)
+	var max float64
 	maxi := start
 
 	n := b.Sub(a).Perp().Normalize()
