@@ -14,7 +14,7 @@ type Space struct {
 	gravity Vector
 	damping float64
 
-	idleSpeedThreshold float64
+	IdleSpeedThreshold float64
 	SleepTimeThreshold float64
 
 	collisionSlop        float64
@@ -78,7 +78,7 @@ func NewSpace() *Space {
 		sleepingComponents:   []*Body{},
 		rousedBodies:         []*Body{},
 		SleepTimeThreshold:   math.MaxFloat64,
-		idleSpeedThreshold:   0.0,
+		IdleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
 		cachedArbiters:       NewHashSetArbiter(arbiterSetEql),
 		pooledArbiters:       make(chan *Arbiter, POOLED_BUFFER_SIZE),
@@ -537,7 +537,7 @@ func (space *Space) ProcessComponents(dt float64) {
 
 	// calculate the kinetic energy of all the bodies
 	if sleep {
-		dv := space.idleSpeedThreshold
+		dv := space.IdleSpeedThreshold
 		var dvsq float64
 		if dv != 0 {
 			dvsq = dv * dv
