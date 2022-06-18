@@ -58,14 +58,14 @@ func (spring *DampedSpring) PreStep(dt float64) {
 
 	fSpring := spring.SpringForceFunc(spring, dist)
 	spring.jAcc = fSpring * dt
-	apply_impulses(a, b, spring.r1, spring.r2, spring.n.Mult(spring.jAcc))
+	applyImpulses(a, b, spring.r1, spring.r2, spring.n.Mult(spring.jAcc))
 }
 
-func (spring *DampedSpring) ApplyCachedImpulse(dt_coef float64) {
+func (spring *DampedSpring) ApplyCachedImpulse(_ float64) {
 	// nothing to do here
 }
 
-func (spring *DampedSpring) ApplyImpulse(dt float64) {
+func (spring *DampedSpring) ApplyImpulse(_ float64) {
 	a := spring.a
 	b := spring.b
 
@@ -80,7 +80,7 @@ func (spring *DampedSpring) ApplyImpulse(dt float64) {
 
 	jDamp := vDamp * spring.nMass
 	spring.jAcc += jDamp
-	apply_impulses(a, b, spring.r1, spring.r2, spring.n.Mult(jDamp))
+	applyImpulses(a, b, spring.r1, spring.r2, spring.n.Mult(jDamp))
 }
 
 func (spring *DampedSpring) GetImpulse() float64 {

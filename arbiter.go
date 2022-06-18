@@ -2,17 +2,17 @@ package cp
 
 import "math"
 
-var WILDCARD_COLLISION_TYPE CollisionType = ^CollisionType(0)
+var wildcardCollisionType = ^CollisionType(0)
 
 type Arbiter struct {
-	e, u       float64
-	surface_vr Vector
+	e, u      float64
+	surfaceVr Vector
 
 	UserData interface{}
 
 	a, b               *Shape
-	body_a, body_b     *Body
-	thread_a, thread_b ArbiterThread
+	bodyA, bodyB     *Body
+	threadA, threadB ArbiterThread
 
 	count int
 	// a slice onto the current buffer array of contacts
@@ -36,20 +36,20 @@ func (arbiter *Arbiter) Init(a, b *Shape) *Arbiter {
 
 	arbiter.e = 0
 	arbiter.u = 0
-	arbiter.surface_vr = Vector{}
+	arbiter.surfaceVr = Vector{}
 
 	arbiter.count = 0
 	arbiter.contacts = nil
 
 	arbiter.a = a
-	arbiter.body_a = a.body
+	arbiter.bodyA = a.body
 	arbiter.b = b
-	arbiter.body_b = b.body
+	arbiter.bodyB = b.body
 
-	arbiter.thread_a.next = nil
-	arbiter.thread_b.next = nil
-	arbiter.thread_a.prev = nil
-	arbiter.thread_b.prev = nil
+	arbiter.threadA.next = nil
+	arbiter.threadB.next = nil
+	arbiter.threadA.prev = nil
+	arbiter.threadB.prev = nil
 
 	arbiter.stamp = 0
 	arbiter.state = CP_ARBITER_STATE_FIRST_COLLISION
@@ -62,17 +62,17 @@ type ArbiterThread struct {
 	next, prev *Arbiter
 }
 
-func (node *Arbiter) Next(body *Body) *Arbiter {
-	if node.body_a == body {
-		return node.thread_a.next
+func (arbiter *Arbiter) Next(body *Body) *Arbiter {
+	if arbiter.bodyA == body {
+		return arbiter.threadA.next
 	} else {
-		return node.thread_b.next
+		return arbiter.threadB.next
 	}
 }
 
 func (arbiter *Arbiter) Unthread() {
-	arbiter.unthreadHelper(arbiter.body_a)
-	arbiter.unthreadHelper(arbiter.body_b)
+	arbiter.unthreadHelper(arbiter.bodyA)
+	arbiter.unthreadHelper(arbiter.bodyB)
 }
 
 func (arbiter *Arbiter) unthreadHelper(body *Body) {
@@ -98,14 +98,14 @@ func (arbiter *Arbiter) unthreadHelper(body *Body) {
 }
 
 func (arbiter *Arbiter) ThreadForBody(body *Body) *ArbiterThread {
-	if arbiter.body_a == body {
-		return &arbiter.thread_a
+	if arbiter.bodyA == body {
+		return &arbiter.threadA
 	} else {
-		return &arbiter.thread_b
+		return &arbiter.threadB
 	}
 }
 
-func (arbiter *Arbiter) ApplyCachedImpulse(dt_coef float64) {
+func (arbiter *Arbiter) ApplyCachedImpulse(dtCoef float64) {
 	if arbiter.IsFirstContact() {
 		return
 	}
@@ -113,15 +113,15 @@ func (arbiter *Arbiter) ApplyCachedImpulse(dt_coef float64) {
 	for i := 0; i < arbiter.count; i++ {
 		contact := arbiter.contacts[i]
 		j := arbiter.n.Rotate(Vector{contact.jnAcc, contact.jtAcc})
-		apply_impulses(arbiter.body_a, arbiter.body_b, contact.r1, contact.r2, j.Mult(dt_coef))
+		applyImpulses(arbiter.bodyA, arbiter.bodyB, contact.r1, contact.r2, j.Mult(dtCoef))
 	}
 }
 
 func (arbiter *Arbiter) ApplyImpulse() {
-	a := arbiter.body_a
-	b := arbiter.body_b
+	a := arbiter.bodyA
+	b := arbiter.bodyB
 	n := arbiter.n
-	surface_vr := arbiter.surface_vr
+	surfaceVr := arbiter.surfaceVr
 	friction := arbiter.u
 
 	for i := 0; i < arbiter.count; i++ {
@@ -132,7 +132,7 @@ func (arbiter *Arbiter) ApplyImpulse() {
 
 		vb1 := a.v_bias.Add(r1.Perp().Mult(a.w_bias))
 		vb2 := b.v_bias.Add(r2.Perp().Mult(b.w_bias))
-		vr := relative_velocity(a, b, r1, r2).Add(surface_vr)
+		vr := relativeVelocity(a, b, r1, r2).Add(surfaceVr)
 
 		vbn := vb2.Sub(vb1).Dot(n)
 		vrn := vr.Dot(n)
@@ -151,8 +151,8 @@ func (arbiter *Arbiter) ApplyImpulse() {
 		jtOld := con.jtAcc
 		con.jtAcc = Clamp(jtOld+jt, -jtMax, jtMax)
 
-		apply_bias_impulses(a, b, r1, r2, n.Mult(con.jBias-jbnOld))
-		apply_impulses(a, b, r1, r2, n.Rotate(Vector{con.jnAcc - jnOld, con.jtAcc - jtOld}))
+		applyBiasImpulses(a, b, r1, r2, n.Mult(con.jBias-jbnOld))
+		applyImpulses(a, b, r1, r2, n.Rotate(Vector{con.jnAcc - jnOld, con.jtAcc - jtOld}))
 	}
 }
 
@@ -160,14 +160,14 @@ func (arbiter *Arbiter) IsFirstContact() bool {
 	return arbiter.state == CP_ARBITER_STATE_FIRST_COLLISION
 }
 
-func (arb *Arbiter) PreStep(dt, slop, bias float64) {
-	a := arb.body_a
-	b := arb.body_b
-	n := arb.n
+func (arbiter *Arbiter) PreStep(dt, slop, bias float64) {
+	a := arbiter.bodyA
+	b := arbiter.bodyB
+	n := arbiter.n
 	bodyDelta := b.p.Sub(a.p)
 
-	for i := 0; i < arb.count; i++ {
-		con := &arb.contacts[i]
+	for i := 0; i < arbiter.count; i++ {
+		con := &arbiter.contacts[i]
 
 		// Calculate the mass normal and mass tangent.
 		con.nMass = 1.0 / k_scalar(a, b, con.r1, con.r2, n)
@@ -179,19 +179,19 @@ func (arb *Arbiter) PreStep(dt, slop, bias float64) {
 		con.jBias = 0.0
 
 		// Calculate the target bounce velocity.
-		con.bounce = normal_relative_velocity(a, b, con.r1, con.r2, n) * arb.e
+		con.bounce = normal_relative_velocity(a, b, con.r1, con.r2, n) * arbiter.e
 	}
 }
 
-func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
+func (arbiter *Arbiter) Update(info *CollisionInfo, space *Space) {
 	a := info.a
 	b := info.b
 
 	// For collisions between two similar primitive types, the order could have been swapped since the last frame.
-	arb.a = a
-	arb.body_a = a.body
-	arb.b = b
-	arb.body_b = b.body
+	arbiter.a = a
+	arbiter.bodyA = a.body
+	arbiter.b = b
+	arbiter.bodyB = b.body
 
 	// Iterate over the possible pairs to look for hash value matches.
 	for i := 0; i < info.count; i++ {
@@ -206,8 +206,8 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 		con.jnAcc = 0
 		con.jtAcc = 0
 
-		for j := 0; j < arb.count; j++ {
-			old := arb.contacts[j]
+		for j := 0; j < arbiter.count; j++ {
+			old := arbiter.contacts[j]
 
 			// This could trigger false positives, but is fairly unlikely nor serious if it does.
 			if con.hash == old.hash {
@@ -218,98 +218,98 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 		}
 	}
 
-	arb.contacts = info.arr[:info.count]
-	arb.count = info.count
-	arb.n = info.n
+	arbiter.contacts = info.arr[:info.count]
+	arbiter.count = info.count
+	arbiter.n = info.n
 
-	arb.e = a.e * b.e
-	arb.u = a.u * b.u
+	arbiter.e = a.e * b.e
+	arbiter.u = a.u * b.u
 
 	surfaceVr := b.surfaceV.Sub(a.surfaceV)
-	arb.surface_vr = surfaceVr.Sub(info.n.Mult(surfaceVr.Dot(info.n)))
+	arbiter.surfaceVr = surfaceVr.Sub(info.n.Mult(surfaceVr.Dot(info.n)))
 
 	typeA := info.a.collisionType
 	typeB := info.b.collisionType
 	handler := space.LookupHandler(typeA, typeB, space.defaultHandler)
-	arb.handler = handler
+	arbiter.handler = handler
 
 	// Check if the types match, but don't swap for a default handler which use the wildcard for type A.
-	swapped := typeA != handler.TypeA && handler.TypeA != WILDCARD_COLLISION_TYPE
-	arb.swapped = swapped
+	swapped := typeA != handler.TypeA && handler.TypeA != wildcardCollisionType
+	arbiter.swapped = swapped
 
 	if handler != space.defaultHandler || space.usesWildcards {
 		// The order of the main handler swaps the wildcard handlers too. Uffda.
 		if swapped {
-			arb.handlerA = space.LookupHandler(typeB, WILDCARD_COLLISION_TYPE, &CollisionHandlerDoNothing)
-			arb.handlerB = space.LookupHandler(typeA, WILDCARD_COLLISION_TYPE, &CollisionHandlerDoNothing)
+			arbiter.handlerA = space.LookupHandler(typeB, wildcardCollisionType, &CollisionHandlerDoNothing)
+			arbiter.handlerB = space.LookupHandler(typeA, wildcardCollisionType, &CollisionHandlerDoNothing)
 		} else {
-			arb.handlerA = space.LookupHandler(typeA, WILDCARD_COLLISION_TYPE, &CollisionHandlerDoNothing)
-			arb.handlerB = space.LookupHandler(typeB, WILDCARD_COLLISION_TYPE, &CollisionHandlerDoNothing)
+			arbiter.handlerA = space.LookupHandler(typeA, wildcardCollisionType, &CollisionHandlerDoNothing)
+			arbiter.handlerB = space.LookupHandler(typeB, wildcardCollisionType, &CollisionHandlerDoNothing)
 		}
 	}
 
 	// mark it as new if it's been cached
-	if arb.state == CP_ARBITER_STATE_CACHED {
-		arb.state = CP_ARBITER_STATE_FIRST_COLLISION
+	if arbiter.state == CP_ARBITER_STATE_CACHED {
+		arbiter.state = CP_ARBITER_STATE_FIRST_COLLISION
 	}
 }
 
-func (arb *Arbiter) Ignore() bool {
-	arb.state = CP_ARBITER_STATE_IGNORE
+func (arbiter *Arbiter) Ignore() bool {
+	arbiter.state = CP_ARBITER_STATE_IGNORE
 	return false
 }
 
-func (arb *Arbiter) CallWildcardBeginA(space *Space) bool {
-	handler := arb.handlerA
-	return handler.BeginFunc(arb, space, handler.UserData)
+func (arbiter *Arbiter) CallWildcardBeginA(space *Space) bool {
+	handler := arbiter.handlerA
+	return handler.BeginFunc(arbiter, space, handler.UserData)
 }
 
-func (arb *Arbiter) CallWildcardBeginB(space *Space) bool {
-	handler := arb.handlerB
-	arb.swapped = !arb.swapped
-	retVal := handler.BeginFunc(arb, space, handler.UserData)
-	arb.swapped = !arb.swapped
+func (arbiter *Arbiter) CallWildcardBeginB(space *Space) bool {
+	handler := arbiter.handlerB
+	arbiter.swapped = !arbiter.swapped
+	retVal := handler.BeginFunc(arbiter, space, handler.UserData)
+	arbiter.swapped = !arbiter.swapped
 	return retVal
 }
 
-func (arb *Arbiter) CallWildcardPreSolveA(space *Space) bool {
-	handler := arb.handlerA
-	return handler.PreSolveFunc(arb, space, handler.UserData)
+func (arbiter *Arbiter) CallWildcardPreSolveA(space *Space) bool {
+	handler := arbiter.handlerA
+	return handler.PreSolveFunc(arbiter, space, handler.UserData)
 }
 
-func (arb *Arbiter) CallWildcardPreSolveB(space *Space) bool {
-	handler := arb.handlerB
-	arb.swapped = !arb.swapped
-	retval := handler.PreSolveFunc(arb, space, handler.UserData)
-	arb.swapped = !arb.swapped
+func (arbiter *Arbiter) CallWildcardPreSolveB(space *Space) bool {
+	handler := arbiter.handlerB
+	arbiter.swapped = !arbiter.swapped
+	retval := handler.PreSolveFunc(arbiter, space, handler.UserData)
+	arbiter.swapped = !arbiter.swapped
 	return retval
 }
 
-func (arb *Arbiter) CallWildcardPostSolveA(space *Space) {
-	handler := arb.handlerA
-	handler.PostSolveFunc(arb, space, handler.UserData)
+func (arbiter *Arbiter) CallWildcardPostSolveA(space *Space) {
+	handler := arbiter.handlerA
+	handler.PostSolveFunc(arbiter, space, handler.UserData)
 }
 
-func (arb *Arbiter) CallWildcardPostSolveB(space *Space) {
-	handler := arb.handlerB
-	arb.swapped = !arb.swapped
-	handler.PostSolveFunc(arb, space, handler.UserData)
-	arb.swapped = !arb.swapped
+func (arbiter *Arbiter) CallWildcardPostSolveB(space *Space) {
+	handler := arbiter.handlerB
+	arbiter.swapped = !arbiter.swapped
+	handler.PostSolveFunc(arbiter, space, handler.UserData)
+	arbiter.swapped = !arbiter.swapped
 }
 
-func (arb *Arbiter) CallWildcardSeparateA(space *Space) {
-	handler := arb.handlerA
-	handler.SeparateFunc(arb, space, handler.UserData)
+func (arbiter *Arbiter) CallWildcardSeparateA(space *Space) {
+	handler := arbiter.handlerA
+	handler.SeparateFunc(arbiter, space, handler.UserData)
 }
 
-func (arb *Arbiter) CallWildcardSeparateB(space *Space) {
-	handler := arb.handlerB
-	arb.swapped = !arb.swapped
-	handler.SeparateFunc(arb, space, handler.UserData)
-	arb.swapped = !arb.swapped
+func (arbiter *Arbiter) CallWildcardSeparateB(space *Space) {
+	handler := arbiter.handlerB
+	arbiter.swapped = !arbiter.swapped
+	handler.SeparateFunc(arbiter, space, handler.UserData)
+	arbiter.swapped = !arbiter.swapped
 }
 
-func apply_impulses(a, b *Body, r1, r2, j Vector) {
+func applyImpulses(a, b *Body, r1, r2, j Vector) {
 	b.v.X += j.X * b.m_inv
 	b.v.Y += j.Y * b.m_inv
 	b.w += b.i_inv * (r2.X*j.Y - r2.Y*j.X)
@@ -321,13 +321,13 @@ func apply_impulses(a, b *Body, r1, r2, j Vector) {
 	a.w += a.i_inv * (r1.X*j.Y - r1.Y*j.X)
 }
 
-func apply_impulse(body *Body, j, r Vector) {
+func applyImpulse(body *Body, j, r Vector) {
 	body.v.X += j.X * body.m_inv
 	body.v.Y += j.Y * body.m_inv
 	body.w += body.i_inv * r.Cross(j)
 }
 
-func apply_bias_impulses(a, b *Body, r1, r2, j Vector) {
+func applyBiasImpulses(a, b *Body, r1, r2, j Vector) {
 	b.v_bias.X += j.X * b.m_inv
 	b.v_bias.Y += j.Y * b.m_inv
 	b.w_bias += b.i_inv * (r2.X*j.Y - r2.Y*j.X)
@@ -339,13 +339,13 @@ func apply_bias_impulses(a, b *Body, r1, r2, j Vector) {
 	a.w_bias += a.i_inv * (r1.X*j.Y - r1.Y*j.X)
 }
 
-func relative_velocity(a, b *Body, r1, r2 Vector) Vector {
+func relativeVelocity(a, b *Body, r1, r2 Vector) Vector {
 	return r2.Perp().Mult(b.w).Add(b.v).Sub(r1.Perp().Mult(a.w).Add(a.v))
 }
 
 var CollisionHandlerDoNothing = CollisionHandler{
-	WILDCARD_COLLISION_TYPE,
-	WILDCARD_COLLISION_TYPE,
+	wildcardCollisionType,
+	wildcardCollisionType,
 	AlwaysCollide,
 	AlwaysCollide,
 	DoNothing,
@@ -354,8 +354,8 @@ var CollisionHandlerDoNothing = CollisionHandler{
 }
 
 var CollisionHandlerDefault = CollisionHandler{
-	WILDCARD_COLLISION_TYPE,
-	WILDCARD_COLLISION_TYPE,
+	wildcardCollisionType,
+	wildcardCollisionType,
 	DefaultBegin,
 	DefaultPreSolve,
 	DefaultPostSolve,
@@ -389,46 +389,46 @@ func DefaultSeparate(arb *Arbiter, space *Space, _ interface{}) {
 	arb.CallWildcardSeparateB(space)
 }
 
-func (arb *Arbiter) TotalImpulse() Vector {
+func (arbiter *Arbiter) TotalImpulse() Vector {
 	var sum Vector
 
-	count := arb.Count()
+	count := arbiter.Count()
 	for i := 0; i < count; i++ {
-		con := arb.contacts[i]
-		sum = sum.Add(arb.n.Rotate(Vector{con.jnAcc, con.jtAcc}))
+		con := arbiter.contacts[i]
+		sum = sum.Add(arbiter.n.Rotate(Vector{con.jnAcc, con.jtAcc}))
 	}
 
-	if arb.swapped {
+	if arbiter.swapped {
 		return sum
 	}
 	return sum.Neg()
 }
 
-func (arb *Arbiter) Count() int {
-	if arb.state < CP_ARBITER_STATE_CACHED {
-		return int(arb.count)
+func (arbiter *Arbiter) Count() int {
+	if arbiter.state < CP_ARBITER_STATE_CACHED {
+		return arbiter.count
 	}
 	return 0
 }
 
-func (arb *Arbiter) Shapes() (*Shape, *Shape) {
-	if arb.swapped {
-		return arb.b, arb.a
+func (arbiter *Arbiter) Shapes() (*Shape, *Shape) {
+	if arbiter.swapped {
+		return arbiter.b, arbiter.a
 	} else {
-		return arb.a, arb.b
+		return arbiter.a, arbiter.b
 	}
 }
 
-func (arb *Arbiter) Bodies() (*Body, *Body) {
-	shapeA, shapeB := arb.Shapes()
+func (arbiter *Arbiter) Bodies() (*Body, *Body) {
+	shapeA, shapeB := arbiter.Shapes()
 	return shapeA.body, shapeB.body
 }
 
-func (arb *Arbiter) Normal() Vector {
-	if arb.swapped {
-		return arb.n.Mult(-1)
+func (arbiter *Arbiter) Normal() Vector {
+	if arbiter.swapped {
+		return arbiter.n.Mult(-1)
 	} else {
-		return arb.n
+		return arbiter.n
 	}
 }
 
@@ -436,7 +436,7 @@ type ContactPointSet struct {
 	Count  int
 	Normal Vector
 
-	Points [MAX_CONTACTS_PER_ARBITER]struct {
+	Points [maxContactsPerArbiter]struct {
 		/// The position of the contact on the surface of each shape.
 		PointA, PointB Vector
 		/// Penetration distance of the two shapes. Overlapping means it will be negative.
@@ -445,12 +445,12 @@ type ContactPointSet struct {
 	}
 }
 
-func (arb *Arbiter) ContactPointSet() ContactPointSet {
+func (arbiter *Arbiter) ContactPointSet() ContactPointSet {
 	var set ContactPointSet
-	set.Count = arb.Count()
+	set.Count = arbiter.Count()
 
-	swapped := arb.swapped
-	n := arb.n
+	swapped := arbiter.swapped
+	n := arbiter.n
 	if swapped {
 		set.Normal = n.Neg()
 	} else {
@@ -459,8 +459,8 @@ func (arb *Arbiter) ContactPointSet() ContactPointSet {
 
 	for i := 0; i < set.Count; i++ {
 		// Contact points are relative to body CoGs;
-		p1 := arb.body_a.p.Add(arb.contacts[i].r1)
-		p2 := arb.body_b.p.Add(arb.contacts[i].r2)
+		p1 := arbiter.bodyA.p.Add(arbiter.contacts[i].r1)
+		p2 := arbiter.bodyB.p.Add(arbiter.contacts[i].r2)
 
 		if swapped {
 			set.Points[i].PointA = p2
@@ -476,15 +476,15 @@ func (arb *Arbiter) ContactPointSet() ContactPointSet {
 	return set
 }
 
-func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
+func (arbiter *Arbiter) SetContactPointSet(set *ContactPointSet) {
 	count := set.Count
-	assert(count == int(arb.count))
+	assert(count == arbiter.count)
 
-	swapped := arb.swapped
+	swapped := arbiter.swapped
 	if swapped {
-		arb.n = set.Normal.Neg()
+		arbiter.n = set.Normal.Neg()
 	} else {
-		arb.n = set.Normal
+		arbiter.n = set.Normal
 	}
 
 	for i := 0; i < count; i++ {
@@ -492,11 +492,11 @@ func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
 		p2 := set.Points[i].PointB
 
 		if swapped {
-			arb.contacts[i].r1 = p2.Sub(arb.body_a.p)
-			arb.contacts[i].r2 = p1.Sub(arb.body_b.p)
+			arbiter.contacts[i].r1 = p2.Sub(arbiter.bodyA.p)
+			arbiter.contacts[i].r2 = p1.Sub(arbiter.bodyB.p)
 		} else {
-			arb.contacts[i].r1 = p1.Sub(arb.body_a.p)
-			arb.contacts[i].r2 = p2.Sub(arb.body_b.p)
+			arbiter.contacts[i].r1 = p1.Sub(arbiter.bodyA.p)
+			arbiter.contacts[i].r2 = p2.Sub(arbiter.bodyB.p)
 		}
 	}
 }

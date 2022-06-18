@@ -60,7 +60,7 @@ func (joint *SlideJoint) ApplyCachedImpulse(dt_coef float64) {
 	b := joint.b
 
 	j := joint.n.Mult(joint.jnAcc * dt_coef)
-	apply_impulses(a, b, joint.r1, joint.r2, j)
+	applyImpulses(a, b, joint.r1, joint.r2, j)
 }
 
 func (joint *SlideJoint) ApplyImpulse(dt float64) {
@@ -74,7 +74,7 @@ func (joint *SlideJoint) ApplyImpulse(dt float64) {
 	r1 := joint.r1
 	r2 := joint.r2
 
-	vr := relative_velocity(a, b, r1, r2)
+	vr := relativeVelocity(a, b, r1, r2)
 	vrn := vr.Dot(n)
 
 	jn := (joint.bias - vrn) * joint.nMass
@@ -82,7 +82,7 @@ func (joint *SlideJoint) ApplyImpulse(dt float64) {
 	joint.jnAcc = Clamp(jnOld+jn, -joint.maxForce*dt, 0)
 	jn = joint.jnAcc - jnOld
 
-	apply_impulses(a, b, joint.r1, joint.r2, n.Mult(jn))
+	applyImpulses(a, b, joint.r1, joint.r2, n.Mult(jn))
 }
 
 func (joint *SlideJoint) GetImpulse() float64 {

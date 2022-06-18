@@ -123,7 +123,7 @@ type MarkContext struct {
 	data       interface{}
 }
 
-func VoidQueryFunc(obj1 interface{}, obj2 *Shape, collisionId uint32, data interface{}) uint32 {
+func VoidQueryFunc(_ interface{}, _ *Shape, collisionId uint32, _ interface{}) uint32 {
 	return collisionId
 }
 
@@ -143,26 +143,26 @@ func (tree *BBTree) LeafAddPairs(leaf *Node) {
 	}
 }
 
-func (leaf *Node) MarkLeaf(context *MarkContext) {
+func (node *Node) MarkLeaf(context *MarkContext) {
 	tree := context.tree
-	if leaf.stamp == tree.GetMasterTree().stamp {
+	if node.stamp == tree.GetMasterTree().stamp {
 		staticRoot := context.staticRoot
 		if staticRoot != nil {
-			staticRoot.MarkLeafQuery(leaf, false, context)
+			staticRoot.MarkLeafQuery(node, false, context)
 		}
 
-		for node := leaf; node.parent != nil; node = node.parent {
+		for node := node; node.parent != nil; node = node.parent {
 			if node == node.parent.a {
-				node.parent.b.MarkLeafQuery(leaf, true, context)
+				node.parent.b.MarkLeafQuery(node, true, context)
 			} else {
-				node.parent.a.MarkLeafQuery(leaf, false, context)
+				node.parent.a.MarkLeafQuery(node, false, context)
 			}
 		}
 	} else {
-		pair := leaf.pairs
+		pair := node.pairs
 		for pair != nil {
-			if leaf == pair.b.leaf {
-				pair.collisionId = context.f(pair.a.leaf.obj, leaf.obj, pair.collisionId, context.data)
+			if node == pair.b.leaf {
+				pair.collisionId = context.f(pair.a.leaf.obj, node.obj, pair.collisionId, context.data)
 				pair = pair.b.next
 			} else {
 				pair = pair.a.next
@@ -170,20 +170,20 @@ func (leaf *Node) MarkLeaf(context *MarkContext) {
 		}
 	}
 }
-func (subtree *Node) MarkLeafQuery(leaf *Node, left bool, context *MarkContext) {
-	if leaf.bb.Intersects(subtree.bb) {
-		if subtree.IsLeaf() {
+func (node *Node) MarkLeafQuery(leaf *Node, left bool, context *MarkContext) {
+	if leaf.bb.Intersects(node.bb) {
+		if node.IsLeaf() {
 			if left {
-				context.tree.PairInsert(leaf, subtree)
+				context.tree.PairInsert(leaf, node)
 			} else {
-				if subtree.stamp < leaf.stamp {
-					context.tree.PairInsert(subtree, leaf)
+				if node.stamp < leaf.stamp {
+					context.tree.PairInsert(node, leaf)
 				}
-				context.f(leaf.obj, subtree.obj, 0, context.data)
+				context.f(leaf.obj, node.obj, 0, context.data)
 			}
 		} else {
-			subtree.a.MarkLeafQuery(leaf, left, context)
-			subtree.b.MarkLeafQuery(leaf, left, context)
+			node.a.MarkLeafQuery(leaf, left, context)
+			node.b.MarkLeafQuery(leaf, left, context)
 		}
 	}
 }
@@ -215,19 +215,19 @@ func (tree *BBTree) PairInsert(a *Node, b *Node) {
 	}
 }
 
-func (subtree *BBTree) PairFromPool() *Pair {
-	tree := subtree.GetMasterTree()
+func (tree *BBTree) PairFromPool() *Pair {
+	masterTree := tree.GetMasterTree()
 
-	pair := tree.pooledPairs
+	pair := masterTree.pooledPairs
 
 	if pair != nil {
-		tree.pooledPairs = pair.a.next
+		masterTree.pooledPairs = pair.a.next
 		return pair
 	}
 
 	// Pool is exhausted make more
 	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
-		tree.RecyclePair(&Pair{})
+		masterTree.RecyclePair(&Pair{})
 	}
 
 	return &Pair{}
@@ -247,15 +247,15 @@ func (tree *BBTree) SubtreeInsert(subtree *Node, leaf *Node) *Node {
 		return tree.NewNode(leaf, subtree)
 	}
 
-	cost_a := subtree.b.bb.Area() + subtree.a.bb.MergedArea(leaf.bb)
-	cost_b := subtree.a.bb.Area() + subtree.b.bb.MergedArea(leaf.bb)
+	costA := subtree.b.bb.Area() + subtree.a.bb.MergedArea(leaf.bb)
+	costB := subtree.a.bb.Area() + subtree.b.bb.MergedArea(leaf.bb)
 
-	if cost_a == cost_b {
-		cost_a = subtree.a.bb.Proximity(leaf.bb)
-		cost_b = subtree.b.bb.Proximity(leaf.bb)
+	if costA == costB {
+		costA = subtree.a.bb.Proximity(leaf.bb)
+		costB = subtree.b.bb.Proximity(leaf.bb)
 	}
 
-	if cost_b < cost_a {
+	if costB < costA {
 		NodeSetB(subtree, tree.SubtreeInsert(subtree.b, leaf))
 	} else {
 		NodeSetA(subtree, tree.SubtreeInsert(subtree.a, leaf))
@@ -319,7 +319,7 @@ func (tree *BBTree) Reindex() {
 	panic("implement me")
 }
 
-func (tree *BBTree) ReindexObject(obj *Shape, hashId HashValue) {
+func (tree *BBTree) ReindexObject(_ *Shape, _ HashValue) {
 	panic("implement me")
 }
 
@@ -349,12 +349,12 @@ func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	tree.IncrementStamp()
 }
 
-func (subtree *Node) MarkSubtree(context *MarkContext) {
-	if subtree.IsLeaf() {
-		subtree.MarkLeaf(context)
+func (node *Node) MarkSubtree(context *MarkContext) {
+	if node.IsLeaf() {
+		node.MarkLeaf(context)
 	} else {
-		subtree.a.MarkSubtree(context)
-		subtree.b.MarkSubtree(context)
+		node.a.MarkSubtree(context)
+		node.b.MarkSubtree(context)
 	}
 }
 
@@ -400,48 +400,48 @@ func (tree *BBTree) Query(obj interface{}, bb BB, f SpatialIndexQuery, data inte
 	}
 }
 
-func (subtree *Node) SubtreeQuery(obj interface{}, bb BB, query SpatialIndexQuery, data interface{}) {
-	if subtree.bb.Intersects(bb) {
-		if subtree.IsLeaf() {
-			query(obj, subtree.obj, 0, data)
+func (node *Node) SubtreeQuery(obj interface{}, bb BB, query SpatialIndexQuery, data interface{}) {
+	if node.bb.Intersects(bb) {
+		if node.IsLeaf() {
+			query(obj, node.obj, 0, data)
 		} else {
-			subtree.a.SubtreeQuery(obj, bb, query, data)
-			subtree.b.SubtreeQuery(obj, bb, query, data)
+			node.a.SubtreeQuery(obj, bb, query, data)
+			node.b.SubtreeQuery(obj, bb, query, data)
 		}
 	}
 }
 
-func (subtree *Node) SubtreeSegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) float64 {
-	if subtree.IsLeaf() {
-		return f(obj, subtree.obj, data)
+func (node *Node) SubtreeSegmentQuery(obj interface{}, a, b Vector, tExit float64, f SpatialIndexSegmentQuery, data interface{}) float64 {
+	if node.IsLeaf() {
+		return f(obj, node.obj, data)
 	}
 
-	tA := subtree.a.bb.SegmentQuery(a, b)
-	tB := subtree.b.bb.SegmentQuery(a, b)
+	tA := node.a.bb.SegmentQuery(a, b)
+	tB := node.b.bb.SegmentQuery(a, b)
 
 	if tA < tB {
-		if tA < t_exit {
-			t_exit = math.Min(t_exit, subtree.a.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		if tA < tExit {
+			tExit = math.Min(tExit, node.a.SubtreeSegmentQuery(obj, a, b, tExit, f, data))
 		}
-		if tB < t_exit {
-			t_exit = math.Min(t_exit, subtree.b.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		if tB < tExit {
+			tExit = math.Min(tExit, node.b.SubtreeSegmentQuery(obj, a, b, tExit, f, data))
 		}
 	} else {
-		if tB < t_exit {
-			t_exit = math.Min(t_exit, subtree.b.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		if tB < tExit {
+			tExit = math.Min(tExit, node.b.SubtreeSegmentQuery(obj, a, b, tExit, f, data))
 		}
-		if tA < t_exit {
-			t_exit = math.Min(t_exit, subtree.a.SubtreeSegmentQuery(obj, a, b, t_exit, f, data))
+		if tA < tExit {
+			tExit = math.Min(tExit, node.a.SubtreeSegmentQuery(obj, a, b, tExit, f, data))
 		}
 	}
 
-	return t_exit
+	return tExit
 }
 
-func (tree *BBTree) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+func (tree *BBTree) SegmentQuery(obj interface{}, a, b Vector, tExit float64, f SpatialIndexSegmentQuery, data interface{}) {
 	root := tree.root
 	if root != nil {
-		root.SubtreeSegmentQuery(obj, a, b, t_exit, f, data)
+		root.SubtreeSegmentQuery(obj, a, b, tExit, f, data)
 	}
 }
 

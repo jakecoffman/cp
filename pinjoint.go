@@ -62,7 +62,7 @@ func (joint *PinJoint) PreStep(dt float64) {
 
 func (joint *PinJoint) ApplyCachedImpulse(dt_coef float64) {
 	j := joint.n.Mult(joint.jnAcc*dt_coef)
-	apply_impulses(joint.a, joint.b, joint.r1, joint.r2, j)
+	applyImpulses(joint.a, joint.b, joint.r1, joint.r2, j)
 }
 
 func (joint *PinJoint) ApplyImpulse(dt float64) {
@@ -79,7 +79,7 @@ func (joint *PinJoint) ApplyImpulse(dt float64) {
 	joint.jnAcc = Clamp(jnOld+jn, -jnMax, jnMax)
 	jn = joint.jnAcc - jnOld
 
-	apply_impulses(a, b, joint.r1, joint.r2, n.Mult(jn))
+	applyImpulses(a, b, joint.r1, joint.r2, n.Mult(jn))
 }
 
 func (joint *PinJoint) GetImpulse() float64 {

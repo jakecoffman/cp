@@ -56,7 +56,7 @@ func (joint *PivotJoint) PreStep(dt float64) {
 }
 
 func (joint *PivotJoint) ApplyCachedImpulse(dt_coef float64) {
-	apply_impulses(joint.a, joint.b, joint.r1, joint.r2, joint.jAcc.Mult(dt_coef))
+	applyImpulses(joint.a, joint.b, joint.r1, joint.r2, joint.jAcc.Mult(dt_coef))
 }
 
 func (joint *PivotJoint) ApplyImpulse(dt float64) {
@@ -67,7 +67,7 @@ func (joint *PivotJoint) ApplyImpulse(dt float64) {
 	r2 := joint.r2
 
 	// compute relative velocity
-	vr := relative_velocity(a, b, r1, r2)
+	vr := relativeVelocity(a, b, r1, r2)
 
 	// compute normal impulse
 	j := joint.k.Transform(joint.bias.Sub(vr))
@@ -75,7 +75,7 @@ func (joint *PivotJoint) ApplyImpulse(dt float64) {
 	joint.jAcc = joint.jAcc.Add(j).Clamp(joint.Constraint.maxForce * dt)
 	j = joint.jAcc.Sub(jOld)
 
-	apply_impulses(a, b, joint.r1, joint.r2, j)
+	applyImpulses(a, b, joint.r1, joint.r2, j)
 }
 
 func (joint *PivotJoint) GetImpulse() float64 {

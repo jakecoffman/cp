@@ -97,7 +97,7 @@ type CollisionInfo struct {
 }
 
 func (info *CollisionInfo) PushContact(p1, p2 Vector, hash HashValue) {
-	assert(info.count < MAX_CONTACTS_PER_ARBITER, "Internal error: Tried to push too many contacts.")
+	assert(info.count < maxContactsPerArbiter, "Internal error: Tried to push too many contacts.")
 
 	con := &info.arr[info.count]
 	con.r1 = p1
@@ -263,7 +263,7 @@ func k_scalar(a, b *Body, r1, r2, n Vector) float64 {
 }
 
 func normal_relative_velocity(a, b *Body, r1, r2, n Vector) float64 {
-	return relative_velocity(a, b, r1, r2).Dot(n)
+	return relativeVelocity(a, b, r1, r2).Dot(n)
 }
 
 func k_tensor(a, b *Body, r1, r2 Vector) Mat2x2 {

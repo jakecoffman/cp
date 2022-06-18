@@ -6,8 +6,8 @@ func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
 	// Preserve arbiters on sensors and rejected arbiters for sleeping objects.
 	// This prevents errant separate callbacks from happening.
 
-	a := arb.body_a
-	b := arb.body_b
+	a := arb.bodyA
+	b := arb.bodyB
 
 	if (a.GetType() == BODY_STATIC || a.IsSleeping()) && (b.GetType() == BODY_STATIC || b.IsSleeping()) {
 		return true
@@ -33,8 +33,8 @@ func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
 
 func CachedArbitersFilter(arb *Arbiter, space *Space, shape *Shape, body *Body) bool {
 	// Match on the filter shape, or if it's NULL the filter body
-	if (body == arb.body_a && (shape == arb.a || shape == nil)) ||
-		(body == arb.body_b && (shape == arb.b || shape == nil)) {
+	if (body == arb.bodyA && (shape == arb.a || shape == nil)) ||
+		(body == arb.bodyB && (shape == arb.b || shape == nil)) {
 		// Call separate when removing shapes.
 		if shape != nil && arb.state != CP_ARBITER_STATE_CACHED {
 			// Invalidate the arbiter since one of the shapes was removed

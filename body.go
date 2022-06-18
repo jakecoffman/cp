@@ -376,10 +376,10 @@ func (body *Body) Activate() {
 		// Reset the idle timer of things the body is touching as well.
 		// That way things don't get left hanging in the air.
 		var other *Body
-		if arbiter.body_a == body {
-			other = arbiter.body_b
+		if arbiter.bodyA == body {
+			other = arbiter.bodyB
 		} else {
-			other = arbiter.body_a
+			other = arbiter.bodyA
 		}
 		if other.GetType() != BODY_STATIC {
 			other.sleepingIdleTime = 0
@@ -392,10 +392,10 @@ func (body *Body) ActivateStatic(filter *Shape) {
 
 	for arb := body.arbiterList; arb != nil; arb = arb.Next(body) {
 		if filter == nil || filter == arb.a || filter == arb.b {
-			if arb.body_a == body {
-				arb.body_b.Activate()
+			if arb.bodyA == body {
+				arb.bodyB.Activate()
 			} else {
-				arb.body_a.Activate()
+				arb.bodyA.Activate()
 			}
 		}
 	}
@@ -476,7 +476,7 @@ func (body *Body) ApplyImpulseAtWorldPoint(impulse, point Vector) {
 	body.Activate()
 
 	r := point.Sub(body.transform.Point(body.cog))
-	apply_impulse(body, impulse, r)
+	applyImpulse(body, impulse, r)
 }
 
 func (body *Body) ApplyImpulseAtLocalPoint(impulse, point Vector) {
@@ -538,9 +538,9 @@ func filterConstraints(node *Constraint, body *Body, filter *Constraint) *Constr
 	if node == filter {
 		return node.Next(body)
 	} else if node.a == body {
-		node.next_a = filterConstraints(node.next_a, body, filter)
+		node.nextA = filterConstraints(node.nextA, body, filter)
 	} else {
-		node.next_b = filterConstraints(node.next_b, body, filter)
+		node.nextB = filterConstraints(node.nextB, body, filter)
 	}
 	return node
 }
@@ -559,7 +559,7 @@ func (body *Body) EachArbiter(f func(*Arbiter)) {
 		next := arb.Next(body)
 		swapped := arb.swapped
 
-		arb.swapped = body == arb.body_b
+		arb.swapped = body == arb.bodyB
 		f(arb)
 
 		arb.swapped = swapped

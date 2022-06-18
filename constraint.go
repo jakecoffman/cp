@@ -4,7 +4,7 @@ import "math"
 
 type Constrainer interface {
 	PreStep(dt float64)
-	ApplyCachedImpulse(dt_coef float64)
+	ApplyCachedImpulse(dtCoef float64)
 	ApplyImpulse(dt float64)
 	GetImpulse() float64
 }
@@ -16,8 +16,8 @@ type Constraint struct {
 	Class Constrainer
 	space *Space
 
-	a, b *Body
-	next_a, next_b *Constraint
+	a, b         *Body
+	nextA, nextB *Constraint
 
 	maxForce, errorBias, maxBias float64
 
@@ -82,9 +82,9 @@ func (c *Constraint) SetErrorBias(errorBias float64) {
 
 func (c *Constraint) Next(body *Body) *Constraint {
 	if c.a == body {
-		return c.next_a
+		return c.nextA
 	} else {
-		return c.next_b
+		return c.nextB
 	}
 }
 

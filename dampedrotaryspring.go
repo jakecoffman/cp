@@ -44,26 +44,26 @@ func (spring *DampedRotarySpring) PreStep(dt float64) {
 	b.w += jSpring*b.i_inv
 }
 
-func (joint *DampedRotarySpring) ApplyCachedImpulse(dt_coef float64) {
+func (spring *DampedRotarySpring) ApplyCachedImpulse(_ float64) {
 	// nothing to do here
 }
 
-func (spring *DampedRotarySpring) ApplyImpulse(dt float64) {
+func (spring *DampedRotarySpring) ApplyImpulse(_ float64) {
 	a := spring.a
 	b := spring.b
 
 	wrn := a.w - b.w
 
-	wDamp := (spring.targetWrn-wrn)*spring.wCoef
+	wDamp := (spring.targetWrn-wrn)* spring.wCoef
 	spring.targetWrn = wrn+wDamp
 
-	jDamp := wDamp*spring.iSum
+	jDamp := wDamp* spring.iSum
 	spring.jAcc += jDamp
 
 	a.w += jDamp*a.i_inv
 	b.w -= jDamp*b.i_inv
 }
 
-func (joint *DampedRotarySpring) GetImpulse() float64 {
-	return joint.jAcc
+func (spring *DampedRotarySpring) GetImpulse() float64 {
+	return spring.jAcc
 }
