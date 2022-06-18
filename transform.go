@@ -93,18 +93,18 @@ func (t Transform) BB(bb BB) BB {
 
 // miscellaneous transform matrices
 
-func (outer Transform) Wrap(inner Transform) Transform {
-	return outer.Inverse().Mult(inner.Mult(outer))
+func (t Transform) Wrap(inner Transform) Transform {
+	return t.Inverse().Mult(inner.Mult(t))
 }
 
-func (outer Transform) Ortho(bb BB) Transform {
+func (t Transform) Ortho(bb BB) Transform {
 	return NewTransformTranspose(
-		2.0/(bb.R-bb.L), 0.0, -(bb.R +bb.L)/(bb.R-bb.L),
-		0.0, 2.0/(bb.T-bb.B), -(bb.T +bb.B)/(bb.T-bb.B),
+		2.0/(bb.R-bb.L), 0.0, -(bb.R+bb.L)/(bb.R-bb.L),
+		0.0, 2.0/(bb.T-bb.B), -(bb.T+bb.B)/(bb.T-bb.B),
 	)
 }
 
-func (outer Transform) BoneScale(v0, v1 Vector) Transform {
+func (t Transform) BoneScale(v0, v1 Vector) Transform {
 	d := v1.Sub(v0)
 	return NewTransformTranspose(
 		d.X, -d.Y, v0.X,
@@ -112,7 +112,7 @@ func (outer Transform) BoneScale(v0, v1 Vector) Transform {
 	)
 }
 
-func (outer Transform) AxialScale(axis, pivot Vector, scale float64) Transform {
+func (t Transform) AxialScale(axis, pivot Vector, scale float64) Transform {
 	A := axis.X * axis.Y * (scale - 1.0)
 	B := axis.Dot(pivot) * (1.0 - scale)
 

@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	maxGjkIterations = 30
+	maxGjkIterations  = 30
 	maxEpaIterations  = 30
 	warnEpaIterations = 20
 )
@@ -186,9 +186,9 @@ func SegmentToPoly(info *CollisionInfo) {
 
 	// If the closest points are nearer than the sum of the radii...
 	if points.d-segment.r-polyshape.r <= 0 && (
-		// Reject endcap collisions if tangents are provided.
-		(!points.a.Equal(segment.ta) || n.Dot(segment.a_tangent.Rotate(rot)) <= 0) &&
-			(!points.a.Equal(segment.tb) || n.Dot(segment.b_tangent.Rotate(rot)) <= 0)) {
+	// Reject endcap collisions if tangents are provided.
+	(!points.a.Equal(segment.ta) || n.Dot(segment.a_tangent.Rotate(rot)) <= 0) &&
+		(!points.a.Equal(segment.tb) || n.Dot(segment.b_tangent.Rotate(rot)) <= 0)) {
 		ContactPoints(SupportEdgeForSegment(segment, n), SupportEdgeForPoly(polyshape, n.Neg()), points, info)
 	}
 }
@@ -415,7 +415,7 @@ func GJKRecurse(ctx SupportContext, v0, v1 MinkowskiPoint, iteration int) Closes
 // EPA is called from GJK when two shapes overlap.
 // Finds the closest points on the surface of two overlapping shapes using the EPA algorithm.
 // This is a moderately expensive step! Avoid it by adding radii to your shapes so their inner polygons won't overlap.
-func EPA(ctx SupportContext, v0 MinkowskiPoint, v1 MinkowskiPoint, v2 MinkowskiPoint) ClosestPoints {
+func EPA(ctx SupportContext, v0, v1, v2 MinkowskiPoint) ClosestPoints {
 	// TODO: allocate a NxM array here and do an in place convex hull reduction in EPARecurse?
 	hull := []MinkowskiPoint{v0, v1, v2}
 	return EPARecurse(ctx, 3, hull, 1)

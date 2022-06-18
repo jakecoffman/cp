@@ -5,7 +5,7 @@ type SpatialIndexIterator func(obj *Shape)
 type SpatialIndexQuery func(obj1 interface{}, obj2 *Shape, collisionId uint32, data interface{}) uint32
 type SpatialIndexSegmentQuery func(obj1 interface{}, obj2 *Shape, data interface{}) float64
 
-// implemented by BBTree
+// SpatialIndexer implemented by BBTree
 type SpatialIndexer interface {
 	Count() int
 	Each(f SpatialIndexIterator)
