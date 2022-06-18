@@ -177,8 +177,8 @@ func DrawSpace(space *Space, options Drawer) {
 		n := arb.n
 
 		for j := 0; j < arb.count; j++ {
-			p1 := arb.bodyA.p.Add(arb.contacts[j].r1)
-			p2 := arb.bodyB.p.Add(arb.contacts[j].r2)
+			p1 := arb.body_a.p.Add(arb.contacts[j].r1)
+			p2 := arb.body_b.p.Add(arb.contacts[j].r2)
 
 			a := p1.Add(n.Mult(-2))
 			b := p2.Add(n.Mult(2))

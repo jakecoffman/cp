@@ -239,7 +239,7 @@ func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 }
 
 func ShapesCollide(a, b *Shape) ContactPointSet {
-	contacts := make([]Contact, maxContactsPerArbiter)
+	contacts := make([]Contact, MAX_CONTACTS_PER_ARBITER)
 	info := Collide(a, b, 0, contacts)
 
 	var set ContactPointSet

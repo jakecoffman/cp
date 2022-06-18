@@ -62,7 +62,7 @@ func (joint *GrooveJoint) ApplyCachedImpulse(dt_coef float64) {
 	a := joint.a
 	b := joint.b
 
-	applyImpulses(a, b, joint.r1, joint.r2, joint.jAcc.Mult(dt_coef))
+	apply_impulses(a, b, joint.r1, joint.r2, joint.jAcc.Mult(dt_coef))
 }
 
 func (joint *GrooveJoint) grooveConstrain(j Vector, dt float64) Vector {
@@ -83,14 +83,14 @@ func (joint *GrooveJoint) ApplyImpulse(dt float64) {
 	r1 := joint.r1
 	r2 := joint.r2
 
-	vr := relativeVelocity(a, b, r1, r2)
+	vr := relative_velocity(a, b, r1, r2)
 
 	j := joint.k.Transform(joint.bias.Sub(vr))
 	jOld := joint.jAcc
 	joint.jAcc = joint.grooveConstrain(jOld.Add(j), dt)
 	j = joint.jAcc.Sub(jOld)
 
-	applyImpulses(a, b, joint.r1, joint.r2, j)
+	apply_impulses(a, b, joint.r1, joint.r2, j)
 }
 
 func (joint *GrooveJoint) GetImpulse() float64 {

@@ -1,8 +1,8 @@
 package cp
 
 import (
-	"fmt"
 	"math"
+	"fmt"
 )
 
 type BB struct {
@@ -26,8 +26,8 @@ func NewBBForCircle(p Vector, r float64) BB {
 	return NewBBForExtents(p, r, r)
 }
 
-func (bb BB) Intersects(b BB) bool {
-	return bb.L <= b.R && b.L <= bb.R && bb.B <= b.T && b.B <= bb.T
+func (a BB) Intersects(b BB) bool {
+	return a.L <= b.R && b.L <= a.R && a.B <= b.T && b.B <= a.T
 }
 
 func (bb BB) Contains(other BB) bool {
@@ -38,12 +38,12 @@ func (bb BB) ContainsVect(v Vector) bool {
 	return bb.L <= v.X && bb.R >= v.X && bb.B <= v.Y && bb.T >= v.Y
 }
 
-func (bb BB) Merge(b BB) BB {
+func (a BB) Merge(b BB) BB {
 	return BB{
-		math.Min(bb.L, b.L),
-		math.Min(bb.B, b.B),
-		math.Max(bb.R, b.R),
-		math.Max(bb.T, b.T),
+		math.Min(a.L, b.L),
+		math.Min(a.B, b.B),
+		math.Max(a.R, b.R),
+		math.Max(a.T, b.T),
 	}
 }
 
@@ -64,8 +64,8 @@ func (bb BB) Area() float64 {
 	return (bb.R - bb.L) * (bb.T - bb.B)
 }
 
-func (bb BB) MergedArea(b BB) float64 {
-	return (math.Max(bb.R, b.R) - math.Min(bb.L, b.L)) * (math.Max(bb.T, b.T) - math.Min(bb.B, b.B))
+func (a BB) MergedArea(b BB) float64 {
+	return (math.Max(a.R, b.R) - math.Min(a.L, b.L)) * (math.Max(a.T, b.T) - math.Min(a.B, b.B))
 }
 
 func (bb BB) SegmentQuery(a, b Vector) float64 {
@@ -141,6 +141,6 @@ func (bb BB) Offset(v Vector) BB {
 	}
 }
 
-func (bb BB) Proximity(b BB) float64 {
-	return math.Abs(bb.L+bb.R-b.L-b.R) + math.Abs(bb.B+bb.T-b.B-b.T)
+func (a BB) Proximity(b BB) float64 {
+	return math.Abs(a.L+a.R-b.L-b.R) + math.Abs(a.B+a.T-b.B-b.T)
 }

@@ -7,12 +7,12 @@ type ContactBuffer struct {
 	numContacts int
 
 	// buffer itself
-	contacts [contactsBufferSize]Contact
+	contacts [CONTACTS_BUFFER_SIZE]Contact
 }
 
 func NewContactBuffer(stamp uint, slice *ContactBuffer) *ContactBuffer {
 	buffer := &ContactBuffer{}
-	buffer.contacts = [contactsBufferSize]Contact{}
+	buffer.contacts = [CONTACTS_BUFFER_SIZE]Contact{}
 	return buffer.InitHeader(stamp, slice)
 }
 
