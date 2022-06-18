@@ -188,9 +188,9 @@ func SegmentToPoly(info *CollisionInfo) {
 
 	// If the closest points are nearer than the sum of the radii...
 	if points.d-segment.r-polyshape.r <= 0 && (
-	// Reject endcap collisions if tangents are provided.
-	(!points.a.Equal(segment.ta) || n.Dot(segment.a_tangent.Rotate(rot)) <= 0) &&
-		(!points.a.Equal(segment.tb) || n.Dot(segment.b_tangent.Rotate(rot)) <= 0)) {
+		// Reject endcap collisions if tangents are provided.
+		(!points.a.Equal(segment.ta) || n.Dot(segment.a_tangent.Rotate(rot)) <= 0) &&
+			(!points.a.Equal(segment.tb) || n.Dot(segment.b_tangent.Rotate(rot)) <= 0)) {
 		ContactPoints(SupportEdgeForSegment(segment, n), SupportEdgeForPoly(polyshape, n.Neg()), points, info)
 	}
 }
@@ -497,6 +497,8 @@ var BuiltinCollisionFuncs = [9]CollisionFunc{
 	PolyToPoly,
 }
 
+// Collide performs a collision between two shapes
+// Deprecated - use Collide below
 func (info *CollisionInfo) Collide(a, b *Shape) {
 	// Make sure the shape types are in order.
 	if a.Order() > b.Order() {
@@ -508,4 +510,16 @@ func (info *CollisionInfo) Collide(a, b *Shape) {
 	}
 
 	BuiltinCollisionFuncs[info.a.Order()+info.b.Order()*SHAPE_TYPE_NUM](info)
+}
+
+// Collide performs a collision between two shapes
+func Collide(a, b *Shape, collisionID uint32, contacts []Contact) CollisionInfo {
+	info := CollisionInfo{
+		a:           a,
+		b:           b,
+		collisionId: collisionID,
+		arr:         contacts,
+	}
+	info.Collide(a, b)
+	return info
 }

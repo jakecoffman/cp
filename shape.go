@@ -237,3 +237,35 @@ func NewShape(class ShapeClass, body *Body, massInfo *ShapeMassInfo) *Shape {
 		},
 	}
 }
+
+func ShapesCollide(a, b *Shape) ContactPointSet {
+	contacts := make([]Contact, MAX_CONTACTS_PER_ARBITER)
+	info := Collide(a, b, 0, contacts)
+
+	var set ContactPointSet
+	set.Count = info.count
+
+	// Collide may have swapped the contact order, flip the normal.
+	swapped := a != info.a
+	if swapped {
+		set.Normal = info.n.Neg()
+	} else {
+		set.Normal = info.n
+	}
+
+	for i := 0; i < info.count; i++ {
+		p1 := contacts[i].r1
+		p2 := contacts[i].r2
+
+		if swapped {
+			set.Points[i].PointA = p2
+			set.Points[i].PointB = p1
+		} else {
+			set.Points[i].PointA = p1
+			set.Points[i].PointB = p2
+		}
+		set.Points[i].Distance = p2.Sub(p1).Dot(set.Normal)
+	}
+
+	return set
+}

@@ -427,7 +427,7 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	// Narrow-phase collision detection.
 	info := CollisionInfo{
 		collisionId: collisionId,
-		arr: space.ContactBufferGetArray(),
+		arr:         space.ContactBufferGetArray(),
 	}
 	info.Collide(a, b)
 
@@ -452,14 +452,14 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 
 	// Ignore the arbiter if it has been flagged
 	if arb.state != CP_ARBITER_STATE_IGNORE &&
-	// Call PreSolve
+		// Call PreSolve
 		arb.handler.PreSolveFunc(arb, space, arb.handler.UserData) &&
-	// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
+		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
 		arb.state != CP_ARBITER_STATE_IGNORE &&
-	// Process, but don't add collisions for sensors.
+		// Process, but don't add collisions for sensors.
 		!(a.sensor || b.sensor) &&
-	// Don't process collisions between two infinite mass bodies.
-	// This includes collisions between two kinematic bodies, or a kinematic body and a static body.
+		// Don't process collisions between two infinite mass bodies.
+		// This includes collisions between two kinematic bodies, or a kinematic body and a static body.
 		!(a.body.m == INFINITY && b.body.m == INFINITY) {
 		space.arbiters = append(space.arbiters, arb)
 	} else {
@@ -502,7 +502,7 @@ func (space *Space) ContactBufferGetArray() []Contact {
 	}
 
 	head := space.contactBuffersHead
-	return head.contacts[head.numContacts:head.numContacts+MAX_CONTACTS_PER_ARBITER]
+	return head.contacts[head.numContacts : head.numContacts+MAX_CONTACTS_PER_ARBITER]
 }
 
 func QueryReject(a, b *Shape) bool {
@@ -974,7 +974,7 @@ func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint32,
 type SpaceBBQueryFunc func(shape *Shape, data interface{})
 
 type BBQueryContext struct {
-	bb BB
+	bb     BB
 	filter ShapeFilter
 	f      SpaceBBQueryFunc
 }
@@ -1088,4 +1088,44 @@ func (space *Space) AddPostStepCallback(f PostStepCallbackFunc, key, data interf
 		return true
 	}
 	return false
+}
+
+// ShapeQuery queries a space for any shapes overlapping the given shape and call the callback for each shape found.
+func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points *ContactPointSet)) bool {
+	body := shape.body
+	var bb BB
+	if body != nil {
+		bb = shape.Update(body.transform)
+	} else {
+		bb = shape.bb
+	}
+
+	var anyCollision bool
+
+	var shapeQuery SpatialIndexQuery
+	shapeQuery = func(obj interface{}, b *Shape, collisionId uint32, _ interface{}) uint32 {
+		a := obj.(*Shape)
+		if a.Filter.Reject(b.Filter) || a == b {
+			return collisionId
+		}
+
+		contactPointSet := ShapesCollide(a, b)
+		if contactPointSet.Count > 0 {
+			if callback != nil {
+				callback(b, &contactPointSet)
+			}
+			anyCollision = !(a.sensor || b.sensor)
+		}
+
+		return collisionId
+	}
+
+	space.Lock()
+	{
+		space.dynamicShapes.class.Query(shape, bb, shapeQuery, nil)
+		space.staticShapes.class.Query(shape, bb, shapeQuery, nil)
+	}
+	space.Unlock(true)
+
+	return anyCollision
 }
