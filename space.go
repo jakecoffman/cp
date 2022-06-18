@@ -83,7 +83,13 @@ func NewSpace() *Space {
 		pooledArbiters:       sync.Pool{New: func() interface{} { return &Arbiter{} }},
 		constraints:          []*Constraint{},
 		collisionHandlers: NewHashSet[*CollisionHandler, *CollisionHandler](func(a, b *CollisionHandler) bool {
-			return a == b
+			if a.TypeA == b.TypeA && a.TypeB == b.TypeB {
+				return true
+			}
+			if a.TypeB == b.TypeA && a.TypeA == b.TypeB {
+				return true
+			}
+			return false
 		}),
 		postStepCallbacks: []*PostStepCallback{},
 		defaultHandler:    &CollisionHandlerDoNothing,
