@@ -498,8 +498,14 @@ var BuiltinCollisionFuncs = [9]CollisionFunc{
 }
 
 // Collide performs a collision between two shapes
-// Deprecated - use Collide below
-func (info *CollisionInfo) Collide(a, b *Shape) {
+func Collide(a, b *Shape, collisionID uint32, contacts []Contact) CollisionInfo {
+	info := CollisionInfo{
+		a:           a,
+		b:           b,
+		collisionId: collisionID,
+		arr:         contacts,
+	}
+
 	// Make sure the shape types are in order.
 	if a.Order() > b.Order() {
 		info.a = b
@@ -509,17 +515,6 @@ func (info *CollisionInfo) Collide(a, b *Shape) {
 		info.b = b
 	}
 
-	BuiltinCollisionFuncs[info.a.Order()+info.b.Order()*SHAPE_TYPE_NUM](info)
-}
-
-// Collide performs a collision between two shapes
-func Collide(a, b *Shape, collisionID uint32, contacts []Contact) CollisionInfo {
-	info := CollisionInfo{
-		a:           a,
-		b:           b,
-		collisionId: collisionID,
-		arr:         contacts,
-	}
-	info.Collide(a, b)
+	BuiltinCollisionFuncs[info.a.Order()+info.b.Order()*SHAPE_TYPE_NUM](&info)
 	return info
 }

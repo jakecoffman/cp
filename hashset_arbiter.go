@@ -1,10 +1,5 @@
 package cp
 
-type HashSetEqualArbiter func(ptr ShapePair, elt *Arbiter) bool
-type HashSetTransArbiter func(ptr ShapePair, space *Space) *Arbiter
-type HashSetIteratorArbiter func(elt *Arbiter)
-type HashSetFilterArbiter func(arb *Arbiter, space *Space) bool
-
 type HashSetBinArbiter struct {
 	elt  *Arbiter
 	hash HashValue
@@ -14,7 +9,7 @@ type HashSetBinArbiter struct {
 type HashSetArbiter struct {
 	// number of bins in the table, not just table size
 	entries      uint
-	eql          HashSetEqualArbiter
+	eql          func(ptr ShapePair, elt *Arbiter) bool
 	defaultValue Arbiter
 
 	size       uint
@@ -22,7 +17,7 @@ type HashSetArbiter struct {
 	pooledBins *HashSetBinArbiter
 }
 
-func NewHashSetArbiter(eql HashSetEqualArbiter) *HashSetArbiter {
+func NewHashSetArbiter(eql func(ptr ShapePair, elt *Arbiter) bool) *HashSetArbiter {
 	size := nextPrime(0)
 	return &HashSetArbiter{
 		eql:   eql,
@@ -61,7 +56,7 @@ func (set *HashSetArbiter) Count() uint {
 	return set.entries
 }
 
-func (set *HashSetArbiter) Insert(hash HashValue, ptr ShapePair, trans HashSetTransArbiter, space *Space) *Arbiter {
+func (set *HashSetArbiter) Insert(hash HashValue, ptr ShapePair, trans func(ptr ShapePair, space *Space) *Arbiter, space *Space) *Arbiter {
 	idx := uint(hash) % set.size
 
 	// Find the bin with the matching element.
@@ -177,7 +172,7 @@ func (set *HashSetArbiter) Find(hash HashValue, ptr ShapePair) interface{} {
 	}
 }
 
-func (set *HashSetArbiter) Each(f HashSetIteratorArbiter) {
+func (set *HashSetArbiter) Each(f func(elt *Arbiter)) {
 	for _, bin := range set.table {
 		for bin != nil {
 			next := bin.next
@@ -209,7 +204,7 @@ func (set *HashSetArbiter) Filter(filter func(arb *Arbiter) bool) {
 	}
 }
 
-// Hashset filter func to throw away old arbiters.
+// SpaceArbiterSetFilter throws away old arbiters.
 func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
 	// TODO: should make an arbiter state for this so it doesn't require filtering arbiters for dangling body pointers on body removal.
 	// Preserve arbiters on sensors and rejected arbiters for sleeping objects.

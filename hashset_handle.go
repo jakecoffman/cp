@@ -1,10 +1,5 @@
 package cp
 
-type HashSetEqualHandle func(ptr *Shape, elt *Handle) bool
-type HashSetTransHandle func(ptr *Shape, hash *SpaceHash) *Handle
-type HashSetIteratorHandle func(elt *Handle)
-type HashSetFilterHandle func(arb *Handle, space *Space) bool
-
 type HashSetBinHandle struct {
 	elt  *Handle
 	hash HashValue
@@ -14,7 +9,7 @@ type HashSetBinHandle struct {
 type HashSetHandle struct {
 	// number of bins in the table, not just table size
 	entries      uint
-	eql          HashSetEqualHandle
+	eql          func(ptr *Shape, elt *Handle) bool
 	defaultValue Handle
 
 	size       uint
@@ -22,7 +17,7 @@ type HashSetHandle struct {
 	pooledBins *HashSetBinHandle
 }
 
-func NewHashSetHandle(eql HashSetEqualHandle) *HashSetHandle {
+func NewHashSetHandle(eql func(ptr *Shape, elt *Handle) bool) *HashSetHandle {
 	size := nextPrime(0)
 	return &HashSetHandle{
 		eql:   eql,
@@ -61,7 +56,7 @@ func (set *HashSetHandle) Count() uint {
 	return set.entries
 }
 
-func (set *HashSetHandle) Insert(hash HashValue, ptr *Shape, trans HashSetTransHandle, spaceHash *SpaceHash) *Handle {
+func (set *HashSetHandle) Insert(hash HashValue, ptr *Shape, trans func(ptr *Shape, hash *SpaceHash) *Handle, spaceHash *SpaceHash) *Handle {
 	idx := uint(hash) % set.size
 
 	// Find the bin with the matching element.
@@ -173,7 +168,7 @@ func (set *HashSetHandle) Find(hash HashValue, ptr *Shape) interface{} {
 	}
 }
 
-func (set *HashSetHandle) Each(f HashSetIteratorHandle) {
+func (set *HashSetHandle) Each(f func(elt *Handle)) {
 	var next *HashSetBinHandle
 	for _, bin := range set.table {
 		for bin != nil {

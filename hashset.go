@@ -1,38 +1,36 @@
 package cp
 
 type HashValue uintptr
-type HashSetEqual func(ptr, elt interface{}) bool
-type HashSetTrans func(ptr, data interface{}) interface{}
-type HashSetIterator func(elt interface{})
-type HashSetFilter func(elt, data interface{}) bool
 
+// HashSetBin implements a linked list
 type HashSetBin struct {
-	elt  interface{}
+	elt  *Node
 	hash HashValue
 	next *HashSetBin
 }
 
+// HashSet implements a hash set
 type HashSet struct {
 	// number of bins in the table, not just table size
-	entries      uint
-	eql          HashSetEqual
-	defaultValue interface{}
+	entries uint
+	isEqual func(ptr *Shape, elt *Node) bool
 
 	size       uint
 	table      []*HashSetBin
 	pooledBins *HashSetBin
 }
 
-func NewHashSet(eql HashSetEqual) *HashSet {
+// NewHashSet is a HashSet constructor
+func NewHashSet(isEqual func(ptr *Shape, elt *Node) bool) *HashSet {
 	size := nextPrime(0)
 	return &HashSet{
-		eql:   eql,
-		size:  size,
-		table: make([]*HashSetBin, size),
+		isEqual: isEqual,
+		size:    size,
+		table:   make([]*HashSetBin, size),
 	}
 }
 
-func (set *HashSet) Resize() {
+func (set *HashSet) resize() {
 	newSize := nextPrime(set.size + 1)
 	newTable := make([]*HashSetBin, newSize)
 
@@ -54,55 +52,50 @@ func (set *HashSet) Resize() {
 	set.size = newSize
 }
 
-func (set *HashSet) Free() {
-	if set != nil {
-		set.table = []*HashSetBin{}
-	}
-}
-
+// Count returns the number of entries
 func (set *HashSet) Count() uint {
 	return set.entries
 }
 
-func (set *HashSet) Insert(hash HashValue, ptr interface{}, trans HashSetTrans, data interface{}) interface{} {
+// Insert returns the Node the Shape is in, or inserts a new Node and returns it.
+func (set *HashSet) Insert(hash HashValue, shape *Shape, transform func(obj *Shape, tree *BBTree) *Node, tree *BBTree) *Node {
 	idx := uint(hash) % set.size
 
 	// Find the bin with the matching element.
 	bin := set.table[idx]
-	for bin != nil && !set.eql(ptr, bin.elt) {
+	for bin != nil && !set.isEqual(shape, bin.elt) {
 		bin = bin.next
 	}
 
+	if bin != nil {
+		return bin.elt
+	}
+
 	// Create it if necessary.
-	if bin == nil {
-		bin = set.GetUnusedBin()
-		bin.hash = hash
-		if trans != nil {
-			bin.elt = trans(ptr, data)
-		} else {
-			bin.elt = data
-		}
+	bin = set.getUnusedBin()
+	bin.hash = hash
+	bin.elt = transform(shape, tree)
 
-		bin.next = set.table[idx]
-		set.table[idx] = bin
+	bin.next = set.table[idx]
+	set.table[idx] = bin
 
-		set.entries++
-		if set.entries >= set.size {
-			set.Resize()
-		}
+	set.entries++
+	if set.entries >= set.size {
+		set.resize()
 	}
 
 	return bin.elt
 }
 
-func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
+// Remove removes the Shape from the HashSet, returning the Node it was in.
+func (set *HashSet) Remove(hash HashValue, ptr *Shape) *Node {
 	idx := uint(hash) % set.size
 
 	bin := set.table[idx]
 	prevPtr := &set.table[idx]
 
 	// Find the bin
-	for bin != nil && !set.eql(ptr, bin.elt) {
+	for bin != nil && !set.isEqual(ptr, bin.elt) {
 		prevPtr = &bin.next
 		bin = bin.next
 	}
@@ -114,7 +107,7 @@ func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 		set.entries--
 
 		elt := bin.elt
-		set.Recycle(bin)
+		set.recycle(bin)
 
 		return elt
 	}
@@ -122,21 +115,22 @@ func (set *HashSet) Remove(hash HashValue, ptr interface{}) interface{} {
 	return nil
 }
 
-func (set *HashSet) Find(hash HashValue, ptr interface{}) interface{} {
+// Find returns the Node the Shape is in, or nil.
+func (set *HashSet) Find(hash HashValue, ptr *Shape) *Node {
 	idx := uint(hash) % set.size
 	bin := set.table[idx]
-	for bin != nil && !set.eql(ptr, bin.elt) {
+	for bin != nil && !set.isEqual(ptr, bin.elt) {
 		bin = bin.next
 	}
 
 	if bin != nil {
 		return bin.elt
-	} else {
-		return set.defaultValue
 	}
+	return nil
 }
 
-func (set *HashSet) Each(f HashSetIterator) {
+// Each calls f for every Node in the HashSet.
+func (set *HashSet) Each(f func(elt *Node)) {
 	for _, bin := range set.table {
 		for bin != nil {
 			next := bin.next
@@ -146,7 +140,8 @@ func (set *HashSet) Each(f HashSetIterator) {
 	}
 }
 
-func (set *HashSet) Filter(f HashSetFilter, data interface{}) {
+// Filter removes elements if f returns false
+func (set *HashSet) Filter(f func(*Node) bool) {
 	var i uint
 	for i = 0; i < set.size; i++ {
 		prevPtr := &set.table[i]
@@ -154,13 +149,13 @@ func (set *HashSet) Filter(f HashSetFilter, data interface{}) {
 		for bin != nil {
 			next := bin.next
 
-			if f(bin.elt, data) {
+			if f(bin.elt) {
 				prevPtr = &bin.next
 			} else {
 				*prevPtr = next
 
 				set.entries--
-				set.Recycle(bin)
+				set.recycle(bin)
 			}
 
 			bin = next
@@ -168,13 +163,13 @@ func (set *HashSet) Filter(f HashSetFilter, data interface{}) {
 	}
 }
 
-func (set *HashSet) Recycle(bin *HashSetBin) {
+func (set *HashSet) recycle(bin *HashSetBin) {
 	bin.next = set.pooledBins
 	set.pooledBins = bin
 	bin.elt = nil
 }
 
-func (set *HashSet) GetUnusedBin() *HashSetBin {
+func (set *HashSet) getUnusedBin() *HashSetBin {
 	bin := set.pooledBins
 
 	if bin != nil {
@@ -183,7 +178,7 @@ func (set *HashSet) GetUnusedBin() *HashSetBin {
 	}
 
 	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
-		set.Recycle(&HashSetBin{})
+		set.recycle(&HashSetBin{})
 	}
 
 	return &HashSetBin{}

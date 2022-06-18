@@ -68,13 +68,12 @@ type BBTree struct {
 	stamp uint
 }
 
-func leafSetEql(obj, node interface{}) bool {
-	return obj == node.(*Node).obj
+func leafSetEql(obj *Shape, node *Node) bool {
+	return obj == node.obj
 }
 
-func leafSetTrans(obj, tre interface{}) interface{} {
-	tree := tre.(*BBTree)
-	return tree.NewLeaf(obj.(*Shape))
+func leafSetTrans(obj *Shape, tree *BBTree) *Node {
+	return tree.NewLeaf(obj)
 }
 
 func NewBBTree(bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
@@ -90,8 +89,7 @@ func (tree *BBTree) Count() int {
 }
 
 func (tree *BBTree) Each(f SpatialIndexIterator) {
-	tree.leaves.Each(func(elt interface{}) {
-		node := elt.(*Node)
+	tree.leaves.Each(func(node *Node) {
 		f(node.obj)
 	})
 }
@@ -101,8 +99,7 @@ func (tree *BBTree) Contains(obj *Shape, hashId HashValue) bool {
 }
 
 func (tree *BBTree) Insert(obj *Shape, hashId HashValue) {
-	elt := tree.leaves.Insert(hashId, obj, leafSetTrans, tree)
-	leaf := elt.(*Node)
+	leaf := tree.leaves.Insert(hashId, obj, leafSetTrans, tree)
 
 	root := tree.root
 	tree.root = tree.SubtreeInsert(root, leaf)
@@ -313,7 +310,7 @@ func (node *Node) IsLeaf() bool {
 }
 
 func (tree *BBTree) Remove(obj *Shape, hashId HashValue) {
-	leaf := tree.leaves.Remove(hashId, obj).(*Node)
+	leaf := tree.leaves.Remove(hashId, obj)
 
 	tree.root = tree.SubtreeRemove(tree.root, leaf)
 	tree.PairsClear(leaf)
@@ -334,8 +331,8 @@ func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	}
 
 	// LeafUpdate() may modify tree->root. Don't cache it.
-	tree.leaves.Each(func(leaf interface{}) {
-		tree.LeafUpdate(leaf.(*Node))
+	tree.leaves.Each(func(leaf *Node) {
+		tree.LeafUpdate(leaf)
 	})
 
 	staticIndex := tree.spatialIndex.staticIndex

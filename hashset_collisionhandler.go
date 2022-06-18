@@ -1,10 +1,5 @@
 package cp
 
-type HashSetEqualCollisionHandler func(ptr, elt interface{}) bool
-type HashSetTransCollisionHandler func(ptr, data interface{}) interface{}
-type HashSetIteratorCollisionHandler func(elt interface{})
-type HashSetFilterCollisionHandler func(elt, data interface{}) bool
-
 type HashSetBinCollisionHandler struct {
 	elt  *CollisionHandler
 	hash HashValue
@@ -104,7 +99,7 @@ func (set *HashSetCollisionHandler) Find(hash HashValue, ptr *CollisionHandler) 
 	}
 }
 
-func (set *HashSetCollisionHandler) Each(f HashSetIterator) {
+func (set *HashSetCollisionHandler) Each(f func(handler *CollisionHandler)) {
 	for _, bin := range set.table {
 		for bin != nil {
 			next := bin.next
