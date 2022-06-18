@@ -3,36 +3,36 @@ package cp
 type HashValue uintptr
 
 // HashSetBin implements a linked list
-type HashSetBin struct {
-	elt  *Node
+type HashSetBin[U comparable] struct {
+	elt  U
 	hash HashValue
-	next *HashSetBin
+	next *HashSetBin[U]
 }
 
 // HashSet implements a hash set
-type HashSet struct {
+type HashSet[T, U comparable] struct {
 	// number of bins in the table, not just table size
 	entries uint
-	isEqual func(ptr *Shape, elt *Node) bool
+	isEqual func(ptr T, elt U) bool
 
 	size       uint
-	table      []*HashSetBin
-	pooledBins *HashSetBin
+	table      []*HashSetBin[U]
+	pooledBins *HashSetBin[U]
 }
 
 // NewHashSet is a HashSet constructor
-func NewHashSet(isEqual func(ptr *Shape, elt *Node) bool) *HashSet {
+func NewHashSet[T, U comparable](isEqual func(ptr T, elt U) bool) *HashSet[T, U] {
 	size := nextPrime(0)
-	return &HashSet{
+	return &HashSet[T, U]{
 		isEqual: isEqual,
 		size:    size,
-		table:   make([]*HashSetBin, size),
+		table:   make([]*HashSetBin[U], size),
 	}
 }
 
-func (set *HashSet) resize() {
+func (set *HashSet[T, U]) resize() {
 	newSize := nextPrime(set.size + 1)
-	newTable := make([]*HashSetBin, newSize)
+	newTable := make([]*HashSetBin[U], newSize)
 
 	var i uint
 	for i = 0; i < set.size; i++ {
@@ -53,17 +53,17 @@ func (set *HashSet) resize() {
 }
 
 // Count returns the number of entries
-func (set *HashSet) Count() uint {
+func (set *HashSet[T, U]) Count() uint {
 	return set.entries
 }
 
-// Insert returns the Node the Shape is in, or inserts a new Node and returns it.
-func (set *HashSet) Insert(hash HashValue, shape *Shape, transform func(obj *Shape, tree *BBTree) *Node, tree *BBTree) *Node {
+// Insert returns the U the T is in, or inserts a new U and returns it.
+func (set *HashSet[T, U]) Insert(hash HashValue, ptr T, transform func(obj T) U) U {
 	idx := uint(hash) % set.size
 
 	// Find the bin with the matching element.
 	bin := set.table[idx]
-	for bin != nil && !set.isEqual(shape, bin.elt) {
+	for bin != nil && !set.isEqual(ptr, bin.elt) {
 		bin = bin.next
 	}
 
@@ -74,7 +74,7 @@ func (set *HashSet) Insert(hash HashValue, shape *Shape, transform func(obj *Sha
 	// Create it if necessary.
 	bin = set.getUnusedBin()
 	bin.hash = hash
-	bin.elt = transform(shape, tree)
+	bin.elt = transform(ptr)
 
 	bin.next = set.table[idx]
 	set.table[idx] = bin
@@ -87,8 +87,8 @@ func (set *HashSet) Insert(hash HashValue, shape *Shape, transform func(obj *Sha
 	return bin.elt
 }
 
-// Remove removes the Shape from the HashSet, returning the Node it was in.
-func (set *HashSet) Remove(hash HashValue, ptr *Shape) *Node {
+// Remove removes the T from the HashSet, returning the U it was in.
+func (set *HashSet[T, U]) Remove(hash HashValue, ptr T) U {
 	idx := uint(hash) % set.size
 
 	bin := set.table[idx]
@@ -112,11 +112,12 @@ func (set *HashSet) Remove(hash HashValue, ptr *Shape) *Node {
 		return elt
 	}
 
-	return nil
+	var zero U
+	return zero
 }
 
-// Find returns the Node the Shape is in, or nil.
-func (set *HashSet) Find(hash HashValue, ptr *Shape) *Node {
+// Find returns the U the T is in, or nil.
+func (set *HashSet[T, U]) Find(hash HashValue, ptr T) U {
 	idx := uint(hash) % set.size
 	bin := set.table[idx]
 	for bin != nil && !set.isEqual(ptr, bin.elt) {
@@ -126,11 +127,12 @@ func (set *HashSet) Find(hash HashValue, ptr *Shape) *Node {
 	if bin != nil {
 		return bin.elt
 	}
-	return nil
+	var zero U
+	return zero
 }
 
-// Each calls f for every Node in the HashSet.
-func (set *HashSet) Each(f func(elt *Node)) {
+// Each calls f for every U in the HashSet.
+func (set *HashSet[T, U]) Each(f func(U)) {
 	for _, bin := range set.table {
 		for bin != nil {
 			next := bin.next
@@ -141,7 +143,7 @@ func (set *HashSet) Each(f func(elt *Node)) {
 }
 
 // Filter removes elements if f returns false
-func (set *HashSet) Filter(f func(*Node) bool) {
+func (set *HashSet[T, U]) Filter(f func(U) bool) {
 	var i uint
 	for i = 0; i < set.size; i++ {
 		prevPtr := &set.table[i]
@@ -163,13 +165,14 @@ func (set *HashSet) Filter(f func(*Node) bool) {
 	}
 }
 
-func (set *HashSet) recycle(bin *HashSetBin) {
+func (set *HashSet[T, U]) recycle(bin *HashSetBin[U]) {
 	bin.next = set.pooledBins
 	set.pooledBins = bin
-	bin.elt = nil
+	var zero U
+	bin.elt = zero
 }
 
-func (set *HashSet) getUnusedBin() *HashSetBin {
+func (set *HashSet[T, U]) getUnusedBin() *HashSetBin[U] {
 	bin := set.pooledBins
 
 	if bin != nil {
@@ -178,10 +181,10 @@ func (set *HashSet) getUnusedBin() *HashSetBin {
 	}
 
 	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
-		set.recycle(&HashSetBin{})
+		set.recycle(&HashSetBin[U]{})
 	}
 
-	return &HashSetBin{}
+	return &HashSetBin[U]{}
 }
 
 var primes = []uint{

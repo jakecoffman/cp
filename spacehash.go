@@ -9,7 +9,7 @@ type SpaceHash struct {
 	celldim  float64
 
 	table     []*SpaceHashBin
-	handleSet *HashSetHandle
+	handleSet *HashSet[*Shape, *Handle]
 
 	pooledBins    *SpaceHashBin
 	pooledHandles chan *Handle
@@ -22,7 +22,7 @@ func NewSpaceHash(celldim float64, num int, bbfunc SpatialIndexBB, staticIndex *
 		celldim:  celldim,
 		numCells: num,
 		table:    make([]*SpaceHashBin, num),
-		handleSet: NewHashSetHandle(func(obj *Shape, elt *Handle) bool {
+		handleSet: NewHashSet[*Shape, *Handle](func(obj *Shape, elt *Handle) bool {
 			return obj == elt.obj
 		}),
 		stamp:         1,
@@ -79,7 +79,17 @@ func (hash *SpaceHash) Contains(obj *Shape, hashId HashValue) bool {
 }
 
 func (hash *SpaceHash) Insert(obj *Shape, hashId HashValue) {
-	hand := hash.handleSet.Insert(hashId, obj, handleSetTrans, hash)
+	hand := hash.handleSet.Insert(hashId, obj, func(obj *Shape) *Handle {
+		var hand *Handle
+		select {
+		case hand = <-hash.pooledHandles:
+		default:
+			hand = &Handle{}
+		}
+		hand.Init(obj)
+		hand.retain()
+		return hand
+	})
 	hash.hashHandle(hand, hash.bbfunc(obj))
 }
 
@@ -352,18 +362,6 @@ func (hand *Handle) release(pooledHandles chan *Handle) {
 		default:
 		}
 	}
-}
-
-func handleSetTrans(obj *Shape, hash *SpaceHash) *Handle {
-	var hand *Handle
-	select {
-	case hand = <-hash.pooledHandles:
-	default:
-		hand = &Handle{}
-	}
-	hand.Init(obj)
-	hand.retain()
-	return hand
 }
 
 func (hash *SpaceHash) recycleBin(bin *SpaceHashBin) {

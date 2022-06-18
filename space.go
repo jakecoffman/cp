@@ -39,13 +39,13 @@ type Space struct {
 
 	arbiters           []*Arbiter
 	contactBuffersHead *ContactBuffer
-	cachedArbiters     *HashSetArbiter
+	cachedArbiters     *HashSet[ShapePair, *Arbiter]
 	pooledArbiters     chan *Arbiter
 
 	locked int
 
 	usesWildcards     bool
-	collisionHandlers *HashSetCollisionHandler
+	collisionHandlers *HashSet[*CollisionHandler, *CollisionHandler]
 	defaultHandler    *CollisionHandler
 
 	skipPostStep      bool
@@ -80,12 +80,14 @@ func NewSpace() *Space {
 		SleepTimeThreshold:   math.MaxFloat64,
 		IdleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
-		cachedArbiters:       NewHashSetArbiter(arbiterSetEql),
+		cachedArbiters:       NewHashSet[ShapePair, *Arbiter](arbiterSetEql),
 		pooledArbiters:       make(chan *Arbiter, POOLED_BUFFER_SIZE),
 		constraints:          []*Constraint{},
-		collisionHandlers:    NewHashSetCollisionHandler(),
-		postStepCallbacks:    []*PostStepCallback{},
-		defaultHandler:       &CollisionHandlerDoNothing,
+		collisionHandlers: NewHashSet[*CollisionHandler, *CollisionHandler](func(a, b *CollisionHandler) bool {
+			return a == b
+		}),
+		postStepCallbacks: []*PostStepCallback{},
+		defaultHandler:    &CollisionHandlerDoNothing,
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
 	space.dynamicShapes.class.(*BBTree).velocityFunc = BBTreeVelocityFunc(ShapeVelocityFunc)
@@ -174,7 +176,9 @@ func (space *Space) Activate(body *Body) {
 			b := arbiter.b
 			shapePair := ShapePair{a, b}
 			arbHashId := HashPair(HashValue(unsafe.Pointer(a)), HashValue(unsafe.Pointer(b)))
-			space.cachedArbiters.InsertArb(arbHashId, shapePair, arbiter)
+			space.cachedArbiters.Insert(arbHashId, shapePair, func(_ ShapePair) *Arbiter {
+				return arbiter
+			})
 
 			// update arbiters state
 			arbiter.stamp = space.stamp
@@ -398,19 +402,6 @@ var ShapeUpdateFunc = func(shape *Shape) {
 	shape.CacheBB()
 }
 
-func SpaceArbiterSetTrans(shapes ShapePair, space *Space) *Arbiter {
-	var arb *Arbiter
-
-	select {
-	case arb = <-space.pooledArbiters:
-
-	default:
-		arb = &Arbiter{}
-	}
-	arb.Init(shapes.a, shapes.b)
-	return arb
-}
-
 type ShapePair struct {
 	a, b *Shape
 }
@@ -425,11 +416,7 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	}
 
 	// Narrow-phase collision detection.
-	info := CollisionInfo{
-		collisionId: collisionId,
-		arr:         space.ContactBufferGetArray(),
-	}
-	info.Collide(a, b)
+	info := Collide(a, b, collisionId, space.ContactBufferGetArray())
 
 	if info.count == 0 {
 		// shapes are not colliding
@@ -443,7 +430,18 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	// This is where the persistent contact magic comes from.
 	shapePair := ShapePair{info.a, info.b}
 	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
-	arb := space.cachedArbiters.Insert(arbHashId, shapePair, SpaceArbiterSetTrans, space)
+	arb := space.cachedArbiters.Insert(arbHashId, shapePair, func(shapes ShapePair) *Arbiter {
+		var arb *Arbiter
+
+		select {
+		case arb = <-space.pooledArbiters:
+
+		default:
+			arb = &Arbiter{}
+		}
+		arb.Init(shapes.a, shapes.b)
+		return arb
+	})
 	arb.Update(&info, space)
 
 	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.BeginFunc(arb, space, arb.handler.UserData) {
@@ -859,7 +857,7 @@ func (space *Space) LookupHandler(a, b CollisionType, defaultHandler *CollisionH
 func (space *Space) NewCollisionHandler(collisionTypeA, collisionTypeB CollisionType) *CollisionHandler {
 	hash := HashPair(HashValue(collisionTypeA), HashValue(collisionTypeB))
 	handler := &CollisionHandler{collisionTypeA, collisionTypeB, DefaultBegin, DefaultPreSolve, DefaultPostSolve, DefaultSeparate, nil}
-	return space.collisionHandlers.Insert(hash, handler)
+	return space.collisionHandlers.Insert(hash, handler, func(a *CollisionHandler) *CollisionHandler { return a })
 }
 
 func (space *Space) NewWildcardCollisionHandler(collisionType CollisionType) *CollisionHandler {
@@ -867,7 +865,7 @@ func (space *Space) NewWildcardCollisionHandler(collisionType CollisionType) *Co
 
 	hash := HashPair(HashValue(collisionType), HashValue(WILDCARD_COLLISION_TYPE))
 	handler := &CollisionHandler{collisionType, WILDCARD_COLLISION_TYPE, AlwaysCollide, AlwaysCollide, DoNothing, DoNothing, nil}
-	return space.collisionHandlers.Insert(hash, handler)
+	return space.collisionHandlers.Insert(hash, handler, func(a *CollisionHandler) *CollisionHandler { return a })
 }
 
 func (space *Space) UseWildcardDefaultHandler() {

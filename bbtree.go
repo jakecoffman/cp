@@ -59,7 +59,7 @@ type BBTree struct {
 	spatialIndex *SpatialIndex
 	velocityFunc BBTreeVelocityFunc
 
-	leaves *HashSet
+	leaves *HashSet[*Shape, *Node]
 	root   *Node
 
 	pooledNodes *Node
@@ -70,10 +70,6 @@ type BBTree struct {
 
 func leafSetEql(obj *Shape, node *Node) bool {
 	return obj == node.obj
-}
-
-func leafSetTrans(obj *Shape, tree *BBTree) *Node {
-	return tree.NewLeaf(obj)
 }
 
 func NewBBTree(bbfunc SpatialIndexBB, staticIndex *SpatialIndex) *SpatialIndex {
@@ -99,7 +95,9 @@ func (tree *BBTree) Contains(obj *Shape, hashId HashValue) bool {
 }
 
 func (tree *BBTree) Insert(obj *Shape, hashId HashValue) {
-	leaf := tree.leaves.Insert(hashId, obj, leafSetTrans, tree)
+	leaf := tree.leaves.Insert(hashId, obj, func(obj *Shape) *Node {
+		return tree.NewLeaf(obj)
+	})
 
 	root := tree.root
 	tree.root = tree.SubtreeInsert(root, leaf)
