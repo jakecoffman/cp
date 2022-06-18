@@ -2,6 +2,7 @@ package cp
 
 import (
 	"math"
+	"sync"
 	"unsafe"
 )
 
@@ -40,7 +41,7 @@ type Space struct {
 	arbiters           []*Arbiter
 	contactBuffersHead *ContactBuffer
 	cachedArbiters     *HashSet[ShapePair, *Arbiter]
-	pooledArbiters     chan *Arbiter
+	pooledArbiters     sync.Pool
 
 	locked int
 
@@ -81,13 +82,16 @@ func NewSpace() *Space {
 		IdleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
 		cachedArbiters:       NewHashSet[ShapePair, *Arbiter](arbiterSetEql),
-		pooledArbiters:       make(chan *Arbiter, POOLED_BUFFER_SIZE),
+		pooledArbiters:       sync.Pool{New: func() interface{} { return &Arbiter{} }},
 		constraints:          []*Constraint{},
 		collisionHandlers: NewHashSet[*CollisionHandler, *CollisionHandler](func(a, b *CollisionHandler) bool {
 			return a == b
 		}),
 		postStepCallbacks: []*PostStepCallback{},
 		defaultHandler:    &CollisionHandlerDoNothing,
+	}
+	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
+		space.pooledArbiters.Put(&Arbiter{})
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
 	space.dynamicShapes.class.(*BBTree).velocityFunc = BBTreeVelocityFunc(ShapeVelocityFunc)
@@ -431,14 +435,7 @@ func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspac
 	shapePair := ShapePair{info.a, info.b}
 	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
 	arb := space.cachedArbiters.Insert(arbHashId, shapePair, func(shapes ShapePair) *Arbiter {
-		var arb *Arbiter
-
-		select {
-		case arb = <-space.pooledArbiters:
-
-		default:
-			arb = &Arbiter{}
-		}
+		arb := space.pooledArbiters.Get().(*Arbiter)
 		arb.Init(shapes.a, shapes.b)
 		return arb
 	})

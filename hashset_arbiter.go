@@ -24,10 +24,7 @@ func SpaceArbiterSetFilter(arb *Arbiter, space *Space) bool {
 	if ticks >= space.collisionPersistence {
 		arb.contacts = nil
 		arb.count = 0
-		select {
-		case space.pooledArbiters <- arb:
-		default:
-		}
+		space.pooledArbiters.Put(arb)
 		return false
 	}
 
@@ -54,10 +51,7 @@ func CachedArbitersFilter(arb *Arbiter, space *Space, shape *Shape, body *Body) 
 				break
 			}
 		}
-		select {
-		case space.pooledArbiters <- arb:
-		default:
-		}
+		space.pooledArbiters.Put(arb)
 		return false
 	}
 

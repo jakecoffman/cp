@@ -1,6 +1,9 @@
 package cp
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 type SpaceHash struct {
 	*SpatialIndex
@@ -12,7 +15,7 @@ type SpaceHash struct {
 	handleSet *HashSet[*Shape, *Handle]
 
 	pooledBins    *SpaceHashBin
-	pooledHandles chan *Handle
+	pooledHandles sync.Pool
 
 	stamp uint
 }
@@ -26,10 +29,10 @@ func NewSpaceHash(celldim float64, num int, bbfunc SpatialIndexBB, staticIndex *
 			return obj == elt.obj
 		}),
 		stamp:         1,
-		pooledHandles: make(chan *Handle, POOLED_BUFFER_SIZE),
+		pooledHandles: sync.Pool{New: func() interface{} { return &Handle{} }},
 	}
 	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
-		spaceHash.pooledHandles <- &Handle{}
+		spaceHash.pooledHandles.Put(&Handle{})
 	}
 	spatialIndex := NewSpatialIndex(spaceHash, bbfunc, staticIndex)
 	spaceHash.SpatialIndex = spatialIndex
@@ -80,12 +83,7 @@ func (hash *SpaceHash) Contains(obj *Shape, hashId HashValue) bool {
 
 func (hash *SpaceHash) Insert(obj *Shape, hashId HashValue) {
 	hand := hash.handleSet.Insert(hashId, obj, func(obj *Shape) *Handle {
-		var hand *Handle
-		select {
-		case hand = <-hash.pooledHandles:
-		default:
-			hand = &Handle{}
-		}
+		hand := hash.pooledHandles.Get().(*Handle)
 		hand.Init(obj)
 		hand.retain()
 		return hand
@@ -98,7 +96,7 @@ func (hash *SpaceHash) Remove(obj *Shape, hashId HashValue) {
 
 	if hand != nil {
 		hand.obj = nil
-		hand.release(hash.pooledHandles)
+		hand.release(&hash.pooledHandles)
 	}
 }
 
@@ -114,7 +112,7 @@ func (hash *SpaceHash) ReindexObject(obj *Shape, hashId HashValue) {
 
 	if hand != nil {
 		hand.obj = nil
-		hand.release(hash.pooledHandles)
+		hand.release(&hash.pooledHandles)
 
 		hash.Insert(obj, hashId)
 	}
@@ -131,7 +129,7 @@ func (hash *SpaceHash) removeOrphanedHandles(binPtr **SpaceHashBin) {
 			*binPtr = bin.next
 			hash.recycleBin(bin)
 
-			hand.release(hash.pooledHandles)
+			hand.release(&hash.pooledHandles)
 		} else {
 			binPtr = &bin.next
 		}
@@ -354,13 +352,10 @@ func (hand *Handle) retain() {
 	hand.retains++
 }
 
-func (hand *Handle) release(pooledHandles chan *Handle) {
+func (hand *Handle) release(pooledHandles *sync.Pool) {
 	hand.retains--
 	if hand.retains == 0 {
-		select {
-		case pooledHandles <- hand:
-		default:
-		}
+		pooledHandles.Put(hand)
 	}
 }
 
@@ -374,7 +369,7 @@ func (hash *SpaceHash) clearTableCell(idx int) {
 	for bin != nil {
 		next := bin.next
 
-		bin.handle.release(hash.pooledHandles)
+		bin.handle.release(&hash.pooledHandles)
 		hash.recycleBin(bin)
 
 		bin = next
