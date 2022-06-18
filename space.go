@@ -22,8 +22,6 @@ type Space struct {
 	collisionBias        float64
 	collisionPersistence uint
 
-	userData interface{}
-
 	stamp   uint
 	curr_dt float64
 
