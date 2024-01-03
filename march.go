@@ -116,9 +116,9 @@ func MarchCellSoft(t, a, b, c, d, x0, x1, y0, y1 float64, marchSegment MarchSegm
 	}
 }
 
-/// Trace an anti-aliased contour of an image along a particular threshold.
-/// The given number of samples will be taken and spread across the bounding box area using the sampling function and context.
-/// The segment function will be called for each segment detected that lies along the density contour for @c threshold.
+// Trace an anti-aliased contour of an image along a particular threshold.
+// The given number of samples will be taken and spread across the bounding box area using the sampling function and context.
+// The segment function will be called for each segment detected that lies along the density contour for @c threshold.
 func MarchSoft(bb BB, xSamples, ySamples int64, t float64, marchSegment MarchSegmentFunc, marchSample MarchSampleFunc) *PolyLineSet {
 	return MarchCells(bb, xSamples, ySamples, t, marchSegment, marchSample, MarchCellSoft)
 }
@@ -183,9 +183,9 @@ func MarchCellHard(t, a, b, c, d, x0, x1, y0, y1 float64, marchSegment MarchSegm
 	}
 }
 
-/// Trace an aliased curve of an image along a particular threshold.
-/// The given number of samples will be taken and spread across the bounding box area using the sampling function and context.
-/// The segment function will be called for each segment detected that lies along the density contour for @c threshold.
+// Trace an aliased curve of an image along a particular threshold.
+// The given number of samples will be taken and spread across the bounding box area using the sampling function and context.
+// The segment function will be called for each segment detected that lies along the density contour for @c threshold.
 func MarchHard(bb BB, xSamples, ySamples int64, t float64, marchSegment MarchSegmentFunc, marchSample MarchSampleFunc) *PolyLineSet {
 	return MarchCells(bb, xSamples, ySamples, t, marchSegment, marchSample, MarchCellHard)
 }

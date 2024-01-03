@@ -22,26 +22,26 @@ type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData interface{}
 
 type CollisionType uintptr
 
-/// Struct that holds function callback pointers to configure custom collision handling.
-/// Collision handlers have a pair of types; when a collision occurs between two shapes that have these types, the collision handler functions are triggered.
+// CollisionHandler is struct that holds function callback pointers to configure custom collision handling.
+// Collision handlers have a pair of types; when a collision occurs between two shapes that have these types, the collision handler functions are triggered.
 type CollisionHandler struct {
-	/// Collision type identifier of the first shape that this handler recognizes.
-	/// In the collision handler callback, the shape with this type will be the first argument. Read only.
+	// Collision type identifier of the first shape that this handler recognizes.
+	// In the collision handler callback, the shape with this type will be the first argument. Read only.
 	TypeA CollisionType
-	/// Collision type identifier of the second shape that this handler recognizes.
-	/// In the collision handler callback, the shape with this type will be the second argument. Read only.
+	// Collision type identifier of the second shape that this handler recognizes.
+	// In the collision handler callback, the shape with this type will be the second argument. Read only.
 	TypeB CollisionType
-	/// This function is called when two shapes with types that match this collision handler begin colliding.
+	// This function is called when two shapes with types that match this collision handler begin colliding.
 	BeginFunc CollisionBeginFunc
-	/// This function is called each step when two shapes with types that match this collision handler are colliding.
-	/// It's called before the collision solver runs so that you can affect a collision's outcome.
+	// This function is called each step when two shapes with types that match this collision handler are colliding.
+	// It's called before the collision solver runs so that you can affect a collision's outcome.
 	PreSolveFunc CollisionPreSolveFunc
-	/// This function is called each step when two shapes with types that match this collision handler are colliding.
-	/// It's called after the collision solver runs so that you can read back information about the collision to trigger events in your game.
+	// This function is called each step when two shapes with types that match this collision handler are colliding.
+	// It's called after the collision solver runs so that you can read back information about the collision to trigger events in your game.
 	PostSolveFunc CollisionPostSolveFunc
-	/// This function is called when two shapes with types that match this collision handler stop colliding.
+	// This function is called when two shapes with types that match this collision handler stop colliding.
 	SeparateFunc CollisionSeparateFunc
-	/// This is a user definable context pointer that is passed to all of the collision handler functions.
+	// This is a user definable context pointer that is passed to all of the collision handler functions.
 	UserData interface{}
 }
 
@@ -113,25 +113,25 @@ type ShapeMassInfo struct {
 }
 
 type PointQueryInfo struct {
-	/// The nearest shape, NULL if no shape was within range.
+	// The nearest shape, NULL if no shape was within range.
 	Shape *Shape
-	/// The closest point on the shape's surface. (in world space coordinates)
+	// The closest point on the shape's surface. (in world space coordinates)
 	Point Vector
-	/// The distance to the point. The distance is negative if the point is inside the shape.
+	// The distance to the point. The distance is negative if the point is inside the shape.
 	Distance float64
-	/// The gradient of the signed distance function.
-	/// The value should be similar to info.p/info.d, but accurate even for very small values of info.d.
+	// The gradient of the signed distance function.
+	// The value should be similar to info.p/info.d, but accurate even for very small values of info.d.
 	Gradient Vector
 }
 
 type SegmentQueryInfo struct {
-	/// The shape that was hit, or NULL if no collision occurred.
+	// The shape that was hit, or NULL if no collision occurred.
 	Shape *Shape
-	/// The point of impact.
+	// The point of impact.
 	Point Vector
-	/// The normal of the surface hit.
+	// The normal of the surface hit.
 	Normal Vector
-	/// The normalized distance along the query segment in the range [0, 1].
+	// The normalized distance along the query segment in the range [0, 1].
 	Alpha float64
 }
 
@@ -148,14 +148,14 @@ var SHAPE_FILTER_ALL = ShapeFilter{NO_GROUP, ALL_CATEGORIES, ALL_CATEGORIES}
 var SHAPE_FILTER_NONE = ShapeFilter{NO_GROUP, ^ALL_CATEGORIES, ^ALL_CATEGORIES}
 
 type ShapeFilter struct {
-	/// Two objects with the same non-zero group value do not collide.
-	/// This is generally used to group objects in a composite object together to disable self collisions.
+	// Two objects with the same non-zero group value do not collide.
+	// This is generally used to group objects in a composite object together to disable self collisions.
 	Group uint
-	/// A bitmask of user definable categories that this object belongs to.
-	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
+	// A bitmask of user definable categories that this object belongs to.
+	// The category/mask combinations of both objects in a collision must agree for a collision to occur.
 	Categories uint
-	/// A bitmask of user definable category types that this object object collides with.
-	/// The category/mask combinations of both objects in a collision must agree for a collision to occur.
+	// A bitmask of user definable category types that this object object collides with.
+	// The category/mask combinations of both objects in a collision must agree for a collision to occur.
 	Mask uint
 }
 
