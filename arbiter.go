@@ -4,6 +4,10 @@ import "math"
 
 var WILDCARD_COLLISION_TYPE CollisionType = ^CollisionType(0)
 
+// Arbiter struct tracks pairs of colliding shapes.
+//
+// They are also used in conjuction with collision handler callbacks allowing you to retrieve information on the collision or change it.
+// A unique arbiter value is used for each pair of colliding objects. It persists until the shapes separate.
 type Arbiter struct {
 	e, u       float64
 	surface_vr Vector
@@ -27,6 +31,7 @@ type Arbiter struct {
 	state int // Arbiter state enum
 }
 
+// Init initializes and returns Arbiter
 func (arbiter *Arbiter) Init(a, b *Shape) *Arbiter {
 	arbiter.handler = nil
 	arbiter.swapped = false
@@ -254,16 +259,23 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 	}
 }
 
+// Ignore marks a collision pair to be ignored until the two objects separate.
+//
+// Pre-solve and post-solve callbacks will not be called, but the separate callback will be called.
 func (arb *Arbiter) Ignore() bool {
 	arb.state = CP_ARBITER_STATE_IGNORE
 	return false
 }
 
+// CallWildcardBeginA if you want a custom callback to invoke the wildcard callback for the first collision type, you must call this function explicitly.
+//
+// You must decide how to handle the wildcard's return value since it may disagree with the other wildcard handler's return value or your own.
 func (arb *Arbiter) CallWildcardBeginA(space *Space) bool {
 	handler := arb.handlerA
 	return handler.BeginFunc(arb, space, handler.UserData)
 }
 
+// CallWildcardBeginB If you want a custom callback to invoke the wildcard callback for the second collision type, you must call this function explicitly.
 func (arb *Arbiter) CallWildcardBeginB(space *Space) bool {
 	handler := arb.handlerB
 	arb.swapped = !arb.swapped
@@ -272,11 +284,13 @@ func (arb *Arbiter) CallWildcardBeginB(space *Space) bool {
 	return retVal
 }
 
+// CallWildcardPreSolveA If you want a custom callback to invoke the wildcard callback for the first collision type, you must call this function explicitly.
 func (arb *Arbiter) CallWildcardPreSolveA(space *Space) bool {
 	handler := arb.handlerA
 	return handler.PreSolveFunc(arb, space, handler.UserData)
 }
 
+// CallWildcardPreSolveB If you want a custom callback to invoke the wildcard callback for the second collision type, you must call this function explicitly.
 func (arb *Arbiter) CallWildcardPreSolveB(space *Space) bool {
 	handler := arb.handlerB
 	arb.swapped = !arb.swapped
@@ -389,6 +403,9 @@ func DefaultSeparate(arb *Arbiter, space *Space, _ interface{}) {
 	arb.CallWildcardSeparateB(space)
 }
 
+// TotalImpulse calculates the total impulse including the friction that was applied by this arbiter.
+//
+// This function should only be called from a post-solve, post-step or EachArbiter callback.
 func (arb *Arbiter) TotalImpulse() Vector {
 	var sum Vector
 
@@ -411,6 +428,8 @@ func (arb *Arbiter) Count() int {
 	return 0
 }
 
+// Shapes return the colliding shapes involved for this arbiter.
+// The order of their space.CollisionType values will match the order set when the collision handler was registered.
 func (arb *Arbiter) Shapes() (*Shape, *Shape) {
 	if arb.swapped {
 		return arb.b, arb.a
@@ -419,6 +438,8 @@ func (arb *Arbiter) Shapes() (*Shape, *Shape) {
 	}
 }
 
+// Bodies returns the colliding bodies involved for this arbiter.
+// The order of the space.CollisionType the bodies are associated with values will match the order set when the collision handler was registered.
 func (arb *Arbiter) Bodies() (*Body, *Body) {
 	shapeA, shapeB := arb.Shapes()
 	return shapeA.body, shapeB.body
@@ -432,19 +453,24 @@ func (arb *Arbiter) Normal() Vector {
 	}
 }
 
+// ContactPointSet wraps up the important collision data for an arbiter.
 type ContactPointSet struct {
-	Count  int
+	// Count is the number of contact points in the set.
+	Count int
+	// Normal is the normal of the collision.
 	Normal Vector
 
 	Points [MAX_CONTACTS_PER_ARBITER]struct {
-		/// The position of the contact on the surface of each shape.
+		// The position of the contact on the surface of each shape.
 		PointA, PointB Vector
-		/// Penetration distance of the two shapes. Overlapping means it will be negative.
-		/// This value is calculated as cpvdot(cpvsub(point2, point1), normal) and is ignored by cpArbiterSetContactPointSet().
+		// Distance is penetration distance of the two shapes. Overlapping means it will be negative.
+		//
+		// This value is calculated as p2.Sub(p1).Dot(n) and is ignored by Arbiter.SetContactPointSet().
 		Distance float64
 	}
 }
 
+// ContactPointSet returns ContactPointSet
 func (arb *Arbiter) ContactPointSet() ContactPointSet {
 	var set ContactPointSet
 	set.Count = arb.Count()
@@ -476,6 +502,9 @@ func (arb *Arbiter) ContactPointSet() ContactPointSet {
 	return set
 }
 
+// SetContactPointSet replaces the contact point set.
+//
+// This can be a very powerful feature, but use it with caution!
 func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
 	count := set.Count
 	assert(count == int(arb.count))
