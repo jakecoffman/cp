@@ -4,23 +4,21 @@
 
 [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) ported to Go
 
-## project status
+## Project status
 
 Stable -- most features are implemented and the demos are very close to Chipmunk2D demos.
 
-## examples
+## Examples
 
-https://github.com/jakecoffman/cp-examples contains the port of all of the Chipmunk2D demos.
+- [github.com/jakecoffman/cp-examples](https://github.com/jakecoffman/cp-examples) contains the port of all of the Chipmunk2D demos.
+- [github.com/hajimehoshi/ebiten/blob/main/examples/chipmunk/main.go](https://github.com/hajimehoshi/ebiten/blob/main/examples/chipmunk/main.go) is an example using Ebitengine
+- [github.com/gen2brain/raylib-go/blob/master/examples/physics/chipmunk/main.go](https://github.com/gen2brain/raylib-go/blob/master/examples/physics/chipmunk/main.go) is an example with raylib's Go port
 
-https://github.com/hajimehoshi/ebiten/blob/master/examples/chipmunk/main.go is an example using Ebiten
-
-https://github.com/gen2brain/raylib-go/blob/master/examples/physics/chipmunk/main.go is an example with raylib's Go port
-
-## documentation
+## Documentation
 
 The official chipmunk docs are a really good place to start: https://chipmunk-physics.net/release/ChipmunkLatest-Docs/
 
-## features
+## Features
 
 Same features as Chipmunk2D:
 
