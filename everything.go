@@ -15,9 +15,46 @@ const (
 	POOLED_BUFFER_SIZE = 1024
 )
 
+// Arbiter states
+const (
+	// Arbiter is active and its the first collision.
+	CP_ARBITER_STATE_FIRST_COLLISION = iota
+	// Arbiter is active and its not the first collision.
+	CP_ARBITER_STATE_NORMAL
+	// Collision has been explicitly ignored.
+	// Either by returning false from a begin collision handler or calling cpArbiterIgnore().
+	CP_ARBITER_STATE_IGNORE
+	// Collison is no longer active. A space will cache an arbiter for up to cpSpace.collisionPersistence more steps.
+	CP_ARBITER_STATE_CACHED
+	// Collison arbiter is invalid because one of the shapes was removed.
+	CP_ARBITER_STATE_INVALIDATED
+)
+
+var (
+	NO_GROUP       uint = 0        // Value for group signifying that a shape is in no group.
+	ALL_CATEGORIES uint = ^uint(0) // Value for Shape layers signifying that a shape is in every layer.
+)
+
+// SHAPE_FILTER_ALL is s collision filter value for a shape that will collide with anything except SHAPE_FILTER_NONE.
+var SHAPE_FILTER_ALL = ShapeFilter{NO_GROUP, ALL_CATEGORIES, ALL_CATEGORIES}
+
+// SHAPE_FILTER_NONE is a collision filter value for a shape that does not collide with anything.
+var SHAPE_FILTER_NONE = ShapeFilter{NO_GROUP, ^ALL_CATEGORIES, ^ALL_CATEGORIES}
+
+// CollisionBeginFunc is collision begin event function callback type.
+//
+// Returning false from a begin callback causes the collision to be ignored until the the separate callback is called when the objects stop colliding.
 type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{}) bool
+
+// CollisionPreSolveFunc is collision pre-solve event function callback type.
+//
+// Returning false from a pre-step callback causes the collision to be ignored until the next step.
 type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{}) bool
+
+// CollisionPostSolveFunc is collision post-solve event function callback type.
 type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData interface{})
+
+// CollisionSeparateFunc is collision separate event function callback type.
 type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData interface{})
 
 type CollisionType uintptr
@@ -44,21 +81,6 @@ type CollisionHandler struct {
 	// This is a user definable context pointer that is passed to all of the collision handler functions.
 	UserData interface{}
 }
-
-// Arbiter states
-const (
-	// Arbiter is active and its the first collision.
-	CP_ARBITER_STATE_FIRST_COLLISION = iota
-	// Arbiter is active and its not the first collision.
-	CP_ARBITER_STATE_NORMAL
-	// Collision has been explicitly ignored.
-	// Either by returning false from a begin collision handler or calling cpArbiterIgnore().
-	CP_ARBITER_STATE_IGNORE
-	// Collison is no longer active. A space will cache an arbiter for up to cpSpace.collisionPersistence more steps.
-	CP_ARBITER_STATE_CACHED
-	// Collison arbiter is invalid because one of the shapes was removed.
-	CP_ARBITER_STATE_INVALIDATED
-)
 
 type Contact struct {
 	r1, r2 Vector
@@ -87,6 +109,7 @@ func (c *Contact) Clone() Contact {
 	}
 }
 
+// CollisionInfo collision info struct
 type CollisionInfo struct {
 	a, b        *Shape
 	collisionId uint32
@@ -107,11 +130,13 @@ func (info *CollisionInfo) PushContact(p1, p2 Vector, hash HashValue) {
 	info.count++
 }
 
+// ShapeMassInfo is mass info struct
 type ShapeMassInfo struct {
 	m, i, area float64
 	cog        Vector
 }
 
+// PointQueryInfo is point query info struct.
 type PointQueryInfo struct {
 	// The nearest shape, NULL if no shape was within range.
 	Shape *Shape
@@ -124,6 +149,7 @@ type PointQueryInfo struct {
 	Gradient Vector
 }
 
+// SegmentQueryInfo is segment query info struct.
 type SegmentQueryInfo struct {
 	// The shape that was hit, or NULL if no collision occurred.
 	Shape *Shape
@@ -139,14 +165,7 @@ type SplittingPlane struct {
 	v0, n Vector
 }
 
-var (
-	NO_GROUP       uint = 0
-	ALL_CATEGORIES uint = ^uint(0)
-)
-
-var SHAPE_FILTER_ALL = ShapeFilter{NO_GROUP, ALL_CATEGORIES, ALL_CATEGORIES}
-var SHAPE_FILTER_NONE = ShapeFilter{NO_GROUP, ^ALL_CATEGORIES, ^ALL_CATEGORIES}
-
+// ShapeFilter is fast collision filtering type that is used to determine if two objects collide before calling collision or query callbacks.
 type ShapeFilter struct {
 	// Two objects with the same non-zero group value do not collide.
 	// This is generally used to group objects in a composite object together to disable self collisions.
@@ -159,6 +178,7 @@ type ShapeFilter struct {
 	Mask uint
 }
 
+// NewShapeFilter creates a new collision filter.
 func NewShapeFilter(group, categories, mask uint) ShapeFilter {
 	return ShapeFilter{group, categories, mask}
 }
@@ -171,27 +191,52 @@ func (a ShapeFilter) Reject(b ShapeFilter) bool {
 		(b.Categories&a.Mask) == 0
 }
 
-func MomentForCircle(m, r1, r2 float64, offset Vector) float64 {
-	return m * (0.5*(r1*r1+r2*r2) + offset.LengthSq())
+// Mat2x2 is a 2x2 matrix type used for tensors and such.
+type Mat2x2 struct {
+	a, b, c, d float64
 }
 
-func AreaForCircle(r1, r2 float64) float64 {
-	return math.Pi * math.Abs(r1*r1-r2*r2)
+// Transform transforms Vector v
+func (m *Mat2x2) Transform(v Vector) Vector {
+	return Vector{v.X*m.a + v.Y*m.b, v.X*m.c + v.Y*m.d}
 }
 
-func MomentForSegment(m float64, a, b Vector, r float64) float64 {
+// MomentForBox calculates the moment of inertia for a solid box.
+func MomentForBox(mass, width, height float64) float64 {
+	return mass * (width*width + height*height) / 12.0
+}
+
+// MomentForBox2 calculates the moment of inertia for a solid box.
+func MomentForBox2(mass float64, box BB) float64 {
+	width := box.R - box.L
+	height := box.T - box.B
+	offset := Vector{box.L + box.R, box.B + box.T}.Mult(0.5)
+
+	// TODO: NaN when offset is 0 and m is INFINITY
+	return MomentForBox(mass, width, height) + mass*offset.LengthSq()
+}
+
+// MomentForCircle calculates the moment of inertia for a circle.
+//
+// r1 and r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
+func MomentForCircle(mass, r1, r2 float64, offset Vector) float64 {
+	return mass * (0.5*(r1*r1+r2*r2) + offset.LengthSq())
+}
+
+// MomentForSegment calculates the moment of inertia for a line segment.
+//
+// Beveling radius is not supported.
+func MomentForSegment(mass float64, a, b Vector, r float64) float64 {
 	offset := a.Lerp(b, 0.5)
 	length := b.Distance(a) + 2.0*r
-	return m * ((length*length+4.0*r*r)/12.0 + offset.LengthSq())
+	return mass * ((length*length+4.0*r*r)/12.0 + offset.LengthSq())
 }
 
-func AreaForSegment(a, b Vector, r float64) float64 {
-	return r * (math.Pi*r + 2.0*a.Distance(b))
-}
-
-func MomentForPoly(m float64, count int, verts []Vector, offset Vector, r float64) float64 {
+// MomentForPoly calculates the moment of inertia for a solid polygon shape assuming it's center of gravity is at it's centroid.
+// The offset is added to each vertex.
+func MomentForPoly(mass float64, count int, verts []Vector, offset Vector, r float64) float64 {
 	if count == 2 {
-		return MomentForSegment(m, verts[0], verts[1], 0)
+		return MomentForSegment(mass, verts[0], verts[1], 0)
 	}
 
 	var sum1 float64
@@ -207,9 +252,24 @@ func MomentForPoly(m float64, count int, verts []Vector, offset Vector, r float6
 		sum2 += a
 	}
 
-	return (m * sum1) / (6.0 * sum2)
+	return (mass * sum1) / (6.0 * sum2)
 }
 
+// AreaForCircle returns area of a hollow circle.
+//
+// r1 and r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
+func AreaForCircle(r1, r2 float64) float64 {
+	return math.Pi * math.Abs(r1*r1-r2*r2)
+}
+
+// AreaForSegment calculates the area of a fattened (capsule shaped) line segment.
+func AreaForSegment(a, b Vector, r float64) float64 {
+	return r * (math.Pi*r + 2.0*a.Distance(b))
+}
+
+// AreaForPoly calculates the signed area of a polygon.
+//
+// A Clockwise winding gives positive area. This is probably backwards from what you expect, but matches Chipmunk's the winding for poly shapes.
 func AreaForPoly(count int, verts []Vector, r float64) float64 {
 	var area float64
 	var perimeter float64
@@ -224,6 +284,7 @@ func AreaForPoly(count int, verts []Vector, r float64) float64 {
 	return r*(math.Pi*math.Abs(r)+perimeter) + area/2.0
 }
 
+// CentroidForPoly calculates the natural centroid of a polygon.
 func CentroidForPoly(count int, verts []Vector) Vector {
 	var sum float64
 	vsum := Vector{}
@@ -240,17 +301,39 @@ func CentroidForPoly(count int, verts []Vector) Vector {
 	return vsum.Mult(1.0 / (3.0 * sum))
 }
 
-func MomentForBox(m, width, height float64) float64 {
-	return m * (width*width + height*height) / 12.0
-}
+// DebugInfo returns info of space
+func DebugInfo(space *Space) string {
+	arbiters := len(space.arbiters)
+	points := 0
 
-func MomentForBox2(m float64, box BB) float64 {
-	width := box.R - box.L
-	height := box.T - box.B
-	offset := Vector{box.L + box.R, box.B + box.T}.Mult(0.5)
+	for i := 0; i < arbiters; i++ {
+		points += int(space.arbiters[i].count)
+	}
 
-	// TODO: NaN when offset is 0 and m is INFINITY
-	return MomentForBox(m, width, height) + m*offset.LengthSq()
+	constraints := len(space.constraints) + points*int(space.Iterations)
+	if arbiters > maxArbiters {
+		maxArbiters = arbiters
+	}
+	if points > maxPoints {
+		maxPoints = points
+	}
+	if constraints > maxConstraints {
+		maxConstraints = constraints
+	}
+
+	var ke float64
+	for _, body := range space.dynamicBodies {
+		if body.m == INFINITY || body.i == INFINITY {
+			continue
+		}
+		ke += body.m*body.v.Dot(body.v) + body.i*body.w*body.w
+	}
+
+	return fmt.Sprintf(`Arbiters: %d (%d) - Contact Points: %d (%d)
+Other Constraints: %d, Iterations: %d
+Constraints x Iterations: %d (%d)
+KE: %e`, arbiters, maxArbiters,
+		points, maxPoints, len(space.constraints), space.Iterations, constraints, maxConstraints, ke)
 }
 
 func k_scalar_body(body *Body, r, n Vector) float64 {
@@ -310,46 +393,4 @@ func bias_coef(errorBias, dt float64) float64 {
 	return 1.0 - math.Pow(errorBias, dt)
 }
 
-type Mat2x2 struct {
-	a, b, c, d float64
-}
-
-func (m *Mat2x2) Transform(v Vector) Vector {
-	return Vector{v.X*m.a + v.Y*m.b, v.X*m.c + v.Y*m.d}
-}
-
 var maxArbiters, maxPoints, maxConstraints int
-
-func DebugInfo(space *Space) string {
-	arbiters := len(space.arbiters)
-	points := 0
-
-	for i := 0; i < arbiters; i++ {
-		points += int(space.arbiters[i].count)
-	}
-
-	constraints := len(space.constraints) + points*int(space.Iterations)
-	if arbiters > maxArbiters {
-		maxArbiters = arbiters
-	}
-	if points > maxPoints {
-		maxPoints = points
-	}
-	if constraints > maxConstraints {
-		maxConstraints = constraints
-	}
-
-	var ke float64
-	for _, body := range space.dynamicBodies {
-		if body.m == INFINITY || body.i == INFINITY {
-			continue
-		}
-		ke += body.m*body.v.Dot(body.v) + body.i*body.w*body.w
-	}
-
-	return fmt.Sprintf(`Arbiters: %d (%d) - Contact Points: %d (%d)
-Other Constraints: %d, Iterations: %d
-Constraints x Iterations: %d (%d)
-KE: %e`, arbiters, maxArbiters,
-		points, maxPoints, len(space.constraints), space.Iterations, constraints, maxConstraints, ke)
-}
