@@ -31,7 +31,7 @@ func MarchCells(bb BB, xSamples int64, ySamples int64, t float64, marchSegment M
 		y0 := Lerp(bb.B, bb.T, float64(j+0)*y_denom)
 		y1 := Lerp(bb.B, bb.T, float64(j+1)*y_denom)
 
-		a := buffer[0]
+		// a := buffer[0] // unused variable ?
 		b := buffer[0]
 		c := marchSample(Vector{bb.L, y1})
 		d := c
@@ -41,7 +41,7 @@ func MarchCells(bb BB, xSamples int64, ySamples int64, t float64, marchSegment M
 			x0 := Lerp(bb.L, bb.R, float64(i+0)*x_denom)
 			x1 := Lerp(bb.L, bb.R, float64(i+1)*x_denom)
 
-			a = b
+			a := b // = -> :=
 			b = buffer[i+1]
 			c = d
 			d = marchSample(Vector{x1, y1})

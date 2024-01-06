@@ -16,7 +16,7 @@ type Constraint struct {
 	Class Constrainer
 	space *Space
 
-	a, b *Body
+	a, b           *Body
 	next_a, next_b *Constraint
 
 	maxForce, errorBias, maxBias float64
@@ -25,7 +25,7 @@ type Constraint struct {
 	PreSolve      ConstraintPreSolveFunc
 	PostSolve     ConstraintPostSolveFunc
 
-	userData interface{}
+	UserData interface{}
 }
 
 func NewConstraint(class Constrainer, a, b *Body) *Constraint {

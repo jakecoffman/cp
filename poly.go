@@ -31,7 +31,7 @@ func (poly PolyShape) Radius() float64 {
 	return poly.r
 }
 
-func (poly PolyShape) SetRadius(r float64) {
+func (poly *PolyShape) SetRadius(r float64) {
 	poly.r = r
 }
 

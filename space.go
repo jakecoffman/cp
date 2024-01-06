@@ -221,7 +221,7 @@ func (space *Space) Deactivate(body *Body) {
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
 			space.UncacheArbiter(arb)
 			// Save contact values to a new block of memory so they won't time out
-			contacts := make([]Contact, arb.count, arb.count)
+			contacts := make([]Contact, arb.count, arb.count) // should use make([]Contact, arb.count) instead (S1019)go-staticcheck
 			copy(contacts, arb.contacts[:arb.count])
 			arb.contacts = contacts
 
@@ -311,6 +311,8 @@ func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
 
 	// Push onto the heads of the bodies' constraint lists
 	constraint.next_a = a.constraintList
+	// possible nil pointer dereference (SA5011)
+	// space.go:306:9: this check suggests that the pointer can be nilgo-staticcheck
 	a.constraintList = constraint
 	constraint.next_b = b.constraintList
 	b.constraintList = constraint
@@ -1101,8 +1103,7 @@ func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points 
 
 	var anyCollision bool
 
-	var shapeQuery SpatialIndexQuery
-	shapeQuery = func(obj interface{}, b *Shape, collisionId uint32, _ interface{}) uint32 {
+	shapeQuery := func(obj interface{}, b *Shape, collisionId uint32, _ interface{}) uint32 {
 		a := obj.(*Shape)
 		if a.Filter.Reject(b.Filter) || a == b {
 			return collisionId

@@ -2,7 +2,7 @@ package cp
 
 import "fmt"
 
-//Draw flags
+// Draw flags
 const (
 	DRAW_SHAPES           = 1 << 0
 	DRAW_CONSTRAINTS      = 1 << 1
@@ -154,8 +154,6 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 	default:
 		panic(fmt.Sprintf("Implement me: %#v", constraint.Class))
 	}
-
-	return
 }
 
 func DrawSpace(space *Space, options Drawer) {

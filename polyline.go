@@ -34,6 +34,7 @@ func (pl *PolyLine) IsClosed() bool {
 
 func (pl *PolyLine) IsShort(count, start, end int, min float64) bool {
 	var length float64
+	// Next doesn't have side effects and its return value is ignored (SA4017)go-staticcheck
 	for i := start; i != end; Next(i, count) {
 		length += pl.Verts[i].Distance(pl.Verts[Next(i, count)])
 		if length > min {
