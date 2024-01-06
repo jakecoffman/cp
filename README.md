@@ -1,12 +1,16 @@
 # cp
-[![GoDoc](https://godoc.org/github.com/jakecoffman/cp?status.svg)](http://godoc.org/github.com/jakecoffman/cp)
+[![GoDoc](https://godoc.org/github.com/jakecoffman/cp?status.svg)](https://pkg.go.dev/github.com/jakecoffman/cp/v2)
 [![Sourcegraph](https://sourcegraph.com/github.com/jakecoffman/cp/-/badge.svg)](https://sourcegraph.com/github.com/jakecoffman/cp?badge)
 
-[Chipmunk2D](https://github.com/slembcke/Chipmunk2D) ported to Go
+Go port of [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) physics library. 
+
+```Go
+import "github.com/jakecoffman/cp/v2"
+```
 
 ## Project status
 
-Stable -- most features are implemented and the demos are very close to Chipmunk2D demos.
+Stable -- most features are implemented and the demos are very close to Chipmunk2D demos. 
 
 ## Examples
 

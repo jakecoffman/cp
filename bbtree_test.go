@@ -1,6 +1,8 @@
 package cp
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestBBTree_GetMasterTree(t *testing.T) {
 	bbTree := &BBTree{}
@@ -22,6 +24,7 @@ func TestBBTree_GetMasterTree(t *testing.T) {
 	}
 
 	for i := 1; i < count*2; i++ {
+		// this value of node is never used (SA4006)go-staticcheck
 		node = bbTree.NodeFromPool()
 	}
 
