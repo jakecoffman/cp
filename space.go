@@ -9,15 +9,258 @@ import (
 const MAX_CONTACTS_PER_ARBITER = 2
 const CONTACTS_BUFFER_SIZE = 1024
 
+var ShapeVelocityFunc = func(obj interface{}) Vector {
+	return obj.(*Shape).body.v
+}
+
+var ShapeUpdateFunc = func(shape *Shape) {
+	shape.CacheBB()
+}
+
+type PostStepCallback struct {
+	callback PostStepCallbackFunc
+	key      interface{}
+	data     interface{}
+}
+
+type PointQueryContext struct {
+	point       Vector
+	maxDistance float64
+	filter      ShapeFilter
+	f           SpacePointQueryFunc
+}
+
+type ShapePair struct {
+	a, b *Shape
+}
+
+type BBQueryContext struct {
+	bb     BB
+	filter ShapeFilter
+	f      SpaceBBQueryFunc
+}
+
+type SegmentQueryContext struct {
+	start, end Vector
+	radius     float64
+	filter     ShapeFilter
+	f          SpaceSegmentQueryFunc
+}
+
+type SpacePointQueryFunc func(*Shape, Vector, float64, Vector, interface{})
+
+type SpaceBBQueryFunc func(shape *Shape, data interface{})
+
+type SpaceSegmentQueryFunc func(shape *Shape, point, normal Vector, alpha float64, data interface{})
+
+type PostStepCallbackFunc func(space *Space, key interface{}, data interface{})
+
+func PostStepDoNothing(space *Space, key, data interface{}) {}
+
+func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspace interface{}) uint32 {
+	a := obj.(*Shape)
+	space := vspace.(*Space)
+
+	// Reject any of the simple cases
+	if QueryReject(a, b) {
+		return collisionId
+	}
+
+	// Narrow-phase collision detection.
+	info := Collide(a, b, collisionId, space.ContactBufferGetArray())
+
+	if info.count == 0 {
+		// shapes are not colliding
+		return info.collisionId
+	}
+
+	//  Push contacts
+	space.PushContacts(info.count)
+
+	// Get an arbiter from space->arbiterSet for the two shapes.
+	// This is where the persistent contact magic comes from.
+	shapePair := ShapePair{info.a, info.b}
+	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
+	arb := space.cachedArbiters.Insert(arbHashId, shapePair, func(shapes ShapePair) *Arbiter {
+		arb := space.pooledArbiters.Get().(*Arbiter)
+		arb.Init(shapes.a, shapes.b)
+		return arb
+	})
+	arb.Update(&info, space)
+
+	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.BeginFunc(arb, space, arb.handler.UserData) {
+		arb.Ignore()
+	}
+
+	// Ignore the arbiter if it has been flagged
+	if arb.state != CP_ARBITER_STATE_IGNORE &&
+		// Call PreSolve
+		arb.handler.PreSolveFunc(arb, space, arb.handler.UserData) &&
+		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
+		arb.state != CP_ARBITER_STATE_IGNORE &&
+		// Process, but don't add collisions for sensors.
+		!(a.sensor || b.sensor) &&
+		// Don't process collisions between two infinite mass bodies.
+		// This includes collisions between two kinematic bodies, or a kinematic body and a static body.
+		!(a.body.m == INFINITY && b.body.m == INFINITY) {
+		space.arbiters = append(space.arbiters, arb)
+	} else {
+		space.PopContacts(info.count)
+		arb.contacts = nil
+		arb.count = 0
+
+		// Normally arbiters are set as used after calling the post-solve callback.
+		// However, post-solve() callbacks are not called for sensors or arbiters rejected from pre-solve.
+		if arb.state != CP_ARBITER_STATE_IGNORE {
+			arb.state = CP_ARBITER_STATE_NORMAL
+		}
+	}
+
+	// Time stamp the arbiter so we know it was used recently.
+	arb.stamp = space.stamp
+	return info.collisionId
+}
+
+func QueryReject(a, b *Shape) bool {
+	if a.body == b.body {
+		return true
+	}
+	if a.Filter.Reject(b.Filter) {
+		return true
+	}
+	if !a.bb.Intersects(b.bb) {
+		return true
+	}
+	if QueryRejectConstraints(a.body, b.body) {
+		return true
+	}
+	return false
+}
+
+func QueryRejectConstraints(a, b *Body) bool {
+	for constraint := a.constraintList; constraint != nil; constraint = constraint.Next(a) {
+		if !constraint.collideBodies && ((constraint.a == a && constraint.b == b) ||
+			(constraint.a == b && constraint.b == a)) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ComponentActive(root *Body, threshold float64) bool {
+	for item := root; item != nil; item = item.sleepingNext {
+		if item.sleepingIdleTime < threshold {
+			return true
+		}
+	}
+	return false
+}
+
+func FloodFillComponent(root *Body, body *Body) {
+	// Kinematic bodies cannot be put to sleep and prevent bodies they are touching from sleeping.
+	// Static bodies are effectively sleeping all the time.
+	if body.GetType() != BODY_DYNAMIC {
+		return
+	}
+
+	// body.sleeping.root
+	other_root := body.ComponentRoot()
+	if other_root == nil {
+		root.ComponentAdd(body)
+
+		for arb := body.arbiterList; arb != nil; arb = ArbiterNext(arb, body) {
+			if body == arb.body_a {
+				FloodFillComponent(root, arb.body_b)
+			} else {
+				FloodFillComponent(root, arb.body_a)
+			}
+		}
+
+		for constraint := body.constraintList; constraint != nil; constraint = constraint.Next(body) {
+			if body == constraint.a {
+				FloodFillComponent(root, constraint.b)
+			} else {
+				FloodFillComponent(root, constraint.a)
+			}
+		}
+	} else {
+		assert(other_root == root, "Inconsistency detected in the contact graph (FFC)")
+	}
+}
+
+func ArbiterNext(arb *Arbiter, body *Body) *Arbiter {
+	if arb.body_a == body {
+		return arb.thread_a.next
+	}
+	return arb.thread_b.next
+}
+
+func Contains(bodies []*Body, body *Body) bool {
+	for i := 0; i < len(bodies); i++ {
+		if bodies[i] == body {
+			return true
+		}
+	}
+	return false
+}
+
+func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint32, out interface{}) uint32 {
+	context := obj.(*PointQueryContext)
+	if !shape.Filter.Reject(context.filter) && !shape.sensor {
+		info := shape.PointQuery(context.point)
+		if info.Distance < out.(*PointQueryInfo).Distance {
+			outp := out.(*PointQueryInfo)
+			*outp = info
+		}
+	}
+
+	return collisionId
+}
+
+func segmentQuery(obj interface{}, shape *Shape, data interface{}) float64 {
+	context := obj.(*SegmentQueryContext)
+	var info SegmentQueryInfo
+
+	if !shape.Filter.Reject(context.filter) && shape.SegmentQuery(context.start, context.end, context.radius, &info) {
+		context.f(shape, info.Point, info.Normal, info.Alpha, data)
+	}
+
+	return 1
+}
+
+func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
+	context := obj.(*SegmentQueryContext)
+	out := data.(*SegmentQueryInfo)
+	var info SegmentQueryInfo
+
+	if !shape.Filter.Reject(context.filter) &&
+		!shape.sensor &&
+		shape.SegmentQuery(context.start, context.end, context.radius, &info) &&
+		info.Alpha < out.Alpha {
+		*out = info
+	}
+
+	return out.Alpha
+}
+
+func arbiterSetEql(shapes ShapePair, arb *Arbiter) bool {
+	a := shapes.a
+	b := shapes.b
+
+	return (a == arb.a && b == arb.b) || (b == arb.a && a == arb.b)
+}
+
 type Space struct {
-	Iterations uint // must be non-zero
-
-	gravity Vector
-	damping float64
-
+	// Iterations is number of iterations to use in the impulse solver to solve contacts and other constrain.
+	// Must be non-zero.
+	Iterations         uint
 	IdleSpeedThreshold float64
 	SleepTimeThreshold float64
+	StaticBody         *Body
 
+	gravity              Vector
+	damping              float64
 	collisionSlop        float64
 	collisionBias        float64
 	collisionPersistence uint
@@ -49,17 +292,9 @@ type Space struct {
 
 	skipPostStep      bool
 	postStepCallbacks []*PostStepCallback
-
-	StaticBody *Body
 }
 
-func arbiterSetEql(shapes ShapePair, arb *Arbiter) bool {
-	a := shapes.a
-	b := shapes.b
-
-	return (a == arb.a && b == arb.b) || (b == arb.a && a == arb.b)
-}
-
+// NewSpace allocates and initializes a Space
 func NewSpace() *Space {
 	space := &Space{
 		Iterations:           10,
@@ -105,12 +340,28 @@ func NewSpace() *Space {
 	return space
 }
 
-var ShapeVelocityFunc = func(obj interface{}) Vector {
-	return obj.(*Shape).body.v
-}
-
 func (space *Space) Gravity() Vector {
 	return space.gravity
+}
+
+// DynamicBodies returns dynamic body list of the space
+func (space *Space) DynamicBodies() []*Body {
+	return space.dynamicBodies
+}
+
+// StaticBodies returns static body list of the space
+func (space *Space) StaticBodies() []*Body {
+	return space.staticBodies
+}
+
+// DynamicBodyCount returns the total number of dynamic bodies in space
+func (space *Space) DynamicBodyCount() int {
+	return len(space.dynamicBodies)
+}
+
+// StaticBodyCount returns the total number of static bodies in space
+func (space *Space) StaticBodyCount() int {
+	return len(space.staticBodies)
 }
 
 func (space *Space) SetGravity(gravity Vector) {
@@ -122,10 +373,17 @@ func (space *Space) SetGravity(gravity Vector) {
 	}
 }
 
+// Daming returns damping
 func (space *Space) Damping() float64 {
 	return space.damping
 }
 
+// SetDamping sets damping.
+//
+// Damping rate expressed as the fraction of velocity bodies retain each second.
+// A value of 0.9 would mean that each body's velocity will drop 10% per second.
+// The default value is 1.0, meaning no damping is applied.
+// @note This damping value is different than those of DampedSpring and DampedRotarySpring.
 func (space *Space) SetDamping(damping float64) {
 	assert(damping >= 0)
 	space.damping = damping
@@ -221,7 +479,7 @@ func (space *Space) Deactivate(body *Body) {
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
 			space.UncacheArbiter(arb)
 			// Save contact values to a new block of memory so they won't time out
-			contacts := make([]Contact, arb.count, arb.count) // should use make([]Contact, arb.count) instead (S1019)go-staticcheck
+			contacts := make([]Contact, arb.count)
 			copy(contacts, arb.contacts[:arb.count])
 			arb.contacts = contacts
 
@@ -240,23 +498,9 @@ func (space *Space) Deactivate(body *Body) {
 	}
 }
 
-type PostStepCallback struct {
-	callback PostStepCallbackFunc
-	key      interface{}
-	data     interface{}
-}
-
-type PostStepCallbackFunc func(space *Space, key interface{}, data interface{})
-
-func Contains(bodies []*Body, body *Body) bool {
-	for i := 0; i < len(bodies); i++ {
-		if bodies[i] == body {
-			return true
-		}
-	}
-	return false
-}
-
+// AddShape adds a collision shape to the simulation.
+//
+// If the shape is attached to a static body, it will be added as a static shape
 func (space *Space) AddShape(shape *Shape) *Shape {
 	var body *Body = shape.Body()
 
@@ -284,6 +528,31 @@ func (space *Space) AddShape(shape *Shape) *Shape {
 	return shape
 }
 
+// RemoveShape removes a collision shape from the simulation.
+func (space *Space) RemoveShape(shape *Shape) {
+	body := shape.body
+	assert(space.ContainsShape(shape))
+	assert(space.locked == 0)
+
+	isStatic := body.GetType() == BODY_STATIC
+	if isStatic {
+		body.ActivateStatic(shape)
+	} else {
+		body.Activate()
+	}
+
+	body.RemoveShape(shape)
+	space.FilterArbiters(body, shape)
+	if isStatic {
+		space.staticShapes.class.Remove(shape, shape.hashid)
+	} else {
+		space.dynamicShapes.class.Remove(shape, shape.hashid)
+	}
+	shape.space = nil
+	shape.hashid = 0
+}
+
+// AddBody adds a rigid body to the simulation.
 func (space *Space) AddBody(body *Body) *Body {
 	assert(body.space != space, "Already added to this space")
 	assert(body.space == nil, "Already added to another space")
@@ -294,6 +563,31 @@ func (space *Space) AddBody(body *Body) *Body {
 	}
 	body.space = space
 	return body
+}
+
+// RemoveBody removes a body from the simulation
+func (space *Space) RemoveBody(body *Body) {
+	assert(body != space.StaticBody)
+	assert(space.ContainsBody(body))
+	assert(space.locked == 0)
+
+	body.Activate()
+	if body.GetType() == BODY_STATIC {
+		for i, b := range space.staticBodies {
+			if b == body {
+				space.staticBodies = append(space.staticBodies[:i], space.staticBodies[i+1:]...)
+				break
+			}
+		}
+	} else {
+		for i, b := range space.dynamicBodies {
+			if b == body {
+				space.dynamicBodies = append(space.dynamicBodies[:i], space.dynamicBodies[i+1:]...)
+				break
+			}
+		}
+	}
+	body.space = nil
 }
 
 func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
@@ -312,7 +606,7 @@ func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
 	// Push onto the heads of the bodies' constraint lists
 	constraint.next_a = a.constraintList
 	// possible nil pointer dereference (SA5011)
-	// space.go:306:9: this check suggests that the pointer can be nilgo-staticcheck
+	// space.go:306:9: this check suggests that the pointer can be nil go-staticcheck
 	a.constraintList = constraint
 	constraint.next_b = b.constraintList
 	b.constraintList = constraint
@@ -339,53 +633,6 @@ func (space *Space) RemoveConstraint(constraint *Constraint) {
 	constraint.space = nil
 }
 
-func (space *Space) RemoveShape(shape *Shape) {
-	body := shape.body
-	assert(space.ContainsShape(shape))
-	assert(space.locked == 0)
-
-	isStatic := body.GetType() == BODY_STATIC
-	if isStatic {
-		body.ActivateStatic(shape)
-	} else {
-		body.Activate()
-	}
-
-	body.RemoveShape(shape)
-	space.FilterArbiters(body, shape)
-	if isStatic {
-		space.staticShapes.class.Remove(shape, shape.hashid)
-	} else {
-		space.dynamicShapes.class.Remove(shape, shape.hashid)
-	}
-	shape.space = nil
-	shape.hashid = 0
-}
-
-func (space *Space) RemoveBody(body *Body) {
-	assert(body != space.StaticBody)
-	assert(space.ContainsBody(body))
-	assert(space.locked == 0)
-
-	body.Activate()
-	if body.GetType() == BODY_STATIC {
-		for i, b := range space.staticBodies {
-			if b == body {
-				space.staticBodies = append(space.staticBodies[:i], space.staticBodies[i+1:]...)
-				break
-			}
-		}
-	} else {
-		for i, b := range space.dynamicBodies {
-			if b == body {
-				space.dynamicBodies = append(space.dynamicBodies[:i], space.dynamicBodies[i+1:]...)
-				break
-			}
-		}
-	}
-	body.space = nil
-}
-
 func (space *Space) FilterArbiters(body *Body, filter *Shape) {
 	space.Lock()
 
@@ -406,78 +653,6 @@ func (space *Space) ContainsShape(shape *Shape) bool {
 
 func (space *Space) ContainsBody(body *Body) bool {
 	return body.space == space
-}
-
-var ShapeUpdateFunc = func(shape *Shape) {
-	shape.CacheBB()
-}
-
-type ShapePair struct {
-	a, b *Shape
-}
-
-func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspace interface{}) uint32 {
-	a := obj.(*Shape)
-	space := vspace.(*Space)
-
-	// Reject any of the simple cases
-	if QueryReject(a, b) {
-		return collisionId
-	}
-
-	// Narrow-phase collision detection.
-	info := Collide(a, b, collisionId, space.ContactBufferGetArray())
-
-	if info.count == 0 {
-		// shapes are not colliding
-		return info.collisionId
-	}
-
-	//  Push contacts
-	space.PushContacts(info.count)
-
-	// Get an arbiter from space->arbiterSet for the two shapes.
-	// This is where the persistent contact magic comes from.
-	shapePair := ShapePair{info.a, info.b}
-	arbHashId := HashPair(HashValue(unsafe.Pointer(info.a)), HashValue(unsafe.Pointer(info.b)))
-	arb := space.cachedArbiters.Insert(arbHashId, shapePair, func(shapes ShapePair) *Arbiter {
-		arb := space.pooledArbiters.Get().(*Arbiter)
-		arb.Init(shapes.a, shapes.b)
-		return arb
-	})
-	arb.Update(&info, space)
-
-	if arb.state == CP_ARBITER_STATE_FIRST_COLLISION && !arb.handler.BeginFunc(arb, space, arb.handler.UserData) {
-		arb.Ignore()
-	}
-
-	// Ignore the arbiter if it has been flagged
-	if arb.state != CP_ARBITER_STATE_IGNORE &&
-		// Call PreSolve
-		arb.handler.PreSolveFunc(arb, space, arb.handler.UserData) &&
-		// Check (again) in case the pre-solve() callback called cpArbiterIgnored().
-		arb.state != CP_ARBITER_STATE_IGNORE &&
-		// Process, but don't add collisions for sensors.
-		!(a.sensor || b.sensor) &&
-		// Don't process collisions between two infinite mass bodies.
-		// This includes collisions between two kinematic bodies, or a kinematic body and a static body.
-		!(a.body.m == INFINITY && b.body.m == INFINITY) {
-		space.arbiters = append(space.arbiters, arb)
-	} else {
-		space.PopContacts(info.count)
-		arb.contacts = nil
-		arb.count = 0
-
-		// Normally arbiters are set as used after calling the post-solve callback.
-		// However, post-solve() callbacks are not called for sensors or arbiters rejected from pre-solve.
-		if arb.state != CP_ARBITER_STATE_IGNORE {
-			arb.state = CP_ARBITER_STATE_NORMAL
-		}
-	}
-
-	// Time stamp the arbiter so we know it was used recently.
-	arb.stamp = space.stamp
-	return info.collisionId
 }
 
 func (space *Space) PushFreshContactBuffer() {
@@ -504,33 +679,6 @@ func (space *Space) ContactBufferGetArray() []Contact {
 
 	head := space.contactBuffersHead
 	return head.contacts[head.numContacts : head.numContacts+MAX_CONTACTS_PER_ARBITER]
-}
-
-func QueryReject(a, b *Shape) bool {
-	if a.body == b.body {
-		return true
-	}
-	if a.Filter.Reject(b.Filter) {
-		return true
-	}
-	if !a.bb.Intersects(b.bb) {
-		return true
-	}
-	if QueryRejectConstraints(a.body, b.body) {
-		return true
-	}
-	return false
-}
-
-func QueryRejectConstraints(a, b *Body) bool {
-	for constraint := a.constraintList; constraint != nil; constraint = constraint.Next(a) {
-		if !constraint.collideBodies && ((constraint.a == a && constraint.b == b) ||
-			(constraint.a == b && constraint.b == a)) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (space *Space) ProcessComponents(dt float64) {
@@ -623,54 +771,6 @@ func (space *Space) ProcessComponents(dt float64) {
 			body.sleepingNext = nil
 		}
 	}
-}
-
-func ComponentActive(root *Body, threshold float64) bool {
-	for item := root; item != nil; item = item.sleepingNext {
-		if item.sleepingIdleTime < threshold {
-			return true
-		}
-	}
-	return false
-}
-
-func FloodFillComponent(root *Body, body *Body) {
-	// Kinematic bodies cannot be put to sleep and prevent bodies they are touching from sleeping.
-	// Static bodies are effectively sleeping all the time.
-	if body.GetType() != BODY_DYNAMIC {
-		return
-	}
-
-	// body.sleeping.root
-	other_root := body.ComponentRoot()
-	if other_root == nil {
-		root.ComponentAdd(body)
-
-		for arb := body.arbiterList; arb != nil; arb = ArbiterNext(arb, body) {
-			if body == arb.body_a {
-				FloodFillComponent(root, arb.body_b)
-			} else {
-				FloodFillComponent(root, arb.body_a)
-			}
-		}
-
-		for constraint := body.constraintList; constraint != nil; constraint = constraint.Next(body) {
-			if body == constraint.a {
-				FloodFillComponent(root, constraint.b)
-			} else {
-				FloodFillComponent(root, constraint.a)
-			}
-		}
-	} else {
-		assert(other_root == root, "Inconsistency detected in the contact graph (FFC)")
-	}
-}
-
-func ArbiterNext(arb *Arbiter, body *Body) *Arbiter {
-	if arb.body_a == body {
-		return arb.thread_a.next
-	}
-	return arb.thread_b.next
 }
 
 func (space *Space) Step(dt float64) {
@@ -893,6 +993,7 @@ func (space *Space) UseSpatialHash(dim float64, count int) {
 	space.dynamicShapes = dynamicShapes
 }
 
+// EachBody calls func f for each body in the space
 func (space *Space) EachBody(f func(body *Body)) {
 	space.Lock()
 	defer space.Unlock(true)
@@ -916,6 +1017,7 @@ func (space *Space) EachBody(f func(body *Body)) {
 	}
 }
 
+// EachShape calls func f for each shape in the space
 func (space *Space) EachShape(f func(*Shape)) {
 	space.Lock()
 
@@ -939,15 +1041,6 @@ func (space *Space) EachConstraint(f func(*Constraint)) {
 	space.Unlock(true)
 }
 
-type SpacePointQueryFunc func(*Shape, Vector, float64, Vector, interface{})
-
-type PointQueryContext struct {
-	point       Vector
-	maxDistance float64
-	filter      ShapeFilter
-	f           SpacePointQueryFunc
-}
-
 func (space *Space) PointQueryNearest(point Vector, maxDistance float64, filter ShapeFilter) *PointQueryInfo {
 	info := &PointQueryInfo{nil, Vector{}, maxDistance, Vector{}}
 	context := &PointQueryContext{point, maxDistance, filter, nil}
@@ -957,35 +1050,6 @@ func (space *Space) PointQueryNearest(point Vector, maxDistance float64, filter 
 	space.staticShapes.class.Query(context, bb, NearestPointQueryNearest, info)
 
 	return info
-}
-
-func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint32, out interface{}) uint32 {
-	context := obj.(*PointQueryContext)
-	if !shape.Filter.Reject(context.filter) && !shape.sensor {
-		info := shape.PointQuery(context.point)
-		if info.Distance < out.(*PointQueryInfo).Distance {
-			outp := out.(*PointQueryInfo)
-			*outp = info
-		}
-	}
-
-	return collisionId
-}
-
-type SpaceBBQueryFunc func(shape *Shape, data interface{})
-
-type BBQueryContext struct {
-	bb     BB
-	filter ShapeFilter
-	f      SpaceBBQueryFunc
-}
-
-func (space *Space) bbQuery(obj interface{}, shape *Shape, collisionId uint32, data interface{}) uint32 {
-	context := obj.(*BBQueryContext)
-	if !shape.Filter.Reject(context.filter) && shape.BB().Intersects(context.bb) {
-		context.f(shape, data)
-	}
-	return collisionId
 }
 
 func (space *Space) BBQuery(bb BB, filter ShapeFilter, f SpaceBBQueryFunc, data interface{}) {
@@ -1003,41 +1067,6 @@ func (space *Space) ArrayForBodyType(bodyType int) *[]*Body {
 		return &space.staticBodies
 	}
 	return &space.dynamicBodies
-}
-
-type SpaceSegmentQueryFunc func(shape *Shape, point, normal Vector, alpha float64, data interface{})
-
-type SegmentQueryContext struct {
-	start, end Vector
-	radius     float64
-	filter     ShapeFilter
-	f          SpaceSegmentQueryFunc
-}
-
-func segmentQuery(obj interface{}, shape *Shape, data interface{}) float64 {
-	context := obj.(*SegmentQueryContext)
-	var info SegmentQueryInfo
-
-	if !shape.Filter.Reject(context.filter) && shape.SegmentQuery(context.start, context.end, context.radius, &info) {
-		context.f(shape, info.Point, info.Normal, info.Alpha, data)
-	}
-
-	return 1
-}
-
-func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
-	context := obj.(*SegmentQueryContext)
-	out := data.(*SegmentQueryInfo)
-	var info SegmentQueryInfo
-
-	if !shape.Filter.Reject(context.filter) &&
-		!shape.sensor &&
-		shape.SegmentQuery(context.start, context.end, context.radius, &info) &&
-		info.Alpha < out.Alpha {
-		*out = info
-	}
-
-	return out.Alpha
 }
 
 func (space *Space) SegmentQuery(start, end Vector, radius float64, filter ShapeFilter, f SpaceSegmentQueryFunc, data interface{}) {
@@ -1071,8 +1100,6 @@ func (space *Space) PostStepCallback(key interface{}) *PostStepCallback {
 	}
 	return nil
 }
-
-func PostStepDoNothing(space *Space, key, data interface{}) {}
 
 func (space *Space) AddPostStepCallback(f PostStepCallbackFunc, key, data interface{}) bool {
 	if key == nil || space.PostStepCallback(key) == nil {
@@ -1128,4 +1155,12 @@ func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points 
 	space.Unlock(true)
 
 	return anyCollision
+}
+
+func (space *Space) bbQuery(obj interface{}, shape *Shape, collisionId uint32, data interface{}) uint32 {
+	context := obj.(*BBQueryContext)
+	if !shape.Filter.Reject(context.filter) && shape.BB().Intersects(context.bb) {
+		context.f(shape, data)
+	}
+	return collisionId
 }
