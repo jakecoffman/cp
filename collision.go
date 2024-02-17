@@ -245,7 +245,7 @@ func (v0 MinkowskiPoint) ClosestPoints(v1 MinkowskiPoint) ClosestPoints {
 
 	// Vertex/vertex collisions need special treatment since the MSA won't be shared with an axis of the minkowski difference.
 	d2 := p.Length()
-	n2 := p.Mult(1 / (d2 + math.SmallestNonzeroFloat64))
+	n2 := p.Mult(1 / (d2 + 1e-15))
 
 	return ClosestPoints{pa, pb, n2, d2, id}
 }
@@ -325,8 +325,8 @@ func ContactPoints(e1, e2 Edge, points ClosestPoints, info *CollisionInfo) {
 	dE2B := e2.b.p.Cross(n)
 
 	// TODO + min isn't a complete fix
-	e1Denom := 1 / (dE1B - dE1A + math.SmallestNonzeroFloat64)
-	e2Denom := 1 / (dE2B - dE2A + math.SmallestNonzeroFloat64)
+	e1Denom := 1 / (dE1B - dE1A + 1e-15)
+	e2Denom := 1 / (dE2B - dE2A + 1e-15)
 
 	// Project the endpoints of the two edges onto the opposing edge, clamping them as necessary.
 	// Compare the projected points to the collision normal to see if the shapes overlap there.

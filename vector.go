@@ -86,7 +86,7 @@ func (v Vector) Lerp(other Vector, t float64) Vector {
 }
 
 func (v Vector) Normalize() Vector {
-	return v.Mult(1.0 / (v.Length() + math.SmallestNonzeroFloat64))
+	return v.Mult(1.0 / (v.Length() + 1e-15))
 }
 
 func (v Vector) SLerp(other Vector, t float64) Vector {
