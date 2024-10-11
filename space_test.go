@@ -23,3 +23,11 @@ func TestSpace_ShapeQuery(t *testing.T) {
 		t.Error("Box should be just out of range")
 	})
 }
+
+func TestSpace_ReindexShape(t *testing.T) {
+	space := NewSpace()
+	circle := space.AddShape(NewCircle(space.StaticBody, 1, Vector{}))
+	space.ReindexShape(circle)
+	circle.body.SetPosition(Vector{X: 12.0, Y: 34.0})
+	space.ReindexShape(circle)
+}

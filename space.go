@@ -1133,7 +1133,7 @@ func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points 
 // ReindexShape re-computes the hash of the shape in both the dynamic and static list.
 func (space *Space) ReindexShape(shape *Shape) {
 
-	assert(space.locked > 0, "You cannot manually reindex objects while the space is locked. Wait until the current query or step is complete.")
+	assert(space.locked == 0, "You cannot manually reindex objects while the space is locked. Wait until the current query or step is complete.")
 
 	shape.CacheBB()
 
