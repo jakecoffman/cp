@@ -1129,3 +1129,15 @@ func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points 
 
 	return anyCollision
 }
+
+// ReindexShape re-computes the hash of the shape in both the dynamic and static list.
+func (space *Space) ReindexShape(shape *Shape) {
+
+	assert(space.locked == 0, "You cannot manually reindex objects while the space is locked. Wait until the current query or step is complete.")
+
+	shape.CacheBB()
+
+	// attempt to rehash the shape in both hashes
+	space.dynamicShapes.class.ReindexObject(shape, shape.hashid)
+	space.staticShapes.class.ReindexObject(shape, shape.hashid)
+}

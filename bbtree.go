@@ -320,7 +320,13 @@ func (tree *BBTree) Reindex() {
 }
 
 func (tree *BBTree) ReindexObject(obj *Shape, hashId HashValue) {
-	panic("implement me")
+	leaf := tree.leaves.Find(hashId, obj)
+	if leaf != nil {
+		if tree.LeafUpdate(leaf) {
+			tree.LeafAddPairs(leaf)
+		}
+		tree.IncrementStamp()
+	}
 }
 
 func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
