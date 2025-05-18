@@ -177,7 +177,7 @@ func (body *Body) SetType(newType int) {
 	if body.space == nil {
 		return
 	}
-	assert(body.space.locked == 0, "Space is locked")
+	assertSpaceUnlocked(body.space)
 
 	if oldType != BODY_STATIC {
 		body.Activate()

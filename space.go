@@ -41,7 +41,7 @@ type Space struct {
 	cachedArbiters     *HashSet[ShapePair, *Arbiter]
 	pooledArbiters     sync.Pool
 
-	locked int
+	locked bool
 
 	usesWildcards     bool
 	collisionHandlers *HashSet[*CollisionHandler, *CollisionHandler]
@@ -68,7 +68,7 @@ func NewSpace() *Space {
 		collisionSlop:        0.1,
 		collisionBias:        math.Pow(0.9, 60),
 		collisionPersistence: 3,
-		locked:               0,
+		locked:               false,
 		stamp:                0,
 		shapeIDCounter:       1,
 		staticShapes:         NewBBTree(ShapeGetBB, nil),
@@ -147,7 +147,7 @@ func (space *Space) SetStaticBody(body *Body) {
 func (space *Space) Activate(body *Body) {
 	assert(body.GetType() == BODY_DYNAMIC, "Attempting to activate a non-dynamic body")
 
-	if space.locked != 0 {
+	if space.locked {
 		if !Contains(space.rousedBodies, body) {
 			space.rousedBodies = append(space.rousedBodies, body)
 		}
@@ -262,7 +262,7 @@ func (space *Space) AddShape(shape *Shape) *Shape {
 
 	assert(shape.space != space, "You have already added this shape to this space. You must not add it a second time.")
 	assert(shape.space == nil, "You have already added this shape to another space. You cannot add it to a second.")
-	assert(space.locked == 0, "This operation cannot be done safely during a call to cpSpaceStep() or during a query. Put these calls into a post-step callback.")
+	assertSpaceUnlocked(space)
 
 	isStatic := body.GetType() == BODY_STATIC
 	if !isStatic {
@@ -299,7 +299,7 @@ func (space *Space) AddBody(body *Body) *Body {
 func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
 	assert(constraint.space != space, "Already added to this space")
 	assert(constraint.space == nil, "Already added to another space")
-	assert(space.locked == 0, "Space is locked")
+	assertSpaceUnlocked(space)
 
 	a := constraint.a
 	b := constraint.b
@@ -323,7 +323,7 @@ func (space *Space) AddConstraint(constraint *Constraint) *Constraint {
 
 func (space *Space) RemoveConstraint(constraint *Constraint) {
 	assert(space.ContainsConstraint(constraint), "Constraint not found")
-	assert(space.locked == 0, "Space is locked")
+	assertSpaceUnlocked(space)
 
 	constraint.a.Activate()
 	constraint.b.Activate()
@@ -342,7 +342,7 @@ func (space *Space) RemoveConstraint(constraint *Constraint) {
 func (space *Space) RemoveShape(shape *Shape) {
 	body := shape.body
 	assert(space.ContainsShape(shape))
-	assert(space.locked == 0)
+	assertSpaceUnlocked(space)
 
 	isStatic := body.GetType() == BODY_STATIC
 	if isStatic {
@@ -365,7 +365,7 @@ func (space *Space) RemoveShape(shape *Shape) {
 func (space *Space) RemoveBody(body *Body) {
 	assert(body != space.StaticBody)
 	assert(space.ContainsBody(body))
-	assert(space.locked == 0)
+	assertSpaceUnlocked(space)
 
 	body.Activate()
 	if body.GetType() == BODY_STATIC {
@@ -782,17 +782,11 @@ func (space *Space) Step(dt float64) {
 }
 
 func (space *Space) Lock() {
-	space.locked++
+	space.locked = true
 }
 
 func (space *Space) Unlock(runPostStep bool) {
-	space.locked--
-
-	assert(space.locked >= 0, "Space lock underflow")
-
-	if space.locked != 0 {
-		return
-	}
+	space.locked = false
 
 	for i := 0; i < len(space.rousedBodies); i++ {
 		space.Activate(space.rousedBodies[i])
@@ -818,6 +812,10 @@ func (space *Space) Unlock(runPostStep bool) {
 		space.postStepCallbacks = space.postStepCallbacks[:0]
 		space.skipPostStep = false
 	}
+}
+
+func (space *Space) IsLocked() bool {
+	return space.locked
 }
 
 func (space *Space) UncacheArbiter(arb *Arbiter) {
@@ -1133,7 +1131,7 @@ func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points 
 // ReindexShape re-computes the hash of the shape in both the dynamic and static list.
 func (space *Space) ReindexShape(shape *Shape) {
 
-	assert(space.locked == 0, "You cannot manually reindex objects while the space is locked. Wait until the current query or step is complete.")
+	assert(!space.locked, "You cannot manually reindex objects while the space is locked. Wait until the current query or step is complete.")
 
 	shape.CacheBB()
 
