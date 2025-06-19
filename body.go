@@ -3,6 +3,7 @@ package cp
 import (
 	"fmt"
 	"math"
+	"slices"
 )
 
 // Body types
@@ -184,20 +185,14 @@ func (body *Body) SetType(newType int) {
 	}
 
 	if oldType == BODY_STATIC {
-		for i, b := range body.space.staticBodies {
-			if b == body {
-				body.space.staticBodies = append(body.space.staticBodies[:i], body.space.staticBodies[i+1:]...)
-				break
-			}
-		}
+		body.space.staticBodies = slices.DeleteFunc(body.space.staticBodies, func(b *Body) bool {
+			return b == body
+		})
 		body.space.dynamicBodies = append(body.space.dynamicBodies, body)
 	} else if newType == BODY_STATIC {
-		for i, b := range body.space.dynamicBodies {
-			if b == body {
-				body.space.dynamicBodies = append(body.space.dynamicBodies[:i], body.space.dynamicBodies[i+1:]...)
-				break
-			}
-		}
+		body.space.dynamicBodies = slices.DeleteFunc(body.space.dynamicBodies, func(b *Body) bool {
+			return b == body
+		})
 		body.space.staticBodies = append(body.space.staticBodies, body)
 	}
 
@@ -395,12 +390,9 @@ func (body *Body) Activate() {
 			bodyToo = next
 		}
 
-		for i := range space.sleepingComponents {
-			if space.sleepingComponents[i] == root {
-				space.sleepingComponents = append(space.sleepingComponents[:i], space.sleepingComponents[i+1:]...)
-				break
-			}
-		}
+		space.sleepingComponents = slices.DeleteFunc(space.sleepingComponents, func(b *Body) bool {
+			return b == root
+		})
 	}
 
 	for arbiter := body.arbiterList; arbiter != nil; arbiter = arbiter.Next(body) {
@@ -551,16 +543,9 @@ func (body *Body) RemoveConstraint(constraint *Constraint) {
 
 // RemoveShape removes collision shape from the body.
 func (body *Body) RemoveShape(shape *Shape) {
-	for i, s := range body.shapeList {
-		if s == shape {
-			// leak-free delete from slice
-			last := len(body.shapeList) - 1
-			body.shapeList[i] = body.shapeList[last]
-			body.shapeList[last] = nil
-			body.shapeList = body.shapeList[:last]
-			break
-		}
-	}
+	body.shapeList = slices.DeleteFunc(body.shapeList, func(s *Shape) bool {
+		return s == shape
+	})
 	if body.GetType() == BODY_DYNAMIC && shape.massInfo.m > 0 {
 		body.AccumulateMassFromShapes()
 	}

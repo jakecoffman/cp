@@ -2,6 +2,7 @@ package cp
 
 import (
 	"math"
+	"slices"
 	"sync"
 	"unsafe"
 )
@@ -204,12 +205,9 @@ func (space *Space) Activate(body *Body) {
 func (space *Space) Deactivate(body *Body) {
 	assert(body.GetType() == BODY_DYNAMIC, "Attempting to deactivate non-dynamic body.")
 
-	for i, v := range space.dynamicBodies {
-		if v == body {
-			space.dynamicBodies = append(space.dynamicBodies[:i], space.dynamicBodies[i+1:]...)
-			break
-		}
-	}
+	space.dynamicBodies = slices.DeleteFunc(space.dynamicBodies, func(v *Body) bool {
+		return v == body
+	})
 
 	for _, shape := range body.shapeList {
 		space.dynamicShapes.class.Remove(shape, shape.hashid)
@@ -231,11 +229,9 @@ func (space *Space) Deactivate(body *Body) {
 	for constraint := body.constraintList; constraint != nil; constraint = constraint.Next(body) {
 		bodyA := constraint.a
 		if body == bodyA || bodyA.GetType() == BODY_STATIC {
-			for i, c := range space.constraints {
-				if c == constraint {
-					space.constraints = append(space.constraints[0:i], space.constraints[i+1:]...)
-				}
-			}
+			space.constraints = slices.DeleteFunc(space.constraints, func(c *Constraint) bool {
+				return c == constraint
+			})
 		}
 	}
 }
@@ -327,12 +323,9 @@ func (space *Space) RemoveConstraint(constraint *Constraint) {
 
 	constraint.a.Activate()
 	constraint.b.Activate()
-	for i, c := range space.constraints {
-		if c == constraint {
-			space.constraints = append(space.constraints[:i], space.constraints[i+1:]...)
-			break
-		}
-	}
+	space.constraints = slices.DeleteFunc(space.constraints, func(c *Constraint) bool {
+		return c == constraint
+	})
 
 	constraint.a.RemoveConstraint(constraint)
 	constraint.b.RemoveConstraint(constraint)
@@ -369,19 +362,13 @@ func (space *Space) RemoveBody(body *Body) {
 
 	body.Activate()
 	if body.GetType() == BODY_STATIC {
-		for i, b := range space.staticBodies {
-			if b == body {
-				space.staticBodies = append(space.staticBodies[:i], space.staticBodies[i+1:]...)
-				break
-			}
-		}
+		space.staticBodies = slices.DeleteFunc(space.staticBodies, func(b *Body) bool {
+			return b == body
+		})
 	} else {
-		for i, b := range space.dynamicBodies {
-			if b == body {
-				space.dynamicBodies = append(space.dynamicBodies[:i], space.dynamicBodies[i+1:]...)
-				break
-			}
-		}
+		space.dynamicBodies = slices.DeleteFunc(space.dynamicBodies, func(b *Body) bool {
+			return b == body
+		})
 	}
 	body.space = nil
 }
