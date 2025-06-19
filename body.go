@@ -24,7 +24,7 @@ type Body struct {
 	// UserData is an object that this constraint is associated with.
 	//
 	// You can use this get a reference to your game object or controller object from within callbacks.
-	UserData interface{}
+	UserData any
 
 	id            int              // Body id
 	velocity_func BodyVelocityFunc // Integration function

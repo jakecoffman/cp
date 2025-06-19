@@ -80,7 +80,7 @@ func NewSpace() *Space {
 		IdleSpeedThreshold:   0.0,
 		arbiters:             []*Arbiter{},
 		cachedArbiters:       NewHashSet[ShapePair, *Arbiter](arbiterSetEql),
-		pooledArbiters:       sync.Pool{New: func() interface{} { return &Arbiter{} }},
+		pooledArbiters:       sync.Pool{New: func() any { return &Arbiter{} }},
 		constraints:          []*Constraint{},
 		collisionHandlers: NewHashSet[*CollisionHandler, *CollisionHandler](func(a, b *CollisionHandler) bool {
 			if a.TypeA == b.TypeA && a.TypeB == b.TypeB {
@@ -105,7 +105,7 @@ func NewSpace() *Space {
 	return space
 }
 
-var ShapeVelocityFunc = func(obj interface{}) Vector {
+var ShapeVelocityFunc = func(obj any) Vector {
 	return obj.(*Shape).body.v
 }
 
@@ -242,11 +242,11 @@ func (space *Space) Deactivate(body *Body) {
 
 type PostStepCallback struct {
 	callback PostStepCallbackFunc
-	key      interface{}
-	data     interface{}
+	key      any
+	data     any
 }
 
-type PostStepCallbackFunc func(space *Space, key interface{}, data interface{})
+type PostStepCallbackFunc func(space *Space, key any, data any)
 
 func Contains(bodies []*Body, body *Body) bool {
 	for i := 0; i < len(bodies); i++ {
@@ -416,7 +416,7 @@ type ShapePair struct {
 	a, b *Shape
 }
 
-func SpaceCollideShapesFunc(obj interface{}, b *Shape, collisionId uint32, vspace interface{}) uint32 {
+func SpaceCollideShapesFunc(obj any, b *Shape, collisionId uint32, vspace any) uint32 {
 	a := obj.(*Shape)
 	space := vspace.(*Space)
 
@@ -939,7 +939,7 @@ func (space *Space) EachConstraint(f func(*Constraint)) {
 	space.Unlock(true)
 }
 
-type SpacePointQueryFunc func(*Shape, Vector, float64, Vector, interface{})
+type SpacePointQueryFunc func(*Shape, Vector, float64, Vector, any)
 
 type PointQueryContext struct {
 	point       Vector
@@ -959,7 +959,7 @@ func (space *Space) PointQueryNearest(point Vector, maxDistance float64, filter 
 	return info
 }
 
-func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint32, out interface{}) uint32 {
+func NearestPointQueryNearest(obj any, shape *Shape, collisionId uint32, out any) uint32 {
 	context := obj.(*PointQueryContext)
 	if !shape.Filter.Reject(context.filter) && !shape.sensor {
 		info := shape.PointQuery(context.point)
@@ -972,7 +972,7 @@ func NearestPointQueryNearest(obj interface{}, shape *Shape, collisionId uint32,
 	return collisionId
 }
 
-type SpaceBBQueryFunc func(shape *Shape, data interface{})
+type SpaceBBQueryFunc func(shape *Shape, data any)
 
 type BBQueryContext struct {
 	bb     BB
@@ -980,7 +980,7 @@ type BBQueryContext struct {
 	f      SpaceBBQueryFunc
 }
 
-func (space *Space) bbQuery(obj interface{}, shape *Shape, collisionId uint32, data interface{}) uint32 {
+func (space *Space) bbQuery(obj any, shape *Shape, collisionId uint32, data any) uint32 {
 	context := obj.(*BBQueryContext)
 	if !shape.Filter.Reject(context.filter) && shape.BB().Intersects(context.bb) {
 		context.f(shape, data)
@@ -988,7 +988,7 @@ func (space *Space) bbQuery(obj interface{}, shape *Shape, collisionId uint32, d
 	return collisionId
 }
 
-func (space *Space) BBQuery(bb BB, filter ShapeFilter, f SpaceBBQueryFunc, data interface{}) {
+func (space *Space) BBQuery(bb BB, filter ShapeFilter, f SpaceBBQueryFunc, data any) {
 	context := BBQueryContext{bb, filter, f}
 	space.Lock()
 
@@ -1005,7 +1005,7 @@ func (space *Space) ArrayForBodyType(bodyType int) *[]*Body {
 	return &space.dynamicBodies
 }
 
-type SpaceSegmentQueryFunc func(shape *Shape, point, normal Vector, alpha float64, data interface{})
+type SpaceSegmentQueryFunc func(shape *Shape, point, normal Vector, alpha float64, data any)
 
 type SegmentQueryContext struct {
 	start, end Vector
@@ -1014,7 +1014,7 @@ type SegmentQueryContext struct {
 	f          SpaceSegmentQueryFunc
 }
 
-func segmentQuery(obj interface{}, shape *Shape, data interface{}) float64 {
+func segmentQuery(obj any, shape *Shape, data any) float64 {
 	context := obj.(*SegmentQueryContext)
 	var info SegmentQueryInfo
 
@@ -1025,7 +1025,7 @@ func segmentQuery(obj interface{}, shape *Shape, data interface{}) float64 {
 	return 1
 }
 
-func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
+func queryFirst(obj any, shape *Shape, data any) float64 {
 	context := obj.(*SegmentQueryContext)
 	out := data.(*SegmentQueryInfo)
 	var info SegmentQueryInfo
@@ -1040,7 +1040,7 @@ func queryFirst(obj interface{}, shape *Shape, data interface{}) float64 {
 	return out.Alpha
 }
 
-func (space *Space) SegmentQuery(start, end Vector, radius float64, filter ShapeFilter, f SpaceSegmentQueryFunc, data interface{}) {
+func (space *Space) SegmentQuery(start, end Vector, radius float64, filter ShapeFilter, f SpaceSegmentQueryFunc, data any) {
 	context := SegmentQueryContext{start, end, radius, filter, f}
 	space.Lock()
 
@@ -1062,7 +1062,7 @@ func (space *Space) TimeStep() float64 {
 	return space.curr_dt
 }
 
-func (space *Space) PostStepCallback(key interface{}) *PostStepCallback {
+func (space *Space) PostStepCallback(key any) *PostStepCallback {
 	for i := 0; i < len(space.postStepCallbacks); i++ {
 		callback := space.postStepCallbacks[i]
 		if callback != nil && callback.key == key {
@@ -1072,9 +1072,9 @@ func (space *Space) PostStepCallback(key interface{}) *PostStepCallback {
 	return nil
 }
 
-func PostStepDoNothing(space *Space, key, data interface{}) {}
+func PostStepDoNothing(space *Space, key, data any) {}
 
-func (space *Space) AddPostStepCallback(f PostStepCallbackFunc, key, data interface{}) bool {
+func (space *Space) AddPostStepCallback(f PostStepCallbackFunc, key, data any) bool {
 	if key == nil || space.PostStepCallback(key) == nil {
 		callback := &PostStepCallback{
 			key:  key,
@@ -1103,7 +1103,7 @@ func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points 
 
 	var anyCollision bool
 
-	shapeQuery := func(obj interface{}, b *Shape, collisionId uint32, _ interface{}) uint32 {
+	shapeQuery := func(obj any, b *Shape, collisionId uint32, _ any) uint32 {
 		a := obj.(*Shape)
 		if a.Filter.Reject(b.Filter) || a == b {
 			return collisionId

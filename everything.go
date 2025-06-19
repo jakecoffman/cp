@@ -44,18 +44,18 @@ var SHAPE_FILTER_NONE = ShapeFilter{NO_GROUP, ^ALL_CATEGORIES, ^ALL_CATEGORIES}
 // CollisionBeginFunc is collision begin event function callback type.
 //
 // Returning false from a begin callback causes the collision to be ignored until the the separate callback is called when the objects stop colliding.
-type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{}) bool
+type CollisionBeginFunc func(arb *Arbiter, space *Space, userData any) bool
 
 // CollisionPreSolveFunc is collision pre-solve event function callback type.
 //
 // Returning false from a pre-step callback causes the collision to be ignored until the next step.
-type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{}) bool
+type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData any) bool
 
 // CollisionPostSolveFunc is collision post-solve event function callback type.
-type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData any)
 
 // CollisionSeparateFunc is collision separate event function callback type.
-type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData any)
 
 type CollisionType uintptr
 
@@ -79,7 +79,7 @@ type CollisionHandler struct {
 	// This function is called when two shapes with types that match this collision handler stop colliding.
 	SeparateFunc CollisionSeparateFunc
 	// This is a user definable context pointer that is passed to all of the collision handler functions.
-	UserData interface{}
+	UserData any
 }
 
 type Contact struct {

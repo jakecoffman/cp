@@ -2,7 +2,7 @@ package cp
 
 import "math"
 
-type BBTreeVelocityFunc func(obj interface{}) Vector
+type BBTreeVelocityFunc func(obj any) Vector
 
 type Node struct {
 	obj    *Shape
@@ -120,10 +120,10 @@ type MarkContext struct {
 	tree       *BBTree
 	staticRoot *Node
 	f          SpatialIndexQuery
-	data       interface{}
+	data       any
 }
 
-func VoidQueryFunc(obj1 interface{}, obj2 *Shape, collisionId uint32, data interface{}) uint32 {
+func VoidQueryFunc(obj1 any, obj2 *Shape, collisionId uint32, data any) uint32 {
 	return collisionId
 }
 
@@ -329,7 +329,7 @@ func (tree *BBTree) ReindexObject(obj *Shape, hashId HashValue) {
 	}
 }
 
-func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data interface{}) {
+func (tree *BBTree) ReindexQuery(f SpatialIndexQuery, data any) {
 	if tree.root == nil {
 		return
 	}
@@ -400,13 +400,13 @@ func (tree *BBTree) PairsClear(leaf *Node) {
 	}
 }
 
-func (tree *BBTree) Query(obj interface{}, bb BB, f SpatialIndexQuery, data interface{}) {
+func (tree *BBTree) Query(obj any, bb BB, f SpatialIndexQuery, data any) {
 	if tree.root != nil {
 		tree.root.SubtreeQuery(obj, bb, f, data)
 	}
 }
 
-func (subtree *Node) SubtreeQuery(obj interface{}, bb BB, query SpatialIndexQuery, data interface{}) {
+func (subtree *Node) SubtreeQuery(obj any, bb BB, query SpatialIndexQuery, data any) {
 	if subtree.bb.Intersects(bb) {
 		if subtree.IsLeaf() {
 			query(obj, subtree.obj, 0, data)
@@ -417,7 +417,7 @@ func (subtree *Node) SubtreeQuery(obj interface{}, bb BB, query SpatialIndexQuer
 	}
 }
 
-func (subtree *Node) SubtreeSegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) float64 {
+func (subtree *Node) SubtreeSegmentQuery(obj any, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data any) float64 {
 	if subtree.IsLeaf() {
 		return f(obj, subtree.obj, data)
 	}
@@ -444,7 +444,7 @@ func (subtree *Node) SubtreeSegmentQuery(obj interface{}, a, b Vector, t_exit fl
 	return t_exit
 }
 
-func (tree *BBTree) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+func (tree *BBTree) SegmentQuery(obj any, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data any) {
 	root := tree.root
 	if root != nil {
 		root.SubtreeSegmentQuery(obj, a, b, t_exit, f, data)

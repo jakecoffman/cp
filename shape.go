@@ -33,7 +33,7 @@ type Shape struct {
 	e, u     float64
 	surfaceV Vector
 
-	UserData interface{}
+	UserData any
 
 	collisionType CollisionType
 	Filter        ShapeFilter

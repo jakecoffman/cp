@@ -29,7 +29,7 @@ func NewSpaceHash(celldim float64, num int, bbfunc SpatialIndexBB, staticIndex *
 			return obj == elt.obj
 		}),
 		stamp:         1,
-		pooledHandles: sync.Pool{New: func() interface{} { return &Handle{} }},
+		pooledHandles: sync.Pool{New: func() any { return &Handle{} }},
 	}
 	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
 		spaceHash.pooledHandles.Put(&Handle{})
@@ -138,7 +138,7 @@ func (hash *SpaceHash) removeOrphanedHandles(binPtr **SpaceHashBin) {
 	}
 }
 
-func (hash *SpaceHash) queryHelper(binPtr **SpaceHashBin, obj interface{}, f SpatialIndexQuery, data interface{}) {
+func (hash *SpaceHash) queryHelper(binPtr **SpaceHashBin, obj any, f SpatialIndexQuery, data any) {
 restart:
 	for bin := *binPtr; bin != nil; bin = bin.next {
 		hand := bin.handle
@@ -164,7 +164,7 @@ func floor(f float64) int {
 	return i
 }
 
-func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
+func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data any) {
 	hash.clearTable()
 
 	hash.handleSet.Each(func(hand *Handle) {
@@ -202,7 +202,7 @@ func (hash *SpaceHash) ReindexQuery(f SpatialIndexQuery, data interface{}) {
 	hash.CollideStatic(hash.staticIndex, f, data)
 }
 
-func (hash *SpaceHash) Query(obj interface{}, bb BB, f SpatialIndexQuery, data interface{}) {
+func (hash *SpaceHash) Query(obj any, bb BB, f SpatialIndexQuery, data any) {
 	dim := hash.celldim
 	l := floor(bb.L / dim)
 	r := floor(bb.R / dim)
@@ -220,7 +220,7 @@ func (hash *SpaceHash) Query(obj interface{}, bb BB, f SpatialIndexQuery, data i
 	hash.stamp++
 }
 
-func (hash *SpaceHash) segmentQueryHelper(binPtr **SpaceHashBin, obj interface{}, f SpatialIndexSegmentQuery, data interface{}) float64 {
+func (hash *SpaceHash) segmentQueryHelper(binPtr **SpaceHashBin, obj any, f SpatialIndexSegmentQuery, data any) float64 {
 	t := 1.0
 
 restart:
@@ -243,7 +243,7 @@ restart:
 }
 
 // modified from http://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
-func (hash *SpaceHash) SegmentQuery(obj interface{}, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data interface{}) {
+func (hash *SpaceHash) SegmentQuery(obj any, a, b Vector, t_exit float64, f SpatialIndexSegmentQuery, data any) {
 	a = a.Mult(1.0 / hash.celldim)
 	b = b.Mult(1.0 / hash.celldim)
 
