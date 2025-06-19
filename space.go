@@ -595,7 +595,7 @@ func (space *Space) ProcessComponents(dt float64) {
 		}
 
 		// Generate components and deactivate sleeping ones
-		for i := 0; i < len(space.dynamicBodies); {
+		for i := range space.dynamicBodies {
 			body := space.dynamicBodies[i]
 
 			if body.ComponentRoot() == nil {
@@ -794,7 +794,7 @@ func (space *Space) Unlock(runPostStep bool) {
 		return
 	}
 
-	for i := 0; i < len(space.rousedBodies); i++ {
+	for i := range space.rousedBodies {
 		space.Activate(space.rousedBodies[i])
 		space.rousedBodies[i] = nil
 	}
@@ -932,7 +932,7 @@ func (space *Space) EachShape(f func(*Shape)) {
 func (space *Space) EachConstraint(f func(*Constraint)) {
 	space.Lock()
 
-	for i := 0; i < len(space.constraints); i++ {
+	for i := range space.constraints {
 		f(space.constraints[i])
 	}
 
@@ -1063,7 +1063,7 @@ func (space *Space) TimeStep() float64 {
 }
 
 func (space *Space) PostStepCallback(key any) *PostStepCallback {
-	for i := 0; i < len(space.postStepCallbacks); i++ {
+	for i := range space.postStepCallbacks {
 		callback := space.postStepCallbacks[i]
 		if callback != nil && callback.key == key {
 			return callback

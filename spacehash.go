@@ -378,7 +378,7 @@ func (hash *SpaceHash) clearTableCell(idx int) {
 }
 
 func (hash *SpaceHash) clearTable() {
-	for i := 0; i < hash.numCells; i++ {
+	for i := range hash.numCells {
 		hash.clearTableCell(i)
 	}
 }

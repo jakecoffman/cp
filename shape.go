@@ -253,7 +253,7 @@ func ShapesCollide(a, b *Shape) ContactPointSet {
 		set.Normal = info.n
 	}
 
-	for i := 0; i < info.count; i++ {
+	for i := range info.count {
 		p1 := contacts[i].r1
 		p2 := contacts[i].r2
 
