@@ -410,7 +410,7 @@ func (arb *Arbiter) TotalImpulse() Vector {
 	var sum Vector
 
 	count := arb.Count()
-	for i := 0; i < count; i++ {
+	for i := range count {
 		con := arb.contacts[i]
 		sum = sum.Add(arb.n.Rotate(Vector{con.jnAcc, con.jtAcc}))
 	}
@@ -516,7 +516,7 @@ func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
 		arb.n = set.Normal
 	}
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		p1 := set.Points[i].PointA
 		p2 := set.Points[i].PointB
 

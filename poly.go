@@ -45,7 +45,7 @@ func (poly *PolyShape) CacheData(transform Transform) BB {
 	b := INFINITY
 	t := -INFINITY
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		v := transform.Point(src[i].v0)
 		n := transform.Vect(src[i].n)
 
@@ -74,7 +74,7 @@ func (poly *PolyShape) PointQuery(p Vector, info *PointQueryInfo) {
 	closestNormal := Vector{}
 	outside := false
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		v1 := planes[i].v0
 		if !outside {
 			outside = planes[i].n.Dot(p.Sub(v1)) > 0
@@ -117,7 +117,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 	r := poly.r
 	rsum := r + r2
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		n := planes[i].n
 		an := a.Dot(n)
 		d := an - planes[i].v0.Dot(n) - rsum
@@ -146,7 +146,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 
 	// Also check against the beveled vertexes
 	if rsum > 0 {
-		for i := 0; i < count; i++ {
+		for i := range count {
 			circleInfo := SegmentQueryInfo{nil, b, Vector{}, 1}
 			CircleSegmentQuery(poly.Shape, planes[i].v0, r, a, b, r2, &circleInfo)
 			if circleInfo.Alpha < info.Alpha {
@@ -159,7 +159,7 @@ func (poly *PolyShape) SegmentQuery(a, b Vector, r2 float64, info *SegmentQueryI
 func NewPolyShape(body *Body, vectCount int, verts []Vector, transform Transform, radius float64) *Shape {
 	hullVerts := []Vector{}
 	// Transform the verts before building the hull in case of a negative scale.
-	for i := 0; i < vectCount; i++ {
+	for i := range vectCount {
 		hullVerts = append(hullVerts, transform.Point(verts[i]))
 	}
 
@@ -205,7 +205,7 @@ func (p *PolyShape) SetVerts(count int, verts []Vector) {
 	p.count = count
 	p.planes = make([]SplittingPlane, count*2)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		a := verts[(i-1+count)%count]
 		b := verts[i]
 		n := b.Sub(a).ReversePerp().Normalize()
@@ -218,7 +218,7 @@ func (p *PolyShape) SetVerts(count int, verts []Vector) {
 func (p *PolyShape) SetVertsUnsafe(count int, verts []Vector, transform Transform) {
 	hullVerts := make([]Vector, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		hullVerts[i] = transform.Point(verts[i])
 	}
 

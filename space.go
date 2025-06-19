@@ -94,7 +94,7 @@ func NewSpace() *Space {
 		postStepCallbacks: []*PostStepCallback{},
 		defaultHandler:    &CollisionHandlerDoNothing,
 	}
-	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
+	for range POOLED_BUFFER_SIZE {
 		space.pooledArbiters.Put(&Arbiter{})
 	}
 	space.dynamicShapes = NewBBTree(ShapeGetBB, space.staticShapes)
@@ -249,7 +249,7 @@ type PostStepCallback struct {
 type PostStepCallbackFunc func(space *Space, key any, data any)
 
 func Contains(bodies []*Body, body *Body) bool {
-	for i := 0; i < len(bodies); i++ {
+	for i := range bodies {
 		if bodies[i] == body {
 			return true
 		}

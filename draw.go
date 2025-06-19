@@ -50,7 +50,7 @@ func DrawShape(shape *Shape, options Drawer) {
 		planes := poly.planes
 		verts := make([]Vector, count)
 
-		for i := 0; i < count; i++ {
+		for i := range count {
 			verts[i] = planes[i].v0
 		}
 		options.DrawPolygon(count, verts, poly.r, outline, fill, data)
@@ -137,7 +137,7 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 		r2 := Vector{sin, cos * s}
 
 		verts := []Vector{}
-		for i := 0; i < len(springVerts); i++ {
+		for i := range springVerts {
 			v := springVerts[i]
 			verts = append(verts, Vector{v.Dot(r1) + a.X, v.Dot(r2) + a.Y})
 		}
