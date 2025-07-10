@@ -180,7 +180,7 @@ func (set *HashSet[T, U]) getUnusedBin() *HashSetBin[U] {
 		return bin
 	}
 
-	for i := 0; i < POOLED_BUFFER_SIZE; i++ {
+	for range POOLED_BUFFER_SIZE {
 		set.recycle(&HashSetBin[U]{})
 	}
 

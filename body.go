@@ -3,6 +3,7 @@ package cp
 import (
 	"fmt"
 	"math"
+	"slices"
 )
 
 // Body types
@@ -24,7 +25,7 @@ type Body struct {
 	// UserData is an object that this constraint is associated with.
 	//
 	// You can use this get a reference to your game object or controller object from within callbacks.
-	UserData interface{}
+	UserData any
 
 	id            int              // Body id
 	velocity_func BodyVelocityFunc // Integration function
@@ -184,20 +185,14 @@ func (body *Body) SetType(newType int) {
 	}
 
 	if oldType == BODY_STATIC {
-		for i, b := range body.space.staticBodies {
-			if b == body {
-				body.space.staticBodies = append(body.space.staticBodies[:i], body.space.staticBodies[i+1:]...)
-				break
-			}
-		}
+		body.space.staticBodies = slices.DeleteFunc(body.space.staticBodies, func(b *Body) bool {
+			return b == body
+		})
 		body.space.dynamicBodies = append(body.space.dynamicBodies, body)
 	} else if newType == BODY_STATIC {
-		for i, b := range body.space.dynamicBodies {
-			if b == body {
-				body.space.dynamicBodies = append(body.space.dynamicBodies[:i], body.space.dynamicBodies[i+1:]...)
-				break
-			}
-		}
+		body.space.dynamicBodies = slices.DeleteFunc(body.space.dynamicBodies, func(b *Body) bool {
+			return b == body
+		})
 		body.space.staticBodies = append(body.space.staticBodies, body)
 	}
 
@@ -395,12 +390,9 @@ func (body *Body) Activate() {
 			bodyToo = next
 		}
 
-		for i := 0; i < len(space.sleepingComponents); i++ {
-			if space.sleepingComponents[i] == root {
-				space.sleepingComponents = append(space.sleepingComponents[:i], space.sleepingComponents[i+1:]...)
-				break
-			}
-		}
+		space.sleepingComponents = slices.DeleteFunc(space.sleepingComponents, func(b *Body) bool {
+			return b == root
+		})
 	}
 
 	for arbiter := body.arbiterList; arbiter != nil; arbiter = arbiter.Next(body) {
@@ -551,16 +543,9 @@ func (body *Body) RemoveConstraint(constraint *Constraint) {
 
 // RemoveShape removes collision shape from the body.
 func (body *Body) RemoveShape(shape *Shape) {
-	for i, s := range body.shapeList {
-		if s == shape {
-			// leak-free delete from slice
-			last := len(body.shapeList) - 1
-			body.shapeList[i] = body.shapeList[last]
-			body.shapeList[last] = nil
-			body.shapeList = body.shapeList[:last]
-			break
-		}
-	}
+	body.shapeList = slices.DeleteFunc(body.shapeList, func(s *Shape) bool {
+		return s == shape
+	})
 	if body.GetType() == BODY_DYNAMIC && shape.massInfo.m > 0 {
 		body.AccumulateMassFromShapes()
 	}
@@ -593,7 +578,7 @@ func (body *Body) EachArbiter(f func(*Arbiter)) {
 
 // EachShape calls f once for each shape attached to this body
 func (body *Body) EachShape(f func(*Shape)) {
-	for i := 0; i < len(body.shapeList); i++ {
+	for i := range body.shapeList {
 		f(body.shapeList[i])
 	}
 }

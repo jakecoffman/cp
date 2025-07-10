@@ -25,7 +25,7 @@ type Constraint struct {
 	PreSolve      ConstraintPreSolveFunc
 	PostSolve     ConstraintPostSolveFunc
 
-	UserData interface{}
+	UserData any
 }
 
 func NewConstraint(class Constrainer, a, b *Body) *Constraint {

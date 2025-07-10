@@ -15,18 +15,18 @@ type FColor struct {
 }
 
 type Drawer interface {
-	DrawCircle(pos Vector, angle, radius float64, outline, fill FColor, data interface{})
-	DrawSegment(a, b Vector, fill FColor, data interface{})
-	DrawFatSegment(a, b Vector, radius float64, outline, fill FColor, data interface{})
-	DrawPolygon(count int, verts []Vector, radius float64, outline, fill FColor, data interface{})
-	DrawDot(size float64, pos Vector, fill FColor, data interface{})
+	DrawCircle(pos Vector, angle, radius float64, outline, fill FColor, data any)
+	DrawSegment(a, b Vector, fill FColor, data any)
+	DrawFatSegment(a, b Vector, radius float64, outline, fill FColor, data any)
+	DrawPolygon(count int, verts []Vector, radius float64, outline, fill FColor, data any)
+	DrawDot(size float64, pos Vector, fill FColor, data any)
 
 	Flags() uint
 	OutlineColor() FColor
-	ShapeColor(shape *Shape, data interface{}) FColor
+	ShapeColor(shape *Shape, data any) FColor
 	ConstraintColor() FColor
 	CollisionPointColor() FColor
-	Data() interface{}
+	Data() any
 }
 
 func DrawShape(shape *Shape, options Drawer) {
@@ -50,7 +50,7 @@ func DrawShape(shape *Shape, options Drawer) {
 		planes := poly.planes
 		verts := make([]Vector, count)
 
-		for i := 0; i < count; i++ {
+		for i := range count {
 			verts[i] = planes[i].v0
 		}
 		options.DrawPolygon(count, verts, poly.r, outline, fill, data)
@@ -137,12 +137,12 @@ func DrawConstraint(constraint *Constraint, options Drawer) {
 		r2 := Vector{sin, cos * s}
 
 		verts := []Vector{}
-		for i := 0; i < len(springVerts); i++ {
+		for i := range springVerts {
 			v := springVerts[i]
 			verts = append(verts, Vector{v.Dot(r1) + a.X, v.Dot(r2) + a.Y})
 		}
 
-		for i := 0; i < len(springVerts)-1; i++ {
+		for i := range len(springVerts) - 1 {
 			options.DrawSegment(verts[i], verts[i+1], color, data)
 		}
 	// these aren't drawn in Chipmunk, so they aren't drawn here

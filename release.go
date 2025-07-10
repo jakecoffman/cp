@@ -2,4 +2,4 @@
 
 package cp
 
-func assert(_ bool, _ ...interface{}) {}
+func assert(_ bool, _ ...any) {}

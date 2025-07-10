@@ -44,18 +44,18 @@ var SHAPE_FILTER_NONE = ShapeFilter{NO_GROUP, ^ALL_CATEGORIES, ^ALL_CATEGORIES}
 // CollisionBeginFunc is collision begin event function callback type.
 //
 // Returning false from a begin callback causes the collision to be ignored until the the separate callback is called when the objects stop colliding.
-type CollisionBeginFunc func(arb *Arbiter, space *Space, userData interface{}) bool
+type CollisionBeginFunc func(arb *Arbiter, space *Space, userData any) bool
 
 // CollisionPreSolveFunc is collision pre-solve event function callback type.
 //
 // Returning false from a pre-step callback causes the collision to be ignored until the next step.
-type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData interface{}) bool
+type CollisionPreSolveFunc func(arb *Arbiter, space *Space, userData any) bool
 
 // CollisionPostSolveFunc is collision post-solve event function callback type.
-type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionPostSolveFunc func(arb *Arbiter, space *Space, userData any)
 
 // CollisionSeparateFunc is collision separate event function callback type.
-type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData interface{})
+type CollisionSeparateFunc func(arb *Arbiter, space *Space, userData any)
 
 type CollisionType uintptr
 
@@ -79,7 +79,7 @@ type CollisionHandler struct {
 	// This function is called when two shapes with types that match this collision handler stop colliding.
 	SeparateFunc CollisionSeparateFunc
 	// This is a user definable context pointer that is passed to all of the collision handler functions.
-	UserData interface{}
+	UserData any
 }
 
 type Contact struct {
@@ -241,7 +241,7 @@ func MomentForPoly(mass float64, count int, verts []Vector, offset Vector, r flo
 
 	var sum1 float64
 	var sum2 float64
-	for i := 0; i < count; i++ {
+	for i := range count {
 		v1 := verts[i].Add(offset)
 		v2 := verts[(i+1)%count].Add(offset)
 
@@ -273,7 +273,7 @@ func AreaForSegment(a, b Vector, r float64) float64 {
 func AreaForPoly(count int, verts []Vector, r float64) float64 {
 	var area float64
 	var perimeter float64
-	for i := 0; i < count; i++ {
+	for i := range count {
 		v1 := verts[i]
 		v2 := verts[(i+1)%count]
 
@@ -289,7 +289,7 @@ func CentroidForPoly(count int, verts []Vector) Vector {
 	var sum float64
 	vsum := Vector{}
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		v1 := verts[i]
 		v2 := verts[(i+1)%count]
 		cross := v1.Cross(v2)
@@ -306,7 +306,7 @@ func DebugInfo(space *Space) string {
 	arbiters := len(space.arbiters)
 	points := 0
 
-	for i := 0; i < arbiters; i++ {
+	for i := range arbiters {
 		points += int(space.arbiters[i].count)
 	}
 

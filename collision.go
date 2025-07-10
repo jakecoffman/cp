@@ -46,7 +46,7 @@ func CircleSupportPoint(shape *Shape, _ Vector) SupportPoint {
 func PolySupportPointIndex(count int, planes []SplittingPlane, n Vector) int {
 	max := -INFINITY
 	var index int
-	for i := 0; i < count; i++ {
+	for i := range count {
 		v := planes[i].v0
 		d := v.Dot(n)
 		if d > max {
@@ -454,7 +454,7 @@ func EPARecurse(ctx SupportContext, count int, hull []MinkowskiPoint, iteration 
 		count2 := 1
 		hull2[0] = p
 
-		for i := 0; i < count; i++ {
+		for i := range count {
 			index := (mini + 1 + i) % count
 
 			h0 := hull2[count2-1].ab

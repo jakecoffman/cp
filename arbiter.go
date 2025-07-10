@@ -12,7 +12,7 @@ type Arbiter struct {
 	e, u       float64
 	surface_vr Vector
 
-	UserData interface{}
+	UserData any
 
 	a, b               *Shape
 	body_a, body_b     *Body
@@ -115,7 +115,7 @@ func (arbiter *Arbiter) ApplyCachedImpulse(dt_coef float64) {
 		return
 	}
 
-	for i := 0; i < arbiter.count; i++ {
+	for i := range arbiter.count {
 		contact := arbiter.contacts[i]
 		j := arbiter.n.Rotate(Vector{contact.jnAcc, contact.jtAcc})
 		apply_impulses(arbiter.body_a, arbiter.body_b, contact.r1, contact.r2, j.Mult(dt_coef))
@@ -129,7 +129,7 @@ func (arbiter *Arbiter) ApplyImpulse() {
 	surface_vr := arbiter.surface_vr
 	friction := arbiter.u
 
-	for i := 0; i < arbiter.count; i++ {
+	for i := range arbiter.count {
 		con := &arbiter.contacts[i]
 		nMass := con.nMass
 		r1 := con.r1
@@ -171,7 +171,7 @@ func (arb *Arbiter) PreStep(dt, slop, bias float64) {
 	n := arb.n
 	bodyDelta := b.p.Sub(a.p)
 
-	for i := 0; i < arb.count; i++ {
+	for i := range arb.count {
 		con := &arb.contacts[i]
 
 		// Calculate the mass normal and mass tangent.
@@ -199,7 +199,7 @@ func (arb *Arbiter) Update(info *CollisionInfo, space *Space) {
 	arb.body_b = b.body
 
 	// Iterate over the possible pairs to look for hash value matches.
-	for i := 0; i < info.count; i++ {
+	for i := range info.count {
 		con := &info.arr[i]
 
 		// r1 and r2 store absolute offsets at init time.
@@ -377,28 +377,28 @@ var CollisionHandlerDefault = CollisionHandler{
 	nil,
 }
 
-func AlwaysCollide(_ *Arbiter, _ *Space, _ interface{}) bool {
+func AlwaysCollide(_ *Arbiter, _ *Space, _ any) bool {
 	return true
 }
 
-func DoNothing(_ *Arbiter, _ *Space, _ interface{}) {
+func DoNothing(_ *Arbiter, _ *Space, _ any) {
 
 }
 
-func DefaultBegin(arb *Arbiter, space *Space, _ interface{}) bool {
+func DefaultBegin(arb *Arbiter, space *Space, _ any) bool {
 	return arb.CallWildcardBeginA(space) && arb.CallWildcardBeginB(space)
 }
 
-func DefaultPreSolve(arb *Arbiter, space *Space, _ interface{}) bool {
+func DefaultPreSolve(arb *Arbiter, space *Space, _ any) bool {
 	return arb.CallWildcardPreSolveA(space) && arb.CallWildcardPreSolveB(space)
 }
 
-func DefaultPostSolve(arb *Arbiter, space *Space, _ interface{}) {
+func DefaultPostSolve(arb *Arbiter, space *Space, _ any) {
 	arb.CallWildcardPostSolveA(space)
 	arb.CallWildcardPostSolveB(space)
 }
 
-func DefaultSeparate(arb *Arbiter, space *Space, _ interface{}) {
+func DefaultSeparate(arb *Arbiter, space *Space, _ any) {
 	arb.CallWildcardSeparateA(space)
 	arb.CallWildcardSeparateB(space)
 }
@@ -410,7 +410,7 @@ func (arb *Arbiter) TotalImpulse() Vector {
 	var sum Vector
 
 	count := arb.Count()
-	for i := 0; i < count; i++ {
+	for i := range count {
 		con := arb.contacts[i]
 		sum = sum.Add(arb.n.Rotate(Vector{con.jnAcc, con.jtAcc}))
 	}
@@ -483,7 +483,7 @@ func (arb *Arbiter) ContactPointSet() ContactPointSet {
 		set.Normal = n
 	}
 
-	for i := 0; i < set.Count; i++ {
+	for i := range set.Count {
 		// Contact points are relative to body CoGs;
 		p1 := arb.body_a.p.Add(arb.contacts[i].r1)
 		p2 := arb.body_b.p.Add(arb.contacts[i].r2)
@@ -516,7 +516,7 @@ func (arb *Arbiter) SetContactPointSet(set *ContactPointSet) {
 		arb.n = set.Normal
 	}
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		p1 := set.Points[i].PointA
 		p2 := set.Points[i].PointB
 
