@@ -603,8 +603,6 @@ func (space *Space) ProcessComponents(dt float64) {
 				}
 			}
 
-			i++
-
 			// Only sleeping bodies retain their component node pointers.
 			body.sleepingRoot = nil
 			body.sleepingNext = nil
