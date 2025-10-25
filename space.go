@@ -582,7 +582,7 @@ func (space *Space) ProcessComponents(dt float64) {
 		}
 
 		// Generate components and deactivate sleeping ones
-		for i := range space.dynamicBodies {
+		for i := 0; i < len(space.dynamicBodies); {
 			body := space.dynamicBodies[i]
 
 			if body.ComponentRoot() == nil {
