@@ -7,8 +7,10 @@ import (
 	"unsafe"
 )
 
-const MAX_CONTACTS_PER_ARBITER = 2
-const CONTACTS_BUFFER_SIZE = 1024
+const (
+	MAX_CONTACTS_PER_ARBITER = 2
+	CONTACTS_BUFFER_SIZE     = 1024
+)
 
 type Space struct {
 	Iterations uint // must be non-zero
@@ -762,7 +764,7 @@ func (space *Space) Step(dt float64) {
 
 		// run the post-solve callbacks
 		for _, arb := range space.arbiters {
-			arb.handler.PostSolveFunc(arb, space, arb.handler)
+			arb.handler.PostSolveFunc(arb, space, arb.handler.UserData)
 		}
 	}
 	space.Unlock(true)
@@ -1119,7 +1121,6 @@ func (space *Space) ShapeQuery(shape *Shape, callback func(shape *Shape, points 
 
 // ReindexShape re-computes the hash of the shape in both the dynamic and static list.
 func (space *Space) ReindexShape(shape *Shape) {
-
 	assert(space.locked == 0, "You cannot manually reindex objects while the space is locked. Wait until the current query or step is complete.")
 
 	shape.CacheBB()
