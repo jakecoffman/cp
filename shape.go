@@ -130,6 +130,10 @@ func (s *Shape) SetBB(bb BB) {
 	s.bb = bb
 }
 
+func (s *Shape) CollisionType() CollisionType {
+	return s.collisionType
+}
+
 func (s *Shape) SetCollisionType(collisionType CollisionType) {
 	s.body.Activate()
 	s.collisionType = collisionType
