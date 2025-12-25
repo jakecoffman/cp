@@ -44,6 +44,13 @@ func NewConstraint(class Constrainer, a, b *Body) *Constraint {
 		PostSolve:     nil,
 	}
 }
+func (c Constraint) A() *Body {
+	return c.a
+}
+
+func (c Constraint) B() *Body {
+	return c.b
+}
 
 func (c *Constraint) ActivateBodies() {
 	c.a.Activate()
