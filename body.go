@@ -626,3 +626,50 @@ func BodyUpdatePosition(body *Body, dt float64) {
 	body.v_bias = Vector{}
 	body.w_bias = 0
 }
+
+// Sleep force the body not grouped with any other sleeping bodies to sleep immediately.
+func (body *Body) Sleep() {
+	body.SleepWithGroup(nil)
+}
+
+// SleepWithGroup force the body to sleep immediately.
+func (body *Body) SleepWithGroup(group *Body) {
+	assert(body.GetType() == BODY_DYNAMIC, "Non-dynamic bodies cannot be put to sleep.")
+
+	assert(!body.space.IsLocked(), "Bodies cannot be put to sleep during a query or a call to Space.Step(). Put these calls into a post-step callback.")
+	assert(body.space.SleepTimeThreshold < INFINITY, "Sleeping is not enabled on the space. You cannot sleep a body without setting a sleep time threshold on the space.")
+	assert(group == nil || group.IsSleeping(), "Cannot use a non-sleeping body as a group identifier.")
+
+	if body.IsSleeping() {
+		assert(body.ComponentRoot() == group.ComponentRoot(), "The body is already sleeping and it's group cannot be reassigned.")
+		return
+	}
+
+	for _, shape := range body.shapeList {
+		shape.CacheBB()
+	}
+	body.space.Deactivate(body)
+
+	if group != nil {
+		root := group.ComponentRoot()
+
+		body.sleepingRoot = root
+		body.sleepingNext = root.sleepingNext
+		body.sleepingIdleTime = 0
+
+		root.sleepingNext = body
+	} else {
+		body.sleepingRoot = body
+		body.sleepingNext = nil
+		body.sleepingIdleTime = 0
+
+		body.space.sleepingComponents = append(body.space.sleepingComponents, body)
+	}
+	
+	for i, v := range body.space.dynamicBodies {
+		if v == body {
+			body.space.dynamicBodies = append(body.space.dynamicBodies[:i], body.space.dynamicBodies[i+1:]...)
+			break
+		}
+	}
+}
